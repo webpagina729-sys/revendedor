@@ -3145,7 +3145,7 @@
                 </button>
             </div>
             <div class="bv-foot">
-                ¿No tenés código? <a onclick="bvIrRegistro()">Creá tu cuenta</a>
+                ¿No tenés código? <a onclick="bvIrRegistro()">Regístrate</a>
             </div>
         </div>
     </div>
@@ -7214,7 +7214,8 @@
             window.onRecaptchaReady();
         }
     </script>
-    
+
+    <script>
         // ═══════════════════════════════════════════════════════════════
         // MODAL BIENVENIDA — LÓGICA COMPLETA
         // ═══════════════════════════════════════════════════════════════
@@ -7266,25 +7267,45 @@
                 }
             });
 
-            // Restaurar sesión cuando ya hay código guardado
+            // Restaurar sesión cuando ya hay código guardado — usa Worker
             async function bvRestaurarSesion(codigo) {
                 try {
-                    var snap = await firebase.firestore()
-                        .collection('usuarios')
-                        .where('codigoVendedor', '==', codigo)
-                        .limit(1).get();
-                    if (!snap.empty) {
-                        var data = snap.docs[0].data();
-                        await bvAplicarDatos(codigo, data);
+                    var res = await fetch(
+                        'https://datosderevendedor.tuweb.workers.dev/api/login-vendedor',
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ codigo: codigo })
+                        }
+                    );
+                    var data = await res.json();
+                    if (data.success && data.vendedor) {
+                        await bvAplicarDatos(codigo, data.vendedor);
                         bvOcultar();
                     } else {
-                        // Código ya no existe en DB → limpiar y mostrar modal
                         localStorage.removeItem(BV_KEY);
                         localStorage.removeItem(BV_FECHA);
                         bvMostrar();
                     }
                 } catch(e) {
-                    bvMostrar();
+                    // Si el Worker falla, intentar con Firestore como fallback
+                    try {
+                        var snap = await firebase.firestore()
+                            .collection('usuarios')
+                            .where('codigoVendedor', '==', codigo)
+                            .limit(1).get();
+                        if (!snap.empty) {
+                            var fbData = snap.docs[0].data();
+                            await bvAplicarDatos(codigo, fbData);
+                            bvOcultar();
+                        } else {
+                            localStorage.removeItem(BV_KEY);
+                            localStorage.removeItem(BV_FECHA);
+                            bvMostrar();
+                        }
+                    } catch(e2) {
+                        bvMostrar();
+                    }
                 }
             }
 
@@ -7348,7 +7369,7 @@
                 if (typeof actualizarBotonesRevend === 'function') try { actualizarBotonesRevend(); } catch(e) {}
             }
 
-            // ── Botón INGRESAR ────────────────────────────────────────────
+            // ── Botón INGRESAR — consulta al Worker ───────────────────────
             window.bvIngresar = async function() {
                 var input  = document.getElementById('bv-input');
                 var errEl  = document.getElementById('bv-error');
@@ -7369,43 +7390,80 @@
                 lbl.textContent = 'Verificando...';
                 spin.style.display = 'block';
 
-                try {
-                    var snap = await firebase.firestore()
-                        .collection('usuarios')
-                        .where('codigoVendedor', '==', codigo)
-                        .limit(1).get();
+                console.log('Código ingresado:', codigo);
+                console.log('Enviando consulta al Worker...');
 
-                    if (snap.empty) {
-                        errEl.textContent = 'Código no encontrado. Verificá que esté escrito correctamente.';
+                var userData = null;
+
+                // 1. Intentar via Worker
+                try {
+                    var res = await fetch(
+                        'https://datosderevendedor.tuweb.workers.dev/api/login-vendedor',
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ codigo: codigo })
+                        }
+                    );
+                    var workerData = await res.json();
+                    console.log('Respuesta Worker:', workerData);
+
+                    if (workerData.success && workerData.vendedor) {
+                        userData = workerData.vendedor;
+                    } else if (workerData.error === 'Código no encontrado' || workerData.success === false) {
+                        errEl.textContent = workerData.error || 'Código no encontrado. Verificá que esté escrito correctamente.';
                         errEl.classList.add('show');
                         btn.disabled = false;
                         lbl.textContent = 'Ingresar a mi tienda';
                         spin.style.display = 'none';
                         input.focus(); return;
                     }
+                } catch(workerErr) {
+                    console.log('Worker no disponible, usando Firestore como fallback:', workerErr.message);
+                }
 
-                    var userData = snap.docs[0].data();
-                    await bvAplicarDatos(codigo, userData);
-                    bvOcultar();
+                // 2. Fallback a Firestore si el Worker no respondió correctamente
+                if (!userData) {
+                    try {
+                        var snap = await firebase.firestore()
+                            .collection('usuarios')
+                            .where('codigoVendedor', '==', codigo)
+                            .limit(1).get();
 
-                    // Mostrar modal de WhatsApp si no está configurado
-                    var waGuardado = localStorage.getItem('whatsappRevendedor') || userData.whatsappRevendedor || '';
-                    if (!waGuardado) {
-                        setTimeout(function() {
-                            var modal = document.getElementById('whatsappConfirmModal');
-                            if (modal) {
-                                document.getElementById('whatsapp-input-modal').value = '';
-                                modal.classList.add('active');
-                            }
-                        }, 600);
+                        if (snap.empty) {
+                            errEl.textContent = 'Código no encontrado. Verificá que esté escrito correctamente.';
+                            errEl.classList.add('show');
+                            btn.disabled = false;
+                            lbl.textContent = 'Ingresar a mi tienda';
+                            spin.style.display = 'none';
+                            input.focus(); return;
+                        }
+                        userData = snap.docs[0].data();
+                        console.log('Datos obtenidos desde Firestore (fallback).');
+                    } catch(fbErr) {
+                        errEl.textContent = 'Error al verificar. Revisá tu conexión e intentá de nuevo.';
+                        errEl.classList.add('show');
+                        btn.disabled = false;
+                        lbl.textContent = 'Ingresar a mi tienda';
+                        spin.style.display = 'none';
+                        return;
                     }
+                }
 
-                } catch(err) {
-                    errEl.textContent = 'Error al verificar. Intentá de nuevo.';
-                    errEl.classList.add('show');
-                    btn.disabled = false;
-                    lbl.textContent = 'Ingresar a mi tienda';
-                    spin.style.display = 'none';
+                // 3. Aplicar datos y cerrar modal
+                await bvAplicarDatos(codigo, userData);
+                bvOcultar();
+
+                // 4. Mostrar modal de WhatsApp si no está configurado
+                var waGuardado = localStorage.getItem('whatsappRevendedor') || userData.whatsappRevendedor || '';
+                if (!waGuardado) {
+                    setTimeout(function() {
+                        var modal = document.getElementById('whatsappConfirmModal');
+                        if (modal) {
+                            document.getElementById('whatsapp-input-modal').value = '';
+                            modal.classList.add('active');
+                        }
+                    }, 600);
                 }
             };
 
