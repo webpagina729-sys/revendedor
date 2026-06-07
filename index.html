@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revende Ways | Acceso de Revendedores</title>
+<meta name="description" content="Acceso exclusivo para revendedores de Revende Ways.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#0066ff;
+    --primary-light:#0052cc;
+    --bg:#f9fafb;
+    --surface:#ffffff;
+    --text:#1a1a1a;
+    --text-light:#666;
+    --border:#e5e5e5;
+    --gray-light:#f3f4f6;
+    --success:#00a650;
+    --danger:#dc2626;
+    --radius:8px;
+    --font-body:'DM Sans',sans-serif;
+    --shadow:0 1px 3px rgba(0,0,0,.08);
+    --shadow-lg:0 10px 40px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    font-size:15px;
+    line-height:1.6;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px 16px;
+  }
+  .auth-wrapper{width:100%;max-width:440px}
+  .brand-icon{
+    display:flex;
+    justify-content:center;
+    margin-bottom:12px;
+  }
+  .brand-logo-img{
+    width:72px;
+    height:72px;
+    border-radius:50%;
+    object-fit:cover;
+    border:2px solid #00a650;
+    box-shadow:0 0 0 3px rgba(0,166,80,.15);
+  }
+  .brand{text-align:center;margin-bottom:24px}
+  .brand-logo{
+    font-size:26px;
+    font-weight:700;
+    color:var(--primary);
+    letter-spacing:-.5px;
+  }
+  .brand-tag{
+    font-size:13px;
+    color:var(--text-light);
+    margin-top:2px;
+  }
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    box-shadow:var(--shadow-lg);
+    overflow:hidden;
+  }
+  .tabs{
+    display:flex;
+    border-bottom:1px solid var(--border);
+    background:var(--gray-light);
+  }
+  .tab{
+    flex:1;
+    padding:14px;
+    text-align:center;
+    background:none;
+    border:none;
+    font-family:var(--font-body);
+    font-size:14px;
+    font-weight:600;
+    color:var(--text-light);
+    cursor:pointer;
+    transition:all .2s;
+    border-bottom:2px solid transparent;
+  }
+  .tab.active{
+    background:var(--surface);
+    color:var(--primary);
+    border-bottom-color:var(--primary);
+  }
+  .tab:hover:not(.active){color:var(--text)}
+  .panel{padding:28px 24px;display:none}
+  .panel.active{display:block}
+  .panel-title{
+    font-size:18px;
+    font-weight:700;
+    color:var(--text);
+    margin-bottom:4px;
+  }
+  .panel-subtitle{
+    font-size:13px;
+    color:var(--text-light);
+    margin-bottom:20px;
+  }
+  .field{margin-bottom:14px}
+  .field label{
+    display:block;
+    font-size:13px;
+    font-weight:500;
+    color:var(--text);
+    margin-bottom:6px;
+  }
+  .field input{
+    width:100%;
+    padding:11px 12px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    font-size:14px;
+    font-family:var(--font-body);
+    color:var(--text);
+    transition:all .2s;
+  }
+  .field input:focus{
+    outline:none;
+    border-color:var(--primary);
+    box-shadow:0 0 0 3px rgba(0,102,255,.1);
+  }
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn{
+    width:100%;
+    padding:12px;
+    background:var(--primary);
+    color:#fff;
+    border:none;
+    border-radius:var(--radius);
+    font-size:14px;
+    font-weight:600;
+    font-family:var(--font-body);
+    cursor:pointer;
+    transition:background .2s;
+    margin-top:8px;
+  }
+  .btn:hover:not(:disabled){background:var(--primary-light)}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .alert{
+    padding:10px 12px;
+    border-radius:var(--radius);
+    font-size:13px;
+    margin-top:12px;
+    display:none;
+  }
+  .alert.show{display:block}
+  .alert.error{background:rgba(220,38,38,.08);color:var(--danger)}
+  .alert.success{background:rgba(0,166,80,.1);color:var(--success)}
+  .hint{
+    font-size:12px;
+    color:var(--text-light);
+    margin-top:6px;
+  }
+  .switch-line{
+    text-align:center;
+    font-size:13px;
+    color:var(--text-light);
+    margin-top:16px;
+  }
+  .switch-line a{
+    color:var(--primary);
+    font-weight:600;
+    text-decoration:none;
+    cursor:pointer;
+  }
+  .switch-line a:hover{text-decoration:underline}
+
+  /* PANEL post-login */
+  .session-card{padding:28px 24px}
+  .session-row{
+    background:var(--gray-light);
+    border-radius:var(--radius);
+    padding:12px 14px;
+    margin-bottom:10px;
+    font-size:13px;
+  }
+  .session-row .label{color:var(--text-light);margin-right:6px}
+  .session-row .val{color:var(--text);font-weight:500;word-break:break-all}
+  .uid-code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:var(--surface);
+    border:1px dashed var(--border);
+    padding:8px 10px;
+    border-radius:6px;
+    font-size:12px;
+    display:inline-block;
+    margin-top:4px;
+    word-break:break-all;
+  }
+  .btn-outline{
+    background:transparent;
+    color:var(--primary);
+    border:1px solid var(--primary);
+  }
+  .btn-outline:hover:not(:disabled){background:var(--primary);color:#fff}
+
+  /* ── BLOQUE DE NIVEL (nuevo) ── */
+  .nivel-block{
+    background:var(--gray-light);
+    border-radius:var(--radius);
+    padding:14px;
+    margin-bottom:10px;
+    border:1px solid var(--border);
+  }
+  .nivel-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .nivel-title{
+    font-size:13px;
+    font-weight:600;
+    color:var(--text);
+  }
+  .nivel-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    padding:3px 10px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:700;
+    background:#e8f0ff;
+    color:var(--primary);
+  }
+  .nivel-chip.lv-2{background:#3a2d10;color:#f5b400}
+  .nivel-chip.lv-3{background:#10331f;color:#22d381}
+  .nivel-chip.lv-4{background:#1a2444;color:#6ea4ff}
+  .nivel-chip.lv-5{
+    background:linear-gradient(135deg,#5a2e8b,#b026ff);
+    color:#fff;
+    box-shadow:0 0 10px rgba(176,38,255,.35);
+  }
+  .nivel-stars{
+    display:flex;
+    gap:3px;
+    margin-bottom:10px;
+  }
+  .nivel-star{
+    width:18px;
+    height:18px;
+  }
+  .nivel-stats{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .nivel-stat{
+    background:var(--surface);
+    border-radius:6px;
+    padding:8px 10px;
+    font-size:12px;
+  }
+  .nivel-stat .ns-label{color:var(--text-light);display:block;margin-bottom:2px}
+  .nivel-stat .ns-val{font-weight:700;color:var(--text);font-size:15px}
+  .nivel-progress-wrap{margin-top:4px}
+  .nivel-progress-label{
+    display:flex;
+    justify-content:space-between;
+    font-size:11px;
+    color:var(--text-light);
+    margin-bottom:4px;
+  }
+  .nivel-bar{
+    height:6px;
+    background:#e0e0e0;
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .nivel-bar-fill{
+    height:100%;
+    background:linear-gradient(90deg,var(--primary),#6ea4ff);
+    border-radius:3px;
+    transition:width .6s ease;
+  }
+  .nivel-max-msg{
+    font-size:12px;
+    color:var(--success);
+    font-weight:600;
+    text-align:center;
+    padding:4px 0;
+  }
+  .nivel-loading{
+    font-size:12px;
+    color:var(--text-light);
+    text-align:center;
+    padding:8px 0;
+  }
+  .nivel-error{
+    font-size:12px;
+    color:var(--text-light);
+    text-align:center;
+    padding:4px 0;
+  }
+  .portada-img{
+    width:100%;
+    border-radius:var(--radius);
+    display:block;
+    margin-bottom:10px;
+    object-fit:cover;
+  }
+  /* ── fin bloque nivel ── */
+
+  @media (max-width:480px){
+    .field-row{grid-template-columns:1fr}
+    .nivel-stats{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+
+<div class="auth-wrapper">
+  <div class="brand">
+    <div class="brand-icon">
+      <img src="logo.png" alt="Logo Revende Ways" class="brand-logo-img">
+    </div>
+    <div class="brand-logo">Revende Ways</div>
+    <div class="brand-tag">Regístrate y luego confirma tus datos para que tu tienda se adapte a tu contacto.</div>
+  </div>
+
+  <!-- AUTH CARD (login + registro) -->
+  <div class="card" id="authCard">
+    <div class="tabs">
+      <button class="tab active" data-tab="login" type="button">Iniciar sesión</button>
+      <button class="tab" data-tab="register" type="button">Crear cuenta</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="panel active" id="panel-login">
+      <h1 class="panel-title">Bienvenido</h1>
+      <p class="panel-subtitle">Accede con tu código de revendedor.</p>
+      <form id="loginForm" autocomplete="on">
+        <div class="field">
+          <label for="loginUid">Código de revendedor</label>
+          <input id="loginUid" type="text" required autocomplete="username" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="loginPass">Contraseña</label>
+          <input id="loginPass" type="password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn" id="loginBtn">Ingresar</button>
+        <div class="alert error" id="loginError"></div>
+      </form>
+      <p class="switch-line">¿No tienes cuenta? <a data-go="register">Regístrate</a></p>
+    </div>
+
+    <!-- REGISTRO -->
+    <div class="panel" id="panel-register">
+      <h1 class="panel-title">Crear cuenta</h1>
+      <p class="panel-subtitle">Completa tus datos para empezar.</p>
+      <form id="registerForm" autocomplete="on">
+        <div class="field-row">
+          <div class="field">
+            <label for="regNombre">Nombre</label>
+            <input id="regNombre" type="text" required autocomplete="given-name">
+          </div>
+          <div class="field">
+            <label for="regApellido">Apellido</label>
+            <input id="regApellido" type="text" required autocomplete="family-name">
+          </div>
+        </div>
+        <div class="field">
+          <label for="regWhatsapp">Número de WhatsApp</label>
+          <input id="regWhatsapp" type="tel" required autocomplete="tel" placeholder="Ej: +54 9 11 1234 5678">
+        </div>
+        <div class="field">
+          <label for="regEmail">Correo electrónico</label>
+          <input id="regEmail" type="email" required autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="regPass">Contraseña</label>
+          <input id="regPass" type="password" required autocomplete="new-password" minlength="6">
+          <div class="hint">Mínimo 6 caracteres.</div>
+        </div>
+        <div class="field">
+          <label for="regPass2">Verificar contraseña</label>
+          <input id="regPass2" type="password" required autocomplete="new-password" minlength="6">
+        </div>
+        <button type="submit" class="btn" id="registerBtn">Crear cuenta</button>
+        <div class="alert error" id="registerError"></div>
+        <div class="alert success" id="registerOk"></div>
+      </form>
+      <p class="switch-line">¿Ya tienes cuenta? <a data-go="login">Inicia sesión</a></p>
+    </div>
+  </div>
+
+  <!-- PANEL post-login -->
+  <div class="card session-card" id="sessionCard" style="display:none">
+    <h1 class="panel-title">Sesión activa</h1>
+    <p class="panel-subtitle">Bienvenido a tu panel de revendedor.</p>
+    <div class="session-row">
+      <span class="label">Nombre:</span><span class="val" id="sessName">—</span>
+    </div>
+    <div class="session-row">
+      <span class="label">Email:</span><span class="val" id="sessEmail">—</span>
+    </div>
+    <div class="session-row">
+      <span class="label">Código de revendedor:</span><br>
+      <img src="portadacinco.png" alt="" class="portada-img" style="margin-top:10px;">
+      <span class="uid-code" id="sessUid">—</span>
+    </div>
+
+    <!-- ── BLOQUE MI TIENDA: nivel + estrellas desde datosderevendedor worker ── -->
+    <img src="portadaseis.png" alt="" class="portada-img">
+    <div class="nivel-block" id="nivelBlock">
+      <div class="nivel-header">
+        <span class="nivel-title">Mi tienda</span>
+        <span class="nivel-chip" id="nivelChip">Nivel 1</span>
+      </div>
+      <div class="nivel-stars" id="nivelStars"></div>
+      <div class="nivel-stats">
+        <div class="nivel-stat">
+          <span class="ns-label">Pedidos realizados</span>
+          <span class="ns-val" id="nivelPedidos">—</span>
+        </div>
+        <div class="nivel-stat">
+          <span class="ns-label">Ventas confirmadas</span>
+          <span class="ns-val" id="nivelVentas">—</span>
+        </div>
+      </div>
+      <div class="nivel-progress-wrap" id="nivelProgressWrap">
+        <div class="nivel-progress-label">
+          <span id="nivelProgressTxt">Progreso al siguiente nivel</span>
+          <span id="nivelProgressPct">0%</span>
+        </div>
+        <div class="nivel-bar">
+          <div class="nivel-bar-fill" id="nivelBarFill" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="nivel-max-msg" id="nivelMaxMsg" style="display:none">
+        &#127942; ¡Nivel máximo alcanzado!
+      </div>
+      <div class="nivel-loading" id="nivelLoading" style="display:none">Cargando tu nivel…</div>
+      <div class="nivel-error" id="nivelErrorMsg" style="display:none"></div>
+    </div>
+    <!-- ── fin bloque Mi tienda ── -->
+
+    <button class="btn btn-outline" id="logoutBtn" type="button">Cerrar sesión</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     CONFIGURACIÓN: completa estos dos bloques antes de subir
+     ============================================================ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import {
+    getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+    updateProfile, onAuthStateChanged, signOut
+  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+  /* ============ 1) Config de Firebase Web (Firebase Console → Configuración → Tus apps) */
+  const firebaseConfig = {
+    apiKey: "REEMPLAZAR",
+    authDomain: "REEMPLAZAR.firebaseapp.com",
+    projectId: "REEMPLAZAR",
+    storageBucket: "REEMPLAZAR.appspot.com",
+    messagingSenderId: "REEMPLAZAR",
+    appId: "REEMPLAZAR"
+  };
+
+  /* ============ 2) Workers (sin slash final) */
+  const WORKER_PAGOS  = "https://workerpagos.tuweb.workers.dev";   // login / resolve-email
+  const WORKER_DATOS  = "https://datosderevendedor.tuweb.workers.dev"; // ranking / nivel
+
+  /* ============================================================ */
+
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // ── Tabs ──────────────────────────────────────────────────────
+  const tabs   = document.querySelectorAll('.tab');
+  const panels = {
+    login:    document.getElementById('panel-login'),
+    register: document.getElementById('panel-register')
+  };
+  function showTab(name){
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    Object.entries(panels).forEach(([k,el]) => el.classList.toggle('active', k === name));
+    clearAlerts();
+  }
+  tabs.forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+  document.querySelectorAll('[data-go]').forEach(a =>
+    a.addEventListener('click', () => showTab(a.dataset.go))
+  );
+
+  // ── Alert helpers ─────────────────────────────────────────────
+  const loginError    = document.getElementById('loginError');
+  const registerError = document.getElementById('registerError');
+  const registerOk    = document.getElementById('registerOk');
+  function clearAlerts(){
+    [loginError, registerError, registerOk].forEach(a => {
+      a.classList.remove('show'); a.textContent = '';
+    });
+  }
+  function showError(el, msg){ el.textContent = msg; el.classList.add('show'); }
+  function showOk(el, msg)   { el.textContent = msg; el.classList.add('show'); }
+
+  // ── LOGIN ─────────────────────────────────────────────────────
+  const loginForm = document.getElementById('loginForm');
+  const loginBtn  = document.getElementById('loginBtn');
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlerts();
+    const uid      = document.getElementById('loginUid').value.trim();
+    const password = document.getElementById('loginPass').value;
+    if (!uid || !password) return;
+    loginBtn.disabled    = true;
+    loginBtn.textContent = 'Ingresando…';
+    try {
+      const res = await fetch(`${WORKER_PAGOS.replace(/\/$/,'')}/api/auth/resolve-email`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ uid })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.email) throw new Error(data.error || 'Código de revendedor no encontrado.');
+      await signInWithEmailAndPassword(auth, data.email, password);
+      // onAuthStateChanged muestra el panel
+    } catch (err) {
+      const m = (err && err.message) || 'Error al iniciar sesión.';
+      if (
+        m.includes('auth/invalid-credential') ||
+        m.includes('auth/wrong-password')     ||
+        m.includes('auth/user-not-found')
+      ) {
+        showError(loginError, 'Código o contraseña incorrectos.');
+      } else if (m.includes('auth/too-many-requests')) {
+        showError(loginError, 'Demasiados intentos. Espera unos minutos.');
+      } else {
+        showError(loginError, m);
+      }
+    } finally {
+      loginBtn.disabled    = false;
+      loginBtn.textContent = 'Ingresar';
+    }
+  });
+
+  // ── REGISTRO ──────────────────────────────────────────────────
+  const registerForm = document.getElementById('registerForm');
+  const registerBtn  = document.getElementById('registerBtn');
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlerts();
+    const nombre   = document.getElementById('regNombre').value.trim();
+    const apellido = document.getElementById('regApellido').value.trim();
+    const whatsapp = document.getElementById('regWhatsapp').value.trim();
+    const email    = document.getElementById('regEmail').value.trim();
+    const pass     = document.getElementById('regPass').value;
+    const pass2    = document.getElementById('regPass2').value;
+
+    if (pass.length < 6) return showError(registerError, 'La contraseña debe tener al menos 6 caracteres.');
+    if (pass !== pass2)  return showError(registerError, 'Las contraseñas no coinciden.');
+
+    registerBtn.disabled    = true;
+    registerBtn.textContent = 'Creando cuenta…';
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      await updateProfile(cred.user, { displayName: `${nombre} ${apellido}`.trim() });
+      try { localStorage.setItem('rw_whatsapp_' + cred.user.uid, whatsapp); } catch(_) {}
+      showOk(registerOk, `Cuenta creada. Tu código de revendedor es: ${cred.user.uid}`);
+      // onAuthStateChanged mostrará el panel automáticamente
+    } catch (err) {
+      const m = (err && err.message) || 'Error al registrarse.';
+      if      (m.includes('auth/email-already-in-use')) showError(registerError, 'Ese correo ya está registrado.');
+      else if (m.includes('auth/invalid-email'))        showError(registerError, 'Correo inválido.');
+      else if (m.includes('auth/weak-password'))        showError(registerError, 'Contraseña muy débil.');
+      else showError(registerError, m);
+    } finally {
+      registerBtn.disabled    = false;
+      registerBtn.textContent = 'Crear cuenta';
+    }
+  });
+
+  // ── LÓGICA DE NIVEL ───────────────────────────────────────────
+  // Umbrales idénticos al panel de gestión de pedidos:
+  //   Nivel 1: 0–49 pedidos
+  //   Nivel 2: 50–99
+  //   Nivel 3: 100–149
+  //   Nivel 4: 150–249
+  //   Nivel 5: 250+
+  function levelOf(count) {
+    if (count >= 250) return { nivel:5, prev:150, prox:null };
+    if (count >= 150) return { nivel:4, prev:100, prox:250  };
+    if (count >= 100) return { nivel:3, prev:50,  prox:150  };
+    if (count >= 50)  return { nivel:2, prev:0,   prox:100  };
+    return                   { nivel:1, prev:0,   prox:50   };
+  }
+
+  function starSVG(filled) {
+    const color = filled ? '#f5b400' : '#d0d0d0';
+    return `<svg class="nivel-star" viewBox="0 0 24 24" fill="${color}" width="18" height="18">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
+    </svg>`;
+  }
+
+  function paintNivel(cantidadPedidos, cantidadVentas) {
+    const lv = levelOf(Number(cantidadPedidos) || 0);
+
+    // chip
+    const chip = document.getElementById('nivelChip');
+    chip.textContent = `Nivel ${lv.nivel}`;
+    chip.className   = `nivel-chip lv-${lv.nivel}`;
+
+    // estrellas (5 posiciones, las primeras lv.nivel en color)
+    let starsHtml = '';
+    for (let i = 1; i <= 5; i++) starsHtml += starSVG(i <= lv.nivel);
+    document.getElementById('nivelStars').innerHTML = starsHtml;
+
+    // stats
+    document.getElementById('nivelPedidos').textContent = cantidadPedidos ?? '0';
+    document.getElementById('nivelVentas').textContent  = cantidadVentas  ?? '0';
+
+    // barra de progreso
+    const wrap   = document.getElementById('nivelProgressWrap');
+    const maxMsg = document.getElementById('nivelMaxMsg');
+    if (lv.prox === null) {
+      wrap.style.display   = 'none';
+      maxMsg.style.display = 'block';
+    } else {
+      wrap.style.display   = 'block';
+      maxMsg.style.display = 'none';
+      const range = lv.prox - lv.prev;
+      const done  = (Number(cantidadPedidos) || 0) - lv.prev;
+      const pct   = Math.min(100, Math.round((done / range) * 100));
+      const falta = lv.prox - (Number(cantidadPedidos) || 0);
+      document.getElementById('nivelProgressTxt').textContent =
+        `Faltan ${falta} pedido${falta !== 1 ? 's' : ''} para Nivel ${lv.nivel + 1}`;
+      document.getElementById('nivelProgressPct').textContent = `${pct}%`;
+      document.getElementById('nivelBarFill').style.width = `${pct}%`;
+    }
+  }
+
+  async function loadNivel(codigoVendedor) {
+    const loading = document.getElementById('nivelLoading');
+    const errMsg  = document.getElementById('nivelErrorMsg');
+
+    loading.style.display = 'block';
+    errMsg.style.display  = 'none';
+
+    // Pintar nivel 1 / vacío como punto de partida mientras carga
+    paintNivel(0, 0);
+
+    try {
+      // El worker expone GET / y devuelve { ranking: [...] }
+      // Cada entrada tiene: codigoVendedor, cantidadPedidos, cantidadVentas, nivel, etc.
+      const res = await fetch(`${WORKER_DATOS.replace(/\/$/,'')}/`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      const ranking = Array.isArray(data?.ranking) ? data.ranking : [];
+      // Buscar por UID (codigoVendedor en el worker = uid de Firebase en este sistema)
+      const entry = ranking.find(r =>
+        (r.codigoVendedor || '').toUpperCase() === codigoVendedor.toUpperCase()
+      );
+
+      loading.style.display = 'none';
+
+      if (entry) {
+        paintNivel(
+          Number(entry.cantidadPedidos || 0),
+          Number(entry.cantidadVentas  || 0)
+        );
+      }
+      // Si no está en el ranking todavía, queda en Nivel 1 / 0 pedidos (ya pintado)
+
+    } catch (err) {
+      loading.style.display = 'none';
+      errMsg.textContent    = 'No se pudo actualizar el nivel en este momento.';
+      errMsg.style.display  = 'block';
+      // Mantiene Nivel 1 / 0 pedidos pintado previamente
+    }
+  }
+  // ── fin lógica de nivel ───────────────────────────────────────
+
+  // ── SESIÓN ACTIVA ─────────────────────────────────────────────
+  const authCard    = document.getElementById('authCard');
+  const sessionCard = document.getElementById('sessionCard');
+  const sessName    = document.getElementById('sessName');
+  const sessEmail   = document.getElementById('sessEmail');
+  const sessUid     = document.getElementById('sessUid');
+  const logoutBtn   = document.getElementById('logoutBtn');
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      authCard.style.display    = 'none';
+      sessionCard.style.display = 'block';
+      sessName.textContent  = user.displayName || '—';
+      sessEmail.textContent = user.email        || '—';
+      sessUid.textContent   = user.uid;
+
+      // Cargar nivel desde el worker usando el UID como código de revendedor
+      loadNivel(user.uid);
+    } else {
+      authCard.style.display    = 'block';
+      sessionCard.style.display = 'none';
+      showTab('login');
+    }
+  });
+
+  logoutBtn.addEventListener('click', async () => {
+    await signOut(auth);
+  });
+</script>
+</body>
+</html>
