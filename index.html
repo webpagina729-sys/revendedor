@@ -7388,37 +7388,41 @@
                 spin.style.display = 'block';
 
                 var userData = null;
+                var workerRespondio = false;
 
-                // 1. Intentar via Worker (si el endpoint existe)
+                // 1. Intentar via Worker
                 try {
                     var res = await fetch(WORKER_LOGIN, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ codigo: codigo })
                     });
-                    if (res.ok) {
-                        var workerData = await res.json();
-                        if (workerData.success && workerData.vendedor) {
-                            userData = workerData.vendedor;
-                        }
-                    }
-                } catch(e) {
-                    // Worker no disponible — continúa con Firestore
-                }
-
-                // 2. Firestore como fuente principal si el Worker no respondió
-                if (!userData) {
-                    try {
-                        await esperarFirebase();
-                        userData = await buscarEnFirestore(codigo);
-                    } catch(fbErr) {
-                        errEl.textContent = 'Error de conexión. Revisá tu internet e intentá de nuevo.';
+                    workerRespondio = true;
+                    var workerData = await res.json();
+                    if (workerData.success && workerData.vendedor) {
+                        userData = workerData.vendedor;
+                    } else {
+                        errEl.textContent = workerData.error === 'Código inválido'
+                            ? 'Código no encontrado. Verificá que esté bien escrito.'
+                            : 'Error al validar el código. Intentá de nuevo.';
                         errEl.classList.add('show');
                         btn.disabled = false;
                         lbl.textContent = 'Ingresar a mi tienda';
                         spin.style.display = 'none';
                         return;
                     }
+                } catch(e) {
+                    // Worker no disponible
+                }
+
+                // 2. Si el Worker no respondió en absoluto, mostrar error
+                if (!workerRespondio) {
+                    errEl.textContent = 'Error de conexión. Revisá tu internet e intentá de nuevo.';
+                    errEl.classList.add('show');
+                    btn.disabled = false;
+                    lbl.textContent = 'Ingresar a mi tienda';
+                    spin.style.display = 'none';
+                    return;
                 }
 
                 if (!userData) {
