@@ -48,7 +48,7 @@
         }
         .header-top-inner {
             max-width: 100%;
-            margin: 0 40px;
+            margin: 0 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -226,7 +226,7 @@
         }
         .banner-inner {
             max-width: 100%;
-            margin: 0 40px;
+            margin: 0 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -300,7 +300,7 @@
         /* FILTERS */
         .filters {
             max-width: 100%;
-            margin: 0 40px 20px;
+            margin: 0 0 20px;
             padding: 0;
             display: flex;
             justify-content: center;
@@ -374,7 +374,7 @@
         /* GRID */
         .products-container {
             max-width: 100%;
-            margin: 32px 40px;
+            margin: 32px 16px;
             padding: 0;
         }
         .products-grid {
@@ -2080,7 +2080,7 @@
         }
         .cta-section-inner {
             max-width: 100%;
-            margin: 0 40px;
+            margin: 0 16px;
         }
         .cta-title {
             font-size: 28px;
@@ -2934,7 +2934,24 @@
         }
         .bv-foot a:hover { text-decoration: underline; }
 
-        /* === AGREGADOS === */
+        /* ── MOBILE RESPONSIVE FIX ── */
+        @media (max-width: 600px) {
+            .header-top-inner { margin: 0 10px; }
+            .banner-inner { margin: 0 12px; }
+            .products-container { margin: 16px 10px; }
+            .cta-section-inner { margin: 0 10px; }
+            .filters { margin: 0 0 16px; gap: 8px; }
+            .filter-btn { padding: 6px 14px; font-size: 13px; }
+            .products-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .nichos-section-inner { padding: 0 10px; }
+            .modal-details-content { padding: 16px; }
+            .modal-cart-content { max-width: 100%; }
+            .cart-item { grid-template-columns: 80px 1fr; }
+            .cart-item-image { width: 80px; height: 80px; }
+            .header-actions { gap: 6px; }
+            .cart-btn { padding: 6px 8px; font-size: 11px; }
+        }
+    
         .auth-modal-content { max-height: 90vh; overflow-y: auto; }
         .btn-google { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 11px 16px; background: #fff; border: 1px solid #dadce0; border-radius: 6px; font-size: 14px; font-weight: 500; color: #3c4043; cursor: pointer; transition: background 0.2s; margin-bottom: 4px; }
         .btn-google:hover { background: #f8f9fa; }
@@ -6297,7 +6314,8 @@
         }
         
         function abrirModalCodigoCalzados() {
-            const currentUser = firebase.auth().currentUser;
+            // Aceptar login por código de vendedor O por Firebase Auth
+            const currentUser = firebase.auth().currentUser || window.currentUser;
             if (!currentUser) {
                 showSessionRequiredModal();
                 return;
@@ -6546,8 +6564,8 @@
                 return;
             }
             
-            // Si NO está logueado, abrir login
-            if (!firebase.auth().currentUser) {
+            // Si NO está logueado (ni Firebase ni código vendedor), abrir login
+            if (!firebase.auth().currentUser && !window.currentUser) {
                 alert('Debes iniciar sesión primero para acceder al catálogo de revendedor.');
                 abrirLogin();
                 return;
@@ -7117,7 +7135,7 @@
         // MODAL CONFIGURAR MI TIENDA
         // ═══════════════════════════════════════════════════════════════
         function openConfigTiendaModal() {
-            const user = firebase.auth().currentUser;
+            const user = firebase.auth().currentUser || window.currentUser;
             if (!user) { abrirLogin(); return; }
             // Cargar config existente
             try {
