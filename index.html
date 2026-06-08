@@ -3665,7 +3665,7 @@
         // 🔧 CONFIGURACIÓN - MERCADO PAGO INTEGRATION
         // ═══════════════════════════════════════════════════════════════════════════
         
-        const WORKER_URL = 'https://workerpagos.tuweb.workers.dev';
+        const WORKER_URL = 'https://datosderevendedor.tuweb.workers.dev';
         const MP_PUBLIC_KEY = 'TEST-f86ff695-f4bd-4bb9-9d81-28a2e39ce685';
         const MP_ENDPOINT = '/api/mp/create-preference';
         const MIN_ORDER_PERFUMES = 150000;  // Mínimo en dinero para perfumes
@@ -4547,7 +4547,7 @@
 
                 // Sincronizar con la colección raíz a través del Worker
                 try {
-                    await fetch('https://workerpagos.tuweb.workers.dev/api/pedido', {
+                    await fetch('https://datosderevendedor.tuweb.workers.dev/api/pedido', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -4644,10 +4644,8 @@
                 if (pedidoData.mp_payment_id) {
                     console.log('🔍 [SINCRONIZACIÓN] Verificando estado de pago en Mercado Pago...');
                     
-                    // Llamar al Worker para obtener estado de pago
-                    const mpStatus = await fetch(
-                        'https://workerpagos.tuweb.workers.dev/api/mp/check-payment?payment_id=' + pedidoData.mp_payment_id
-                    ).then(r => r.json());
+                    // Verificación MP no aplica — los pedidos se gestionan por WhatsApp
+                    const mpStatus = { status: 'not_applicable' };
 
                     if (mpStatus.status === 'approved') {
                         console.log('✅ [SINCRONIZACIÓN] Pago confirmado en Mercado Pago');
