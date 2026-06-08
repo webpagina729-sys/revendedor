@@ -2920,7 +2920,7 @@
         .password-toggle-btn:focus { outline: none; }
     </style>
     <script>
-        // Silenciar errores de extensiones
+        // Silenciar errores de extensiones del navegador
         console.error = function() {};
     </script>
 </head>
@@ -6344,7 +6344,238 @@
         }
     </script>
 
-    <!-- MODAL: VALIDACIÓN CÓDIGO REVENDEDOR -->
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        // MODAL BIENVENIDA — LÓGICA COMPLETA
+        // ═══════════════════════════════════════════════════════════════
+        (function() {
+            var BV_KEY      = 'bv_codigo_sesion';
+            var BV_FECHA    = 'bv_codigo_fecha';
+            var EXPIRA_DIAS = 30;
+            var WORKER_LOGIN = 'https://datosderevendedor.tuweb.workers.dev/api/login-vendedor';
+
+            function bvOcultar() {
+                var el = document.getElementById('bv-overlay');
+                if (el) el.classList.add('bv-hide');
+            }
+            function bvMostrar() {
+                var el = document.getElementById('bv-overlay');
+                if (el) el.classList.remove('bv-hide');
+                setTimeout(function() {
+                    var inp = document.getElementById('bv-input');
+                    if (inp) inp.focus();
+                }, 200);
+            }
+            function bvCodigoVigente() {
+                var codigo = localStorage.getItem(BV_KEY);
+                var fecha  = localStorage.getItem(BV_FECHA);
+                if (!codigo || !fecha) return null;
+                var dias = (Date.now() - parseInt(fecha)) / 86400000;
+                return dias < EXPIRA_DIAS ? codigo : null;
+            }
+
+            // Espera a que Firebase esté inicializado (máx 8 seg)
+            function esperarFirebase() {
+                return new Promise(function(resolve, reject) {
+                    var intentos = 0;
+                    var t = setInterval(function() {
+                        intentos++;
+                        if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+                            clearInterval(t);
+                            resolve();
+                        } else if (intentos > 80) {
+                            clearInterval(t);
+                            reject(new Error('Firebase no cargó'));
+                        }
+                    }, 100);
+                });
+            }
+
+            // Busca el vendedor en Firestore por código
+            async function buscarEnFirestore(codigo) {
+                // Asegurar sesión anónima para que las reglas de Firestore permitan la lectura
+                if (!firebase.auth().currentUser) {
+                    await firebase.auth().signInAnonymously();
+                }
+                var snap = await firebase.firestore()
+                    .collection('usuarios')
+                    .where('codigoVendedor', '==', codigo)
+                    .limit(1)
+                    .get();
+                if (snap.empty) return null;
+                return snap.docs[0].data();
+            }
+
+            // Aplica los datos del revendedor a toda la página
+            async function bvAplicarDatos(codigo, userData) {
+                localStorage.setItem(BV_KEY, codigo);
+                localStorage.setItem(BV_FECHA, Date.now().toString());
+                localStorage.setItem('codigoRevendedorValidado', codigo);
+                localStorage.setItem('codigoRevendedorValidadoFecha', Date.now().toString());
+                localStorage.setItem('codigoVendedorLocal', codigo);
+
+                if (userData.configTienda && !localStorage.getItem('configTienda')) {
+                    localStorage.setItem('configTienda', JSON.stringify(userData.configTienda));
+                }
+                if (userData.whatsappRevendedor && !localStorage.getItem('whatsappRevendedor')) {
+                    localStorage.setItem('whatsappRevendedor', userData.whatsappRevendedor);
+                }
+
+                // Asegurar sesión anónima si no hay usuario
+                try {
+                    if (!firebase.auth().currentUser) {
+                        await firebase.auth().signInAnonymously();
+                    }
+                } catch(e) {}
+
+                var fbUser = firebase.auth().currentUser;
+
+                window.currentUser = {
+                    uid:                fbUser ? fbUser.uid : codigo,
+                    nombre:             userData.nombre    || '',
+                    apellido:           userData.apellido  || '',
+                    email:              userData.email     || '',
+                    telefono:           userData.telefono  || '',
+                    codigoVendedor:     codigo,
+                    nivel:              userData.nivel     || 1,
+                    descuentoNivel:     userData.descuentoNivel || 0,
+                    whatsappRevendedor: userData.whatsappRevendedor || '',
+                    configTienda:       userData.configTienda || null,
+                };
+                window.codigoValidado = true;
+
+                if (typeof setBannerYFooterVendedor === 'function') {
+                    setBannerYFooterVendedor(
+                        userData.nombre || 'Revendedor', codigo,
+                        userData.telefono || null, fbUser ? fbUser.uid : null
+                    );
+                }
+                if (typeof initializeUserSession === 'function' && fbUser) {
+                    try { initializeUserSession(userData, fbUser); } catch(e) {}
+                }
+                if (typeof actualizarVistaNichos   === 'function') try { actualizarVistaNichos(); }   catch(e) {}
+                if (typeof actualizarBotonesRevend === 'function') try { actualizarBotonesRevend(); } catch(e) {}
+            }
+
+            // Al cargar la página
+            window.addEventListener('load', function() {
+                var codigoGuardado = bvCodigoVigente();
+                if (codigoGuardado) {
+                    // Esperar Firebase y restaurar sesión
+                    esperarFirebase().then(function() {
+                        return buscarEnFirestore(codigoGuardado);
+                    }).then(function(userData) {
+                        if (userData) {
+                            return bvAplicarDatos(codigoGuardado, userData).then(bvOcultar);
+                        } else {
+                            localStorage.removeItem(BV_KEY);
+                            localStorage.removeItem(BV_FECHA);
+                            bvMostrar();
+                        }
+                    }).catch(function() {
+                        bvMostrar();
+                    });
+                } else {
+                    bvMostrar();
+                }
+            });
+
+            // ── Botón INGRESAR ────────────────────────────────────────────
+            window.bvIngresar = async function() {
+                var input  = document.getElementById('bv-input');
+                var errEl  = document.getElementById('bv-error');
+                var btn    = document.getElementById('bv-btn');
+                var lbl    = document.getElementById('bv-btn-lbl');
+                var spin   = document.getElementById('bv-spin');
+                var codigo = (input.value || '').trim().toUpperCase();
+
+                errEl.textContent = '';
+                errEl.classList.remove('show');
+
+                if (!codigo) {
+                    errEl.textContent = 'Ingresá tu código de revendedor.';
+                    errEl.classList.add('show');
+                    input.focus();
+                    return;
+                }
+
+                btn.disabled = true;
+                lbl.textContent = 'Verificando...';
+                spin.style.display = 'block';
+
+                var userData = null;
+
+                // 1. Intentar via Worker (si el endpoint existe)
+                try {
+                    var res = await fetch(WORKER_LOGIN, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codigo: codigo })
+                    });
+                    var workerData = await res.json();
+                    if (workerData.success && workerData.vendedor) {
+                        userData = workerData.vendedor;
+                    }
+                } catch(e) {
+                    // Worker no disponible — continúa con Firestore
+                }
+
+                // 2. Firestore como fuente principal si el Worker no respondió
+                if (!userData) {
+                    try {
+                        await esperarFirebase();
+                        userData = await buscarEnFirestore(codigo);
+                    } catch(fbErr) {
+                        errEl.textContent = 'Error de conexión. Revisá tu internet e intentá de nuevo.';
+                        errEl.classList.add('show');
+                        btn.disabled = false;
+                        lbl.textContent = 'Ingresar a mi tienda';
+                        spin.style.display = 'none';
+                        return;
+                    }
+                }
+
+                if (!userData) {
+                    errEl.textContent = 'Código no encontrado. Verificá que esté bien escrito.';
+                    errEl.classList.add('show');
+                    btn.disabled = false;
+                    lbl.textContent = 'Ingresar a mi tienda';
+                    spin.style.display = 'none';
+                    input.focus();
+                    return;
+                }
+
+                // 3. Aplicar datos y cerrar modal
+                await bvAplicarDatos(codigo, userData);
+                bvOcultar();
+
+                // 4. Modal de WhatsApp si no está configurado
+                var waGuardado = localStorage.getItem('whatsappRevendedor') || userData.whatsappRevendedor || '';
+                if (!waGuardado) {
+                    setTimeout(function() {
+                        var modal = document.getElementById('whatsappConfirmModal');
+                        if (modal) {
+                            document.getElementById('whatsapp-input-modal').value = '';
+                            modal.classList.add('active');
+                        }
+                    }, 600);
+                }
+            };
+
+            window.bvIrRegistro = function() {
+                bvOcultar();
+                if (typeof abrirLogin === 'function') abrirLogin();
+            };
+            window.bvVisitante = function() {
+                bvOcultar();
+            };
+
+        })();
+
+    </script>
+
+    <!-- reCAPTCHA API -->
+        <!-- MODAL: VALIDACIÓN CÓDIGO REVENDEDOR -->
     <div class="codigo-modal" id="codigo-modal">
         <div class="codigo-modal-content">
             <div class="codigo-modal-header">
@@ -7213,273 +7444,6 @@
         if (typeof grecaptcha !== 'undefined' && grecaptcha.render) {
             window.onRecaptchaReady();
         }
-    </script>
-
-    <script>
-        // ═══════════════════════════════════════════════════════════════
-        // MODAL BIENVENIDA — LÓGICA COMPLETA
-        // ═══════════════════════════════════════════════════════════════
-        (function() {
-            var BV_KEY      = 'bv_codigo_sesion';
-            var BV_FECHA    = 'bv_codigo_fecha';
-            var EXPIRA_DIAS = 30;
-
-            function bvOcultar() {
-                var el = document.getElementById('bv-overlay');
-                if (el) el.classList.add('bv-hide');
-            }
-            function bvMostrar() {
-                var el = document.getElementById('bv-overlay');
-                if (el) el.classList.remove('bv-hide');
-                setTimeout(function() {
-                    var inp = document.getElementById('bv-input');
-                    if (inp) inp.focus();
-                }, 200);
-            }
-
-            // Verificar si el código guardado no expiró
-            function bvCodigoVigente() {
-                var codigo = localStorage.getItem(BV_KEY);
-                var fecha  = localStorage.getItem(BV_FECHA);
-                if (!codigo || !fecha) return null;
-                var dias = (Date.now() - parseInt(fecha)) / 86400000;
-                return dias < EXPIRA_DIAS ? codigo : null;
-            }
-
-            // Al cargar: si hay código guardado y sesión Firebase → ocultar modal
-            window.addEventListener('load', function() {
-                var codigoGuardado = bvCodigoVigente();
-                if (codigoGuardado) {
-                    // Hay código válido en localStorage → esperar Firebase y ocultar
-                    var unsub = firebase.auth().onAuthStateChanged(function(user) {
-                        if (user) {
-                            bvOcultar();
-                            unsub();
-                        } else {
-                            // Intentar restaurar sesión anónima con el código guardado
-                            bvRestaurarSesion(codigoGuardado);
-                            unsub();
-                        }
-                    });
-                } else {
-                    // Sin código → mostrar modal
-                    bvMostrar();
-                }
-            });
-
-            // Restaurar sesión cuando ya hay código guardado — usa Worker
-            async function bvRestaurarSesion(codigo) {
-                try {
-                    var res = await fetch(
-                        'https://datosderevendedor.tuweb.workers.dev/api/login-vendedor',
-                        {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ codigo: codigo })
-                        }
-                    );
-                    var data = await res.json();
-                    if (data.success && data.vendedor) {
-                        await bvAplicarDatos(codigo, data.vendedor);
-                        bvOcultar();
-                    } else {
-                        localStorage.removeItem(BV_KEY);
-                        localStorage.removeItem(BV_FECHA);
-                        bvMostrar();
-                    }
-                } catch(e) {
-                    // Si el Worker falla, intentar con Firestore como fallback
-                    try {
-                        var snap = await firebase.firestore()
-                            .collection('usuarios')
-                            .where('codigoVendedor', '==', codigo)
-                            .limit(1).get();
-                        if (!snap.empty) {
-                            var fbData = snap.docs[0].data();
-                            await bvAplicarDatos(codigo, fbData);
-                            bvOcultar();
-                        } else {
-                            localStorage.removeItem(BV_KEY);
-                            localStorage.removeItem(BV_FECHA);
-                            bvMostrar();
-                        }
-                    } catch(e2) {
-                        bvMostrar();
-                    }
-                }
-            }
-
-            // Aplicar datos del revendedor al entorno de la página
-            async function bvAplicarDatos(codigo, userData) {
-                // Guardar código
-                localStorage.setItem(BV_KEY, codigo);
-                localStorage.setItem(BV_FECHA, Date.now().toString());
-                localStorage.setItem('codigoRevendedorValidado', codigo);
-                localStorage.setItem('codigoRevendedorValidadoFecha', Date.now().toString());
-                localStorage.setItem('codigoVendedorLocal', codigo);
-
-                // Config tienda y WhatsApp desde Firestore
-                if (userData.configTienda && !localStorage.getItem('configTienda')) {
-                    localStorage.setItem('configTienda', JSON.stringify(userData.configTienda));
-                }
-                if (userData.whatsappRevendedor && !localStorage.getItem('whatsappRevendedor')) {
-                    localStorage.setItem('whatsappRevendedor', userData.whatsappRevendedor);
-                }
-
-                // Sesión anónima Firebase para compatibilidad con el resto del sistema
-                try {
-                    if (!firebase.auth().currentUser) {
-                        await firebase.auth().signInAnonymously();
-                    }
-                } catch(e) {}
-
-                var fbUser = firebase.auth().currentUser;
-
-                // Poblar window.currentUser con el mismo formato que usa initializeUserSession
-                window.currentUser = {
-                    uid:            fbUser ? fbUser.uid : codigo,
-                    nombre:         userData.nombre    || '',
-                    apellido:       userData.apellido  || '',
-                    email:          userData.email     || '',
-                    telefono:       userData.telefono  || '',
-                    codigoVendedor: codigo,
-                    nivel:          userData.nivel     || 1,
-                    descuentoNivel: userData.descuentoNivel || 0,
-                    whatsappRevendedor: userData.whatsappRevendedor || '',
-                    configTienda:   userData.configTienda || null,
-                };
-
-                window.codigoValidado = true;
-
-                // Actualizar banner de vendedor si la función existe
-                if (typeof setBannerYFooterVendedor === 'function') {
-                    setBannerYFooterVendedor(
-                        userData.nombre || 'Revendedor',
-                        codigo,
-                        userData.telefono || null,
-                        fbUser ? fbUser.uid : null
-                    );
-                }
-
-                // Actualizar vistas
-                if (typeof initializeUserSession === 'function' && fbUser) {
-                    try { initializeUserSession(userData, fbUser); } catch(e) {}
-                }
-                if (typeof actualizarVistaNichos   === 'function') try { actualizarVistaNichos(); }   catch(e) {}
-                if (typeof actualizarBotonesRevend === 'function') try { actualizarBotonesRevend(); } catch(e) {}
-            }
-
-            // ── Botón INGRESAR — consulta al Worker ───────────────────────
-            window.bvIngresar = async function() {
-                var input  = document.getElementById('bv-input');
-                var errEl  = document.getElementById('bv-error');
-                var btn    = document.getElementById('bv-btn');
-                var lbl    = document.getElementById('bv-btn-lbl');
-                var spin   = document.getElementById('bv-spin');
-                var codigo = (input.value || '').trim().toUpperCase();
-
-                errEl.textContent = ''; errEl.classList.remove('show');
-
-                if (!codigo) {
-                    errEl.textContent = 'Ingresá tu código de revendedor.';
-                    errEl.classList.add('show');
-                    input.focus(); return;
-                }
-
-                btn.disabled = true;
-                lbl.textContent = 'Verificando...';
-                spin.style.display = 'block';
-
-                console.log('Código ingresado:', codigo);
-                console.log('Enviando consulta al Worker...');
-
-                var userData = null;
-
-                // 1. Intentar via Worker
-                try {
-                    var res = await fetch(
-                        'https://datosderevendedor.tuweb.workers.dev/api/login-vendedor',
-                        {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ codigo: codigo })
-                        }
-                    );
-                    var workerData = await res.json();
-                    console.log('Respuesta Worker:', workerData);
-
-                    if (workerData.success && workerData.vendedor) {
-                        userData = workerData.vendedor;
-                    } else if (workerData.error === 'Código no encontrado' || workerData.success === false) {
-                        errEl.textContent = workerData.error || 'Código no encontrado. Verificá que esté escrito correctamente.';
-                        errEl.classList.add('show');
-                        btn.disabled = false;
-                        lbl.textContent = 'Ingresar a mi tienda';
-                        spin.style.display = 'none';
-                        input.focus(); return;
-                    }
-                } catch(workerErr) {
-                    console.log('Worker no disponible, usando Firestore como fallback:', workerErr.message);
-                }
-
-                // 2. Fallback a Firestore si el Worker no respondió correctamente
-                if (!userData) {
-                    try {
-                        var snap = await firebase.firestore()
-                            .collection('usuarios')
-                            .where('codigoVendedor', '==', codigo)
-                            .limit(1).get();
-
-                        if (snap.empty) {
-                            errEl.textContent = 'Código no encontrado. Verificá que esté escrito correctamente.';
-                            errEl.classList.add('show');
-                            btn.disabled = false;
-                            lbl.textContent = 'Ingresar a mi tienda';
-                            spin.style.display = 'none';
-                            input.focus(); return;
-                        }
-                        userData = snap.docs[0].data();
-                        console.log('Datos obtenidos desde Firestore (fallback).');
-                    } catch(fbErr) {
-                        errEl.textContent = 'Error al verificar. Revisá tu conexión e intentá de nuevo.';
-                        errEl.classList.add('show');
-                        btn.disabled = false;
-                        lbl.textContent = 'Ingresar a mi tienda';
-                        spin.style.display = 'none';
-                        return;
-                    }
-                }
-
-                // 3. Aplicar datos y cerrar modal
-                await bvAplicarDatos(codigo, userData);
-                bvOcultar();
-
-                // 4. Mostrar modal de WhatsApp si no está configurado
-                var waGuardado = localStorage.getItem('whatsappRevendedor') || userData.whatsappRevendedor || '';
-                if (!waGuardado) {
-                    setTimeout(function() {
-                        var modal = document.getElementById('whatsappConfirmModal');
-                        if (modal) {
-                            document.getElementById('whatsapp-input-modal').value = '';
-                            modal.classList.add('active');
-                        }
-                    }, 600);
-                }
-            };
-
-            // ── "Creá tu cuenta" → login tradicional ─────────────────────
-            window.bvIrRegistro = function() {
-                bvOcultar();
-                if (typeof abrirLogin === 'function') abrirLogin();
-            };
-
-            // ── "Explorar sin sesión" ─────────────────────────────────────
-            window.bvVisitante = function() {
-                bvOcultar();
-            };
-
-        })();
-
     </script>
 
     <!-- reCAPTCHA API -->
