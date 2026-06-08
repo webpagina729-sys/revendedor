@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Revende Ways | Mi Tienda</title>
-    <meta name="description" content="Mira mi catálogo de Productos.">
+    <title>Revende Ways | Mayorista de Perfumes</title>
+    <meta name="description" content="Revende con nosotros. Te damos tu tienda lista para comenzar con +250 productos. Precio solo para revendedores.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -2979,8 +2979,9 @@
                     ☑️
                     <span class="cart-count" id="cart-count">0</span>
                 </button>
-                <button class="cart-btn" id="btn-config-tienda-header" onclick="openConfigTiendaModal()" title="Configurar mi tienda" aria-label="Configurar mi tienda" style="display:none;padding:6px 10px;">
+                <button class="cart-btn" id="btn-config-tienda-header" onclick="onClickConfigTiendaHeader()" title="Mi tienda" aria-label="Mi tienda" style="display:none;padding:6px 10px;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 22V12h6v10"/></svg>
+                    <svg id="config-gear-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;margin-left:2px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 </button>
             </div>
         </div>
@@ -3641,20 +3642,24 @@
         </div>
     </div>
 
-    <!-- MODAL CONFIGURAR MI TIENDA -->
+    <!-- MODAL CONFIGURAR MI TIENDA (dentro de catálogo) -->
     <div class="modal-overlay" id="configTiendaModal" onclick="closeConfigTiendaModal(event)">
-        <div class="modal-content" style="max-width:500px;">
+        <div class="modal-content" style="max-width:520px;">
             <div class="modal-header">
-                <h2 class="modal-title">Configurar mi tienda</h2>
+                <h2 class="modal-title" id="configTiendaModalTitle">
+                    <svg style="vertical-align:middle;margin-right:6px;" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 22V12h6v10"/></svg>
+                    Configurar mi tienda
+                </h2>
             </div>
-            <p style="font-size:13px;color:var(--text-light);margin-bottom:16px;">Definí el porcentaje de ganancia sobre el precio de costo. Podés crear rangos por precio.</p>
+            <p style="font-size:13px;color:var(--text-light);margin-bottom:4px;" id="configTiendaCatLabel"></p>
+            <p style="font-size:13px;color:var(--text-light);margin-bottom:16px;">Definí rangos de precio y el porcentaje de ganancia para cada rango. Los precios de los productos se calcularán automáticamente.</p>
 
             <div style="background:var(--gray-light);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
-                <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px;font-size:12px;color:var(--text-light);font-weight:600;">
-                    <span>Hasta precio ($)</span><span>% ganancia</span><span></span>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:center;margin-bottom:8px;font-size:11px;color:var(--text-light);font-weight:600;">
+                    <span>De precio ($)</span><span>Hasta precio ($)</span><span>% ganancia</span><span></span>
                 </div>
                 <div id="config-rangos-container"></div>
-                <button type="button" onclick="agregarRangoConfig()" style="width:100%;padding:8px;background:transparent;border:1px dashed var(--border);border-radius:var(--radius);font-size:13px;cursor:pointer;margin-top:6px;color:var(--text-light);">+ Agregar rango</button>
+                <button type="button" onclick="agregarRangoConfig()" style="width:100%;padding:8px;background:transparent;border:1px dashed var(--border);border-radius:var(--radius);font-size:13px;cursor:pointer;margin-top:6px;color:var(--text-light);">+ Agregar campo</button>
             </div>
 
             <div style="margin-bottom:16px;">
@@ -3671,12 +3676,40 @@
                 <div style="font-size:11px;color:var(--text-light);margin-top:4px;">Los pedidos de tus clientes llegarán a este número</div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                <button type="button" class="confirmation-button" style="background:#f5f5f5;color:var(--text);" onclick="document.getElementById('configTiendaModal').classList.remove('active')">Cancelar</button>
-                <button type="button" class="confirmation-button confirmation-button-primary" onclick="guardarConfigTienda()">Guardar</button>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:10px;" onclick="guardarConfigTienda()">Guardar configuración</button>
+            <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);margin-bottom:10px;" onclick="document.getElementById('configTiendaModal').classList.remove('active')">Cancelar</button>
+
+            <a href="https://gesti-n-de-revendedores.pages.dev/" target="_blank" rel="noopener" style="display:block;margin-top:4px;padding:12px 16px;background:linear-gradient(135deg,#1B7F3D,#2BA84F);color:#fff;text-align:center;text-decoration:none;border-radius:var(--radius);font-weight:700;font-size:14px;box-shadow:0 4px 12px rgba(27,127,61,.25);">🧾 Hacer Pedido</a>
+        </div>
+    </div>
+
+    <!-- MODAL VER MI TIENDA (fuera de catálogo / después de guardar) -->
+    <div class="modal-overlay" id="verTiendaModal" onclick="if(event.target.id==='verTiendaModal')document.getElementById('verTiendaModal').classList.remove('active')">
+        <div class="modal-content" style="max-width:480px;">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <svg style="vertical-align:middle;margin-right:6px;" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 22V12h6v10"/></svg>
+                    Mi Tienda
+                </h2>
             </div>
 
-            <a href="https://gesti-n-de-revendedores.pages.dev/" target="_blank" rel="noopener" style="display:block;margin-top:14px;padding:12px 16px;background:linear-gradient(135deg,#1B7F3D,#2BA84F);color:#fff;text-align:center;text-decoration:none;border-radius:var(--radius);font-weight:700;font-size:14px;box-shadow:0 4px 12px rgba(27,127,61,.25);">🧾 Hacer Pedido</a>
+            <div id="verTiendaConfigResumen" style="background:var(--gray-light);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:13px;color:var(--text);line-height:1.8;"></div>
+
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">🔗 Enlace de tu tienda</label>
+                <div style="display:flex;gap:8px;align-items:stretch;">
+                    <input type="text" id="verTiendaEnlace" readonly style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;background:#fff;color:var(--text);font-family:var(--font-body);">
+                    <button type="button" onclick="copiarEnlaceTienda()" style="padding:9px 14px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;">Copiar</button>
+                </div>
+                <div id="verTiendaCopiado" style="display:none;font-size:12px;color:#00a650;margin-top:4px;font-weight:600;">✅ ¡Enlace copiado!</div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                <button type="button" onclick="vistaPreviaTienda()" style="padding:11px;background:var(--gray-light);border:1px solid var(--border);border-radius:var(--radius);font-weight:600;cursor:pointer;font-size:13px;color:var(--text);">👁 Vista previa</button>
+                <button type="button" onclick="compartirTienda()" style="padding:11px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:var(--radius);font-weight:700;cursor:pointer;font-size:13px;">📤 Compartir</button>
+            </div>
+
+            <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);" onclick="document.getElementById('verTiendaModal').classList.remove('active')">Cerrar</button>
         </div>
     </div>
 
@@ -3995,7 +4028,7 @@
 
         // DATOS DE PRODUCTOS (112 zapatillas adultos)
         window.shoes = [
-            { id: 1, nombre: "DUNK CELESTE Y NUDE", imagen: "imagen.png", precio: 37000, precioOriginal: 37000, talle: ["38", "39", "40", "41", "42", "43"], caracteristicas: ["zapatilla brasilera adulto", "colorway celeste y nude", "estilo neutro y versátil"], info: "Dunk en tono celeste y nude, combina con todo tipo de outfit.", momento: "Urbana / tarde / uso diario" },
+            { id: 1, nombre: "DUNK CELESTE Y NUDE", imagen: "dunk.png", precio: 37000, precioOriginal: 37000, talle: ["38", "39", "40", "41", "42", "43"], caracteristicas: ["zapatilla brasilera adulto", "colorway celeste y nude", "estilo neutro y versátil"], info: "Dunk en tono celeste y nude, combina con todo tipo de outfit.", momento: "Urbana / tarde / uso diario" },
             { id: 2, nombre: "DUNK BLANCO Y VERDE GAMUZADA", imagen: "dunkblanco.png", precio: 37000, precioOriginal: 37000, talle: ["38", "39", "40", "41", "42", "43"], caracteristicas: ["zapatilla brasilera adulto", "colorway blanco y verde", "material gamuzado", "estilo urbano/deportivo"], info: "Dunk en combinación blanco y verde gamuzada. Versátil para looks urbanos y deportivos.", momento: "Urbana / deporte / tarde" },
             { id: 3, nombre: "DUNK PANDA 3D", imagen: "dunkpanda.png", precio: 37000, precioOriginal: 37000, talle: ["38", "39", "40", "41", "42", "43"], caracteristicas: ["zapatilla brasilera adulto", "colorway panda (negro y blanco)", "detalle 3D", "estilo urbano"], info: "Dunk edición Panda con detalle 3D. Look llamativo y urbano.", momento: "Urbana / noche / salidas" },
             { id: 4, nombre: "DUNK NUDE", imagen: "dunknude.png", precio: 37000, precioOriginal: 37000, talle: ["38", "39", "40", "41", "42", "43"], caracteristicas: ["zapatilla brasilera adulto", "colorway nude/beige", "estilo neutro y versátil"], info: "Dunk en tono nude, combina con todo tipo de outfit.", momento: "Urbana / tarde / uso diario" },
@@ -6828,6 +6861,7 @@
                 if (revendSection) revendSection.style.display = 'block';
                 
                 updateCartCount();
+                if (typeof actualizarIconoConfigTienda === 'function') actualizarIconoConfigTienda();
             } catch (error) {
                 // Error silencioso
             } finally {
@@ -6888,6 +6922,8 @@
             if (paginationSection) paginationSection.classList.add('hidden');
             if (portadaDosSection) portadaDosSection.style.display = 'none';
             if (revendSection) revendSection.style.display = 'none';
+            window.currentCatalog = null;
+            if (typeof actualizarIconoConfigTienda === 'function') actualizarIconoConfigTienda();
         }
 
         // Ocultar catálogo y mostrar nichos
@@ -7134,77 +7170,197 @@
         // ═══════════════════════════════════════════════════════════════
         // MODAL CONFIGURAR MI TIENDA
         // ═══════════════════════════════════════════════════════════════
+
+        // Llamado desde el botón del header — comportamiento diferente según si hay catálogo abierto
+        function onClickConfigTiendaHeader() {
+            const user = firebase.auth().currentUser || window.currentUser;
+            if (!user) { abrirLogin(); return; }
+            if (window.currentCatalog) {
+                // Dentro de un catálogo → abrir configuración editable
+                openConfigTiendaModal();
+            } else {
+                // Fuera de catálogo → mostrar resumen + compartir
+                abrirVerTienda();
+            }
+        }
+
+        // Actualizar icono del botón según contexto
+        function actualizarIconoConfigTienda() {
+            const gear = document.getElementById('config-gear-icon');
+            if (gear) {
+                gear.style.display = window.currentCatalog ? 'inline' : 'none';
+            }
+        }
+
         function openConfigTiendaModal() {
             const user = firebase.auth().currentUser || window.currentUser;
             if (!user) { abrirLogin(); return; }
-            // Cargar config existente
+
+            const cat = window.currentCatalog || 'general';
+            const catLabel = cat === 'perfumes' ? 'Perfumes árabes' : cat === 'calzados' ? 'Calzados' : 'General';
+            const el = document.getElementById('configTiendaCatLabel');
+            if (el) el.textContent = '📁 Categoría: ' + catLabel;
+
+            // Cargar config existente para esta categoría
             try {
-                const config = JSON.parse(localStorage.getItem('configTienda') || 'null');
+                const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                const config = allConfig[cat] || JSON.parse(localStorage.getItem('configTienda') || 'null');
                 const container = document.getElementById('config-rangos-container');
                 container.innerHTML = '';
-                if (config && Array.isArray(config.rangos)) {
-                    config.rangos.forEach(r => agregarRangoConfig(r.hasta, r.porcentaje));
+                if (config && Array.isArray(config.rangos) && config.rangos.length > 0) {
+                    config.rangos.forEach(r => agregarRangoConfig(r.de, r.hasta, r.porcentaje));
                     document.getElementById('config-margen-default').value = config.default || 30;
                 } else {
                     document.getElementById('config-margen-default').value = 30;
+                    agregarRangoConfig('', '', '');
                 }
-                // Cargar WhatsApp
                 document.getElementById('config-whatsapp').value = localStorage.getItem('whatsappRevendedor') || '';
-            } catch(e) {}
+            } catch(e) {
+                document.getElementById('config-margen-default').value = 30;
+            }
             document.getElementById('configTiendaModal').classList.add('active');
         }
+
         function closeConfigTiendaModal(e) {
             if (e && e.target.id !== 'configTiendaModal') return;
             document.getElementById('configTiendaModal').classList.remove('active');
         }
-        function agregarRangoConfig(hasta, pct) {
+
+        function agregarRangoConfig(de, hasta, pct) {
             const container = document.getElementById('config-rangos-container');
             const row = document.createElement('div');
             row.className = 'rango-config-row';
-            row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px;';
+            row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:center;margin-bottom:8px;';
             row.innerHTML = `
-                <input type="number" class="rango-hasta" min="0" placeholder="Hasta $" value="${hasta || ''}" style="padding:8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:var(--font-body);width:100%;">
-                <input type="number" class="rango-pct" min="0" max="999" placeholder="%" value="${pct || ''}" style="padding:8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:var(--font-body);width:100%;">
-                <button type="button" onclick="this.parentElement.remove()" style="background:#fee2e2;color:#dc2626;border:none;border-radius:var(--radius);padding:8px 10px;cursor:pointer;font-weight:700;">✕</button>
+                <input type="number" class="rango-de" min="0" placeholder="De $" value="${de || ''}" style="padding:7px 6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font-body);width:100%;">
+                <input type="number" class="rango-hasta" min="0" placeholder="Hasta $" value="${hasta || ''}" style="padding:7px 6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font-body);width:100%;">
+                <input type="number" class="rango-pct" min="0" max="999" placeholder="%" value="${pct || ''}" style="padding:7px 6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font-body);width:100%;">
+                <button type="button" onclick="this.parentElement.remove()" style="background:#fee2e2;color:#dc2626;border:none;border-radius:var(--radius);padding:7px 9px;cursor:pointer;font-weight:700;font-size:13px;">✕</button>
             `;
             container.appendChild(row);
         }
+
         function guardarConfigTienda() {
+            const cat = window.currentCatalog || 'general';
             const rangos = [];
             document.querySelectorAll('.rango-config-row').forEach(row => {
+                const de   = Number(row.querySelector('.rango-de').value) || 0;
                 const hasta = Number(row.querySelector('.rango-hasta').value);
                 const pct   = Number(row.querySelector('.rango-pct').value);
-                if (hasta > 0 && pct >= 0) rangos.push({ hasta, porcentaje: pct });
+                if (hasta > 0 && pct >= 0) rangos.push({ de, hasta, porcentaje: pct });
             });
             rangos.sort((a, b) => a.hasta - b.hasta);
             const defaultPct = Number(document.getElementById('config-margen-default').value) || 30;
-            const config = { rangos, default: defaultPct };
+            const config = { rangos, default: defaultPct, categoria: cat };
+
+            // Guardar por categoría
+            const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+            allConfig[cat] = config;
+            localStorage.setItem('configTiendaAll', JSON.stringify(allConfig));
+            // También guardar en la clave legacy para compatibilidad
             localStorage.setItem('configTienda', JSON.stringify(config));
 
-            // Guardar WhatsApp también desde esta pantalla
+            // Guardar WhatsApp
             const wa = (document.getElementById('config-whatsapp').value || '').replace(/\D/g, '');
             if (wa && wa.length >= 10) {
                 localStorage.setItem('whatsappRevendedor', wa);
             }
 
-            const user = firebase.auth().currentUser;
-            if (user) {
-                const update = { configTienda: config };
+            // Guardar en Firestore
+            const fbUser = firebase.auth().currentUser;
+            const uid = fbUser ? fbUser.uid : (window.currentUser ? window.currentUser.uid : null);
+            if (uid && fbUser) {
+                const update = { [`configTiendaAll.${cat}`]: config };
                 if (wa && wa.length >= 10) update.whatsappRevendedor = wa;
-                firebase.firestore().collection('usuarios').doc(user.uid).update(update).catch(() => {});
+                firebase.firestore().collection('usuarios').doc(uid).update(update).catch(() => {});
             }
+
             document.getElementById('configTiendaModal').classList.remove('active');
-            alert('✅ Configuración guardada.');
+
+            // Abrir automáticamente el modal de compartir
+            setTimeout(() => abrirVerTienda(cat), 200);
+        }
+
+        // Abrir modal "Ver mi tienda" (resumen + enlace para compartir)
+        function abrirVerTienda(catForzada) {
+            const cat = catForzada || window.currentCatalog || null;
+            const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                || localStorage.getItem('codigoVendedorLocal')
+                || localStorage.getItem('codigoRevendedorValidado')
+                || '';
+
+            // Resumen de configuración
+            const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+            let resumenHtml = '';
+            const cats = cat ? [cat] : Object.keys(allConfig);
+            if (cats.length === 0) {
+                resumenHtml = '<em style="color:var(--text-light)">Aún no configuraste precios. Entrá a un catálogo y tocá el botón de tienda + engranaje.</em>';
+            } else {
+                cats.forEach(c => {
+                    const cfg = allConfig[c];
+                    if (!cfg) return;
+                    const label = c === 'perfumes' ? '🌹 Perfumes' : c === 'calzados' ? '👟 Calzados' : '📦 ' + c;
+                    resumenHtml += `<div style="margin-bottom:10px;"><strong>${label}</strong><br>`;
+                    if (cfg.rangos && cfg.rangos.length > 0) {
+                        cfg.rangos.forEach(r => {
+                            resumenHtml += `<span style="font-size:12px;color:var(--text-light);">De $${(r.de||0).toLocaleString()} hasta $${r.hasta.toLocaleString()} → +${r.porcentaje}%</span><br>`;
+                        });
+                    }
+                    resumenHtml += `<span style="font-size:12px;color:var(--text-light);">Resto de precios → +${cfg.default || 30}%</span></div>`;
+                });
+            }
+            document.getElementById('verTiendaConfigResumen').innerHTML = resumenHtml;
+
+            // Generar enlace
+            const base = window.location.origin + window.location.pathname;
+            const catParam = cat ? `&cat=${cat}` : '';
+            const enlace = codigo ? `${base}?tienda=${codigo}${catParam}` : base;
+            document.getElementById('verTiendaEnlace').value = enlace;
+            document.getElementById('verTiendaCopiado').style.display = 'none';
+
+            document.getElementById('verTiendaModal').classList.add('active');
+        }
+
+        function copiarEnlaceTienda() {
+            const input = document.getElementById('verTiendaEnlace');
+            navigator.clipboard.writeText(input.value).then(() => {
+                const fb = document.getElementById('verTiendaCopiado');
+                fb.style.display = 'block';
+                setTimeout(() => fb.style.display = 'none', 2500);
+            }).catch(() => {
+                input.select();
+                document.execCommand('copy');
+                const fb = document.getElementById('verTiendaCopiado');
+                fb.style.display = 'block';
+                setTimeout(() => fb.style.display = 'none', 2500);
+            });
+        }
+
+        function vistaPreviaTienda() {
+            const enlace = document.getElementById('verTiendaEnlace').value;
+            window.open(enlace, '_blank');
+        }
+
+        function compartirTienda() {
+            const enlace = document.getElementById('verTiendaEnlace').value;
+            const texto = '¡Mirá mi tienda! ' + enlace;
+            if (navigator.share) {
+                navigator.share({ title: 'Mi Tienda', url: enlace }).catch(() => {});
+            } else {
+                window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+            }
         }
 
         // Usar margen personalizado si existe, sino tabla original
         function getMarginForPrice(precio) {
             try {
-                const config = JSON.parse(localStorage.getItem('configTienda') || 'null');
+                const cat = window.currentCatalog || 'general';
+                const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                const config = allConfig[cat] || JSON.parse(localStorage.getItem('configTienda') || 'null');
                 if (config && Array.isArray(config.rangos) && config.rangos.length > 0) {
                     const rango = config.rangos
                         .slice().sort((a, b) => a.hasta - b.hasta)
-                        .find(r => precio <= r.hasta);
+                        .find(r => precio >= (r.de || 0) && precio <= r.hasta);
                     return rango ? rango.porcentaje : (config.default || 30);
                 }
             } catch(e) {}
