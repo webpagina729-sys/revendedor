@@ -2436,7 +2436,9 @@
             text-align: center;
             margin-bottom: 48px;
             font-family: var(--font-display);
-            white-space: nowrap;
+            white-space: normal;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         .nichos-grid {
             display: grid;
@@ -3010,7 +3012,7 @@
     <!-- NUEVA SECCIÓN: ELEGÍ TU TIENDA IDEAL -->
     <section class="nichos-section" id="nichos-section">
         <div class="nichos-section-inner">
-            <h2 class="nichos-title" style="background: linear-gradient(135deg,#1B7F3D,#2BA84F); color:#fff; padding:14px 20px; border-radius:10px; display:inline-block; box-shadow:0 4px 12px rgba(27,127,61,.25);">¿Por dónde será tu próximo pedido?</h2>
+            <h2 class="nichos-title" style="background: linear-gradient(135deg,#1B7F3D,#2BA84F); color:#fff; padding:14px 20px; border-radius:10px; display:block; box-shadow:0 4px 12px rgba(27,127,61,.25); white-space:normal; text-align:center; max-width:100%; font-size:clamp(16px,4.5vw,28px);">¿Por dónde será tu próximo pedido?</h2>
             
             <!-- NICHO 1: PERFUMES ÁRABES -->
             <div class="nicho-item">
@@ -3461,32 +3463,32 @@
                 <h2 class="modal-title">Mi Perfil</h2>
             </div>
 
-            <div class="modal-section">
-                <div class="modal-section-title">Nombre</div>
-                <div class="modal-section-value" id="profileName">-</div>
-            </div>
-
-            <div class="modal-section">
-                <div class="modal-section-title">Email</div>
-                <div class="modal-section-value" id="profileEmail">-</div>
-            </div>
-
-            <div class="modal-section">
-                <div class="modal-section-title">Contraseña</div>
-                <div class="modal-section-value" style="letter-spacing: 2px;">••••••••</div>
+            <!-- Lista profesional de datos -->
+            <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;">
+                <div style="display:flex;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);background:#fafafa;">
+                    <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);min-width:80px;flex-shrink:0;">Nombre</span>
+                    <span id="profileName" style="font-size:14px;color:var(--text);font-weight:500;">—</span>
+                </div>
+                <div style="display:flex;align-items:center;padding:12px 14px;background:#fff;">
+                    <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);min-width:80px;flex-shrink:0;">Email</span>
+                    <span id="profileEmail" style="font-size:14px;color:var(--text);font-weight:500;word-break:break-all;">—</span>
+                </div>
             </div>
 
             <div class="modal-divider"></div>
 
             <!-- CÓDIGO DE REVENDEDOR - SECCIÓN DESTACADA -->
-            <div class="profile-code-section">
-                <div class="profile-code-title">Código de Revendedor</div>
-                <div class="profile-code-value" id="profileCode">-</div>
-                <div class="profile-code-description">Utilizá este código para aprobar tus pedidos</div>
-                <button type="button" class="profile-code-copy-btn" onclick="copyCodigoVendedor()">Copiar código</button>
+            <div style="background:linear-gradient(135deg,var(--primary) 0%,#0052cc 100%);color:white;padding:16px 18px;border-radius:10px;margin-bottom:20px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;opacity:0.9;margin-bottom:10px;">Código de Revendedor</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                    <div id="profileCode" style="font-size:clamp(15px,4vw,22px);font-weight:800;font-family:'Courier New',monospace;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">—</div>
+                    <button type="button" id="profileCopyBtn" onclick="copiarCodigoDesdeModal()" style="flex-shrink:0;background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.35);padding:7px 13px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background 0.2s;">Copiar</button>
+                </div>
+                <div id="profileCopyFeedback" style="font-size:12px;color:rgba(255,255,255,0.9);margin-top:8px;display:none;">✅ ¡Código copiado!</div>
+                <div style="font-size:12px;opacity:0.85;margin-top:8px;">Usá este código para aprobar tus pedidos</div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin-top: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin-top: 4px;">
                 <button type="button" class="confirmation-button" style="background: #f5f5f5; color: var(--text);" onclick="closeProfileModal()">Cerrar</button>
                 <button type="button" class="confirmation-button confirmation-button-primary" onclick="logoutUser()">Cerrar sesión</button>
             </div>
@@ -5709,6 +5711,43 @@
                 alert('No se pudo copiar el código. Intenta de nuevo.');
             });
         }
+
+        function copiarCodigoDesdeModal() {
+            let codigo = document.getElementById('profileCode')?.textContent?.trim() || '';
+            if (!codigo || codigo === '—') {
+                codigo = window.currentUser?.codigoVendedor || localStorage.getItem('codigoVendedorLocal') || '';
+            }
+            if (!codigo || codigo.trim() === '' || codigo === '—') {
+                alert('Tu código de revendedor aún no está disponible.');
+                return;
+            }
+            const btn = document.getElementById('profileCopyBtn');
+            const feedback = document.getElementById('profileCopyFeedback');
+            navigator.clipboard.writeText(codigo).then(() => {
+                if (btn) { btn.textContent = '✓ Copiado'; btn.style.background = 'rgba(255,255,255,0.35)'; }
+                if (feedback) feedback.style.display = 'block';
+                setTimeout(() => {
+                    if (btn) { btn.textContent = 'Copiar'; btn.style.background = 'rgba(255,255,255,0.2)'; }
+                    if (feedback) feedback.style.display = 'none';
+                }, 2500);
+            }).catch(() => {
+                // Fallback para navegadores sin clipboard API
+                const ta = document.createElement('textarea');
+                ta.value = codigo;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                if (btn) { btn.textContent = '✓ Copiado'; btn.style.background = 'rgba(255,255,255,0.35)'; }
+                if (feedback) feedback.style.display = 'block';
+                setTimeout(() => {
+                    if (btn) { btn.textContent = 'Copiar'; btn.style.background = 'rgba(255,255,255,0.2)'; }
+                    if (feedback) feedback.style.display = 'none';
+                }, 2500);
+            });
+        }
         
         function closeEmailConfirmationModal(e) {
             if (e && e.target.id !== 'emailConfirmationModal') return;
@@ -5748,14 +5787,20 @@
 
         async function openProfileModal() {
             const user = firebase.auth().currentUser;
-            if (!user) return;
+            const wUser = window.currentUser;
+
+            // Permitir apertura si hay usuario Firebase O usuario por código
+            if (!user && !wUser) return;
 
             // Mostrar email
-            document.getElementById('profileEmail').textContent = user.email;
+            const emailEl = document.getElementById('profileEmail');
+            if (emailEl) emailEl.textContent = user ? user.email : (wUser.email || '—');
 
             // Mostrar nombre
-            document.getElementById('profileName').textContent = 
-                window.currentUser?.nombre || user.email.split('@')[0];
+            const nameEl = document.getElementById('profileName');
+            if (nameEl) nameEl.textContent = wUser?.nombre
+                ? (wUser.nombre + (wUser.apellido ? ' ' + wUser.apellido : ''))
+                : (user ? user.email.split('@')[0] : '—');
 
             // Intentar mostrar código en este orden: localStorage → window.currentUser → Firestore → Generar nuevo
             let codigoEncontrado = false;
@@ -5764,7 +5809,6 @@
             // 1. PRIMER INTENTO: localStorage (más rápido y más confiable)
             const codigoLocal = localStorage.getItem('codigoVendedorLocal');
             if (codigoLocal && codigoLocal.trim() !== '') {
-                document.getElementById('profileCode').textContent = codigoLocal;
                 codigoFinal = codigoLocal;
                 codigoEncontrado = true;
             }
@@ -5772,16 +5816,16 @@
             // 2. SEGUNDO INTENTO: window.currentUser
             if (!codigoEncontrado) {
                 if (window.currentUser?.codigoVendedor && window.currentUser.codigoVendedor.trim() !== '') {
-                    document.getElementById('profileCode').textContent = window.currentUser.codigoVendedor;
                     codigoFinal = window.currentUser.codigoVendedor;
                     localStorage.setItem('codigoVendedorLocal', window.currentUser.codigoVendedor);
                     codigoEncontrado = true;
                 }
             }
             
-            // 3. TERCER INTENTO: Firestore
-            if (!codigoEncontrado) {
-                document.getElementById('profileCode').textContent = 'Cargando...';
+            // 3. TERCER INTENTO: Firestore (solo si hay usuario Firebase)
+            if (!codigoEncontrado && user) {
+                const profileCodeEl = document.getElementById('profileCode');
+                if (profileCodeEl) profileCodeEl.textContent = 'Cargando...';
                 try {
                     const doc = await firebase.firestore().collection('usuarios').doc(user.uid).get();
                     
@@ -5789,7 +5833,6 @@
                         const userData = doc.data();
                         
                         if (userData.codigoVendedor && userData.codigoVendedor.trim() !== '') {
-                            document.getElementById('profileCode').textContent = userData.codigoVendedor;
                             codigoFinal = userData.codigoVendedor;
                             localStorage.setItem('codigoVendedorLocal', userData.codigoVendedor);
                             if (window.currentUser) {
@@ -5811,10 +5854,9 @@
                 }
             }
             
-            // 4. ÚLTIMO RECURSO: Si aún no hay código, generar uno
-            if (!codigoEncontrado || !codigoFinal || codigoFinal.trim() === '') {
+            // 4. ÚLTIMO RECURSO: Si hay Firebase auth y no hay código, generar uno
+            if ((!codigoEncontrado || !codigoFinal || codigoFinal.trim() === '') && user) {
                 codigoFinal = generarCodigoVendedor();
-                document.getElementById('profileCode').textContent = codigoFinal;
                 
                 localStorage.setItem('codigoVendedorLocal', codigoFinal);
                 
@@ -5834,6 +5876,9 @@
                     }).catch(err2 => {});
                 });
             }
+
+            const profileCodeEl = document.getElementById('profileCode');
+            if (profileCodeEl) profileCodeEl.textContent = codigoFinal || '—';
 
             document.getElementById('profileModal').classList.add('active');
             preventBodyScroll(true);
@@ -7312,7 +7357,7 @@
             document.getElementById('verTiendaConfigResumen').innerHTML = resumenHtml;
 
             // Generar enlace
-            const base = window.location.origin + window.location.pathname;
+            const base = window.location.origin + '/tienda.html';
             const catParam = cat ? `&cat=${cat}` : '';
             const enlace = codigo ? `${base}?tienda=${codigo}${catParam}` : base;
             document.getElementById('verTiendaEnlace').value = enlace;
