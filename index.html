@@ -7260,12 +7260,8 @@
                 });
             }
 
-            // Busca el vendedor en Firestore por código
+            // Busca el vendedor en Firestore por código (fallback — el Worker es la vía principal)
             async function buscarEnFirestore(codigo) {
-                // Asegurar sesión anónima para que las reglas de Firestore permitan la lectura
-                if (!firebase.auth().currentUser) {
-                    await firebase.auth().signInAnonymously();
-                }
                 var snap = await firebase.firestore()
                     .collection('usuarios')
                     .where('codigoVendedor', '==', codigo)
@@ -7289,13 +7285,6 @@
                 if (userData.whatsappRevendedor && !localStorage.getItem('whatsappRevendedor')) {
                     localStorage.setItem('whatsappRevendedor', userData.whatsappRevendedor);
                 }
-
-                // Asegurar sesión anónima si no hay usuario
-                try {
-                    if (!firebase.auth().currentUser) {
-                        await firebase.auth().signInAnonymously();
-                    }
-                } catch(e) {}
 
                 var fbUser = firebase.auth().currentUser;
 
