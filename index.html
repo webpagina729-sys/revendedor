@@ -4538,7 +4538,8 @@
         // Calcular ganancia para un item del carrito
         function calculateItemProfit(item) {
             const precioUnitario = item.precio;
-            const margin = calculateMarginByPrice(precioUnitario);
+            const catalogo = getItemCatalog(item) || window.currentCatalog || 'general';
+            const margin = getMarginForPrice(precioUnitario, catalogo);
             const gananciaUnitaria = precioUnitario * (margin / 100);
             const gananciaTotal = gananciaUnitaria * item.cantidad;
             
@@ -5273,7 +5274,7 @@
                 } catch(e) { /* silencioso, no bloquea el flujo */ }
 
                 // ── Obtener WhatsApp del revendedor y armar mensaje ──────────
-                const waNum = localStorage.getItem('whatsappRevendedor') || '';
+                const waNum = window.whatsappRevendedor || localStorage.getItem('whatsappRevendedor') || '';
                 if (!waNum) {
                     alert('⚠️ No tenés un número de WhatsApp configurado.\nAndá a "Configurar mi tienda" para agregarlo.');
                     closeCheckout();
@@ -7202,6 +7203,8 @@
             }
             if (!local || local.length < 8) { alert('Ingresá un número válido (mínimo 8 dígitos, sin el 0 ni el 15).'); return; }
             const val = '549' + local;
+            // Guardar en memoria, localStorage y Firebase
+            window.whatsappRevendedor = val;
             localStorage.setItem('whatsappRevendedor', val);
             const user = firebase.auth().currentUser;
             if (user) {
@@ -7308,6 +7311,7 @@
             // Guardar WhatsApp
             const wa = (document.getElementById('config-whatsapp').value || '').replace(/\D/g, '');
             if (wa && wa.length >= 10) {
+                window.whatsappRevendedor = wa;
                 localStorage.setItem('whatsappRevendedor', wa);
             }
 
@@ -7397,16 +7401,25 @@
         }
 
         // Usar margen personalizado si existe, sino tabla original
-        function getMarginForPrice(precio) {
+        function getMarginForPrice(precio, catalogoForzado) {
             try {
-                const cat = window.currentCatalog || 'general';
+                const cat = catalogoForzado || window.currentCatalog || 'general';
                 const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-                const config = allConfig[cat] || JSON.parse(localStorage.getItem('configTienda') || 'null');
-                if (config && Array.isArray(config.rangos) && config.rangos.length > 0) {
+                // Prioridad: categoría exacta → 'calzados' si aplica → legacy configTienda
+                const config = allConfig[cat]
+                    || (cat !== 'calzados' && allConfig['calzados'])
+                    || JSON.parse(localStorage.getItem('configTienda') || 'null');
+                if (config) {
+                    // Si no hay rangos definidos, aplicar el default directamente
+                    if (!Array.isArray(config.rangos) || config.rangos.length === 0) {
+                        return config.default != null ? config.default : calculateMarginByPrice(precio);
+                    }
+                    // Hay rangos: buscar el que corresponde al precio
                     const rango = config.rangos
                         .slice().sort((a, b) => a.hasta - b.hasta)
                         .find(r => precio >= (r.de || 0) && precio <= r.hasta);
-                    return rango ? rango.porcentaje : (config.default || 30);
+                    // Si ningún rango matchea, usar el default (no rangos viejos de otra config)
+                    return rango ? rango.porcentaje : (config.default != null ? config.default : calculateMarginByPrice(precio));
                 }
             } catch(e) {}
             return calculateMarginByPrice(precio);
@@ -7419,18 +7432,29 @@
             window.initializeUserSession = function(userData, user) {
                 if (_orig) _orig(userData, user);
                 if (!user) return;
-                // Cargar config y WhatsApp desde Firestore si no están en localStorage
+                // Cargar config y WhatsApp desde Firestore (fuente principal)
                 firebase.firestore().collection('usuarios').doc(user.uid).get().then(doc => {
                     if (!doc.exists) return;
                     const data = doc.data();
-                    if (data.whatsappRevendedor && !localStorage.getItem('whatsappRevendedor')) {
+                    if (data.whatsappRevendedor) {
+                        // Firebase es la fuente principal: actualizar memoria y localStorage
+                        window.whatsappRevendedor = data.whatsappRevendedor;
                         localStorage.setItem('whatsappRevendedor', data.whatsappRevendedor);
+                    } else if (localStorage.getItem('whatsappRevendedor')) {
+                        // Fallback: usar localStorage si Firebase no tiene el número
+                        window.whatsappRevendedor = localStorage.getItem('whatsappRevendedor');
                     }
                     if (data.configTienda && !localStorage.getItem('configTienda')) {
                         localStorage.setItem('configTienda', JSON.stringify(data.configTienda));
                     }
+                    // También cargar configTiendaAll desde Firebase si existe
+                    if (data.configTiendaAll) {
+                        const localAll = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                        const merged = Object.assign({}, data.configTiendaAll, localAll);
+                        localStorage.setItem('configTiendaAll', JSON.stringify(merged));
+                    }
                     // Si no tiene WhatsApp configurado, mostrar modal a los 7 segundos
-                    if (!localStorage.getItem('whatsappRevendedor')) {
+                    if (!window.whatsappRevendedor) {
                         setTimeout(() => openWhatsappConfirmModal(), 7000);
                     }
                 }).catch(() => {
@@ -7545,8 +7569,12 @@
                 if (userData.configTienda && !localStorage.getItem('configTienda')) {
                     localStorage.setItem('configTienda', JSON.stringify(userData.configTienda));
                 }
-                if (userData.whatsappRevendedor && !localStorage.getItem('whatsappRevendedor')) {
+                if (userData.whatsappRevendedor) {
+                    // Firebase es fuente principal: actualizar memoria y localStorage
+                    window.whatsappRevendedor = userData.whatsappRevendedor;
                     localStorage.setItem('whatsappRevendedor', userData.whatsappRevendedor);
+                } else if (localStorage.getItem('whatsappRevendedor')) {
+                    window.whatsappRevendedor = localStorage.getItem('whatsappRevendedor');
                 }
 
                 var fbUser = firebase.auth().currentUser;
@@ -7750,7 +7778,7 @@
                 bvOcultar();
 
                 // 4. Modal de WhatsApp si no está configurado
-                var waGuardado = localStorage.getItem('whatsappRevendedor') || userData.whatsappRevendedor || '';
+                var waGuardado = window.whatsappRevendedor || localStorage.getItem('whatsappRevendedor') || userData.whatsappRevendedor || '';
                 if (!waGuardado) {
                     setTimeout(function() {
                         var modal = document.getElementById('whatsappConfirmModal');
