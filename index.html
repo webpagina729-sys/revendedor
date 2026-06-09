@@ -3632,10 +3632,10 @@
                 <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Número de WhatsApp</label>
                 <div style="display:flex;align-items:stretch;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:#fff;">
                     <span style="display:flex;align-items:center;gap:6px;padding:11px 10px;background:#f5f7fa;border-right:1px solid var(--border);font-size:14px;font-weight:600;color:#333;white-space:nowrap;">🇦🇷 +54 9</span>
-                    <input type="tel" id="whatsapp-input-modal" placeholder="Ej: 2395407700" inputmode="numeric" style="flex:1;min-width:0;padding:11px 12px;border:none;outline:none;font-size:14px;font-family:var(--font-body);">
+                    <input type="tel" id="whatsapp-input-modal" placeholder="Ej: 2395401234" inputmode="numeric" style="flex:1;min-width:0;padding:11px 12px;border:none;outline:none;font-size:14px;font-family:var(--font-body);">
                 </div>
                 <small style="display:block;margin-top:6px;color:#777;font-size:12px;">Solo ingresá tu número sin el 0 ni el 15. Le agregamos +54 9 automáticamente.</small>
-                <div style="font-size:11px;color:var(--text-light);margin-top:4px;">Sin espacios ni guiones. Ejemplo Argentina: 5491112345678</div>
+                <div id="whatsapp-modal-error" style="display:none;margin-top:10px;padding:10px 14px;background:#fff3f3;border:1px solid #fcc;border-radius:var(--radius);color:#c00;font-size:13px;font-weight:500;"></div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                 <button type="button" class="confirmation-button" style="background:#f5f5f5;color:var(--text);" onclick="document.getElementById('whatsappConfirmModal').classList.remove('active')">Más tarde</button>
@@ -3643,6 +3643,9 @@
             </div>
         </div>
     </div>
+
+    <!-- TOAST CONFIRMACIÓN WHATSAPP -->
+    <div id="wa-toast" style="display:none;position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--text);color:#fff;padding:14px 24px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.18);text-align:center;max-width:90vw;"></div>
 
     <!-- MODAL CONFIGURAR MI TIENDA (dentro de catálogo) -->
     <div class="modal-overlay" id="configTiendaModal" onclick="closeConfigTiendaModal(event)">
@@ -4140,17 +4143,17 @@
             { id: 111, nombre: "PUMA SUEDE VERDES", imagen: "pumasuedeverdes.png", precio: 35900, precioOriginal: 35900, talle: ["38", "39", "40", "41", "42", "43"], caracteristicas: ["zapatilla brasilera adulto", "modelo Puma Suede", "colorway marrón", "estilo urbano/clásico"], info: "Puma Suede en tonos verdes/tierra, zapatilla versátil y moderna.", momento: "Urbana / tarde / noche" },
             { id: 112, nombre: "NEW BALANCE 9060 WHITE", imagen: "newbalance.png", precio: 37000, precioOriginal: 37000, talle: ["38", "39", "40", "41", "42", "43"], caracteristicas: ["zapatilla brasilera adulto", "modelo New Balance 9060", "colorway blanco", "estilo urbano/moderno"], info: "New Balance 9060 en blanco, zapatilla moderna y cómoda para uso diario.", momento: "Urbana / tarde / noche / uso diario" }
             ,
-            { id: 201, nombre: "AIR FORCE ABROJO NEGRAS", imagen: "airforce.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","cierre abrojo","estilo deportivo","color negro"], info: "Zapatilla brasilera estilo Air Force con cierre de abrojo, cómoda y resistente para el uso diario infantil.", momento: "uso diario / escuela / todo el año" },
-            { id: 202, nombre: "CAMPUS BAD BUNNY", imagen: "campus.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo urbano","diseño edición especial","suela flexible"], info: "Zapatilla brasilera estilo Campus inspirada en la colección Bad Bunny, ideal para niños con estilo urbano.", momento: "uso diario / salidas / todo el año" },
-            { id: 203, nombre: "ADI2000 ROSA", imagen: "rosa.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color rosa","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en color rosa, cómoda y con diseño retro ideal para niños.", momento: "uso diario / escuela / todo el año" },
-            { id: 204, nombre: "LOUIS VUITTON STAKE NEGRA Y CREMA", imagen: "negracream.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo urbano premium","color negro y crema","suela flexible"], info: "Zapatilla brasilera estilo LV Stake en negro y crema, diseño urbano premium para niños.", momento: "uso diario / salidas / todo el año" },
-            { id: 205, nombre: "LOUIS VUITTON STAKE BLANCO Y NEGRO", imagen: "blanconegro.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo urbano premium","color blanco y negro","suela flexible"], info: "Zapatilla brasilera estilo LV Stake en blanco y negro, diseño urbano premium para niños.", momento: "uso diario / salidas / todo el año" },
-            { id: 206, nombre: "SAMBA BLACK", imagen: "sambablack.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color negro","suela flexible"], info: "Zapatilla brasilera estilo Samba en color negro, clásica y cómoda para uso diario infantil.", momento: "uso diario / escuela / todo el año" },
-            { id: 207, nombre: "ADI2000 NEGRA Y BLANCA", imagen: "negrayblanca.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color negro y blanco","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en negro y blanco, versátil y cómoda para niños.", momento: "uso diario / escuela / todo el año" },
-            { id: 208, nombre: "ADI2000 BEIGE", imagen: "beige.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color beige","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en color beige, ideal para combinar con cualquier outfit infantil.", momento: "uso diario / escuela / todo el año" },
-            { id: 209, nombre: "ADI2000 GRIS", imagen: "gris.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color gris","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en color gris, cómoda y versátil para el día a día infantil.", momento: "uso diario / escuela / todo el año" },
-            { id: 210, nombre: "SAMBA", imagen: "samba.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","diseño clásico","suela flexible"], info: "Zapatilla brasilera estilo Samba clásica, cómoda y resistente para el uso diario de los más chicos.", momento: "uso diario / escuela / todo el año" },
-            { id: 211, nombre: "ADI2000 TOTAL BLACK", imagen: "totalblack.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color negro total","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en total black, diseño impactante y cómodo para niños.", momento: "uso diario / escuela / todo el año" }
+            { id: 201, nombre: "AIR FORCE ABROJO NEGRAS", imagen: "airforcenino.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","cierre abrojo","estilo deportivo","color negro"], info: "Zapatilla brasilera estilo Air Force con cierre de abrojo, cómoda y resistente para el uso diario infantil.", momento: "uso diario / escuela / todo el año" },
+            { id: 202, nombre: "CAMPUS BAD BUNNY", imagen: "campusnino.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo urbano","diseño edición especial","suela flexible"], info: "Zapatilla brasilera estilo Campus inspirada en la colección Bad Bunny, ideal para niños con estilo urbano.", momento: "uso diario / salidas / todo el año" },
+            { id: 203, nombre: "ADI2000 ROSA", imagen: "aditosrosa.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color rosa","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en color rosa, cómoda y con diseño retro ideal para niños.", momento: "uso diario / escuela / todo el año" },
+            { id: 204, nombre: "LOUIS VUITTON STAKE NEGRA Y CREMA", imagen: "lvstakenegracream.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo urbano premium","color negro y crema","suela flexible"], info: "Zapatilla brasilera estilo LV Stake en negro y crema, diseño urbano premium para niños.", momento: "uso diario / salidas / todo el año" },
+            { id: 205, nombre: "LOUIS VUITTON STAKE BLANCO Y NEGRO", imagen: "lvstakeblanconegro.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo urbano premium","color blanco y negro","suela flexible"], info: "Zapatilla brasilera estilo LV Stake en blanco y negro, diseño urbano premium para niños.", momento: "uso diario / salidas / todo el año" },
+            { id: 206, nombre: "SAMBA BLACK", imagen: "sambaninonegra.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color negro","suela flexible"], info: "Zapatilla brasilera estilo Samba en color negro, clásica y cómoda para uso diario infantil.", momento: "uso diario / escuela / todo el año" },
+            { id: 207, nombre: "ADI2000 NEGRA Y BLANCA", imagen: "aditosnegrablan.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color negro y blanco","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en negro y blanco, versátil y cómoda para niños.", momento: "uso diario / escuela / todo el año" },
+            { id: 208, nombre: "ADI2000 BEIGE", imagen: "aditosbeige.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color beige","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en color beige, ideal para combinar con cualquier outfit infantil.", momento: "uso diario / escuela / todo el año" },
+            { id: 209, nombre: "ADI2000 GRIS", imagen: "aditosgris.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color gris","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en color gris, cómoda y versátil para el día a día infantil.", momento: "uso diario / escuela / todo el año" },
+            { id: 210, nombre: "SAMBA", imagen: "sambaninocolor.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","diseño clásico","suela flexible"], info: "Zapatilla brasilera estilo Samba clásica, cómoda y resistente para el uso diario de los más chicos.", momento: "uso diario / escuela / todo el año" },
+            { id: 211, nombre: "ADI2000 TOTAL BLACK", imagen: "aditostotalblack.png", precio: 27000, precioOriginal: 53460, talle: ["28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color negro total","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en total black, diseño impactante y cómodo para niños.", momento: "uso diario / escuela / todo el año" }
         ];
 
         // Agregar categoría 'adultos' a todos los productos de zapatillas
@@ -7218,17 +7221,43 @@
             document.getElementById('whatsappConfirmModal').classList.remove('active');
         }
         function guardarWhatsappRevendedor() {
+            const errEl = document.getElementById('whatsapp-modal-error');
+            const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+            errEl.style.display = 'none';
+
             let local = (document.getElementById('whatsapp-input-modal').value || '').replace(/\D/g, '');
             // Limpiar prefijos comunes que el usuario podría haber tipeado
             if (local.startsWith('549')) local = local.slice(3);
             else if (local.startsWith('54')) local = local.slice(2);
             if (local.startsWith('0')) local = local.replace(/^0+/, '');
             if (local.length >= 4 && local.charAt(2) === '1' && local.charAt(3) === '5') {
-                // Quitar el "15" típico argentino tras la característica de 2 dígitos
                 local = local.slice(0,2) + local.slice(4);
             }
-            if (!local || local.length < 8) { alert('Ingresá un número válido (mínimo 8 dígitos, sin el 0 ni el 15).'); return; }
+            if (!local || local.length < 8) {
+                showErr('Ingresá un número válido (mínimo 8 dígitos, sin el 0 ni el 15).');
+                return;
+            }
             const val = '549' + local;
+
+            // Verificar que el número coincida con el teléfono registrado del revendedor
+            const telefonoRegistrado = (window.currentUser && window.currentUser.telefono)
+                ? window.currentUser.telefono.replace(/\D/g, '')
+                : '';
+            if (telefonoRegistrado) {
+                // Normalizar teléfono registrado igual que el ingresado
+                let telNorm = telefonoRegistrado;
+                if (telNorm.startsWith('549')) telNorm = telNorm.slice(3);
+                else if (telNorm.startsWith('54')) telNorm = telNorm.slice(2);
+                if (telNorm.startsWith('0')) telNorm = telNorm.replace(/^0+/, '');
+                if (telNorm.length >= 4 && telNorm.charAt(2) === '1' && telNorm.charAt(3) === '5') {
+                    telNorm = telNorm.slice(0,2) + telNorm.slice(4);
+                }
+                if (local !== telNorm) {
+                    showErr('El número no coincide con el registrado en tu cuenta de revendedor. Verificá e intentá de nuevo.');
+                    return;
+                }
+            }
+
             localStorage.setItem('whatsappRevendedor', val);
             const user = firebase.auth().currentUser;
             if (user) {
@@ -7236,7 +7265,14 @@
                     .update({ whatsappRevendedor: val }).catch(() => {});
             }
             document.getElementById('whatsappConfirmModal').classList.remove('active');
-            alert('✅ WhatsApp guardado: +' + val);
+
+            // Toast de confirmación con estética de la web
+            const toast = document.getElementById('wa-toast');
+            if (toast) {
+                toast.textContent = '✅ WhatsApp guardado correctamente: +' + val;
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 3500);
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════
