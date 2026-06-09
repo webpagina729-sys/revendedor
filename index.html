@@ -3003,7 +3003,10 @@
     <!-- HERO BANNER -->
     <section class="banner">
         <div class="banner-inner">
-            <h1 class="banner-title">Revende Ways</h1>
+            <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px;">
+                <h1 class="banner-title" style="flex:1;text-align:center;">Revende Ways</h1>
+                <img src="logo.png" alt="Logo" onerror="this.style.display='none'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);box-shadow:0 2px 10px rgba(0,0,0,.15);flex-shrink:0;">
+            </div>
             <p class="banner-subtitle">Revende con nosotros. Te damos tu tienda lista para comenzar con +500 productos.</p>
             <div class="banner-badge">📦 Pedido mínimo en la categoría- Precio solo para revendedores</div>
         </div>
@@ -3144,6 +3147,7 @@
             <img id="portada-uno-img" alt="Portada Revende" class="portada-image" style="width: 100%; max-width: 100%; display: block; margin: 0 auto 20px auto;">
             <div class="revend-tagline" style="text-align: center; font-weight: 600; color: white; margin-bottom: 20px;">Obtené ideas todas las semanas para llevar tu emprendimiento adelante</div>
             <button class="revend-btn" id="revend-btn-main" onclick="window.open('https://8cc1455f.sibforms.com/serve/MUIFAOe2caIUk_JszJEAGAXuWMAooq9jBLGOvdN8R2ecTP9XnIzhvmcJIr6sHXcB-ap4DPs38CfVHsbJyu1Nc6djziTbM7FfS-bGHzYXXhYj1V_wcohxKLoFy4sbfPH_xNmDgwVR4xVaaf4dyK_QlVjLzdj4E012J39XFQGdXYOvmNEzae4U9jt0_pRuCZHcElDfRt6XW7T4QwrXbA==', '_blank')" style="margin-bottom: 30px;">Quiero mi tienda</button>
+            <img src="logo.png" alt="Logo Revende Ways" onerror="this.style.display='none'" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.7);box-shadow:0 2px 16px rgba(0,0,0,.18);margin-bottom:10px;display:block;">
         </img>
     </div>
 
@@ -3348,7 +3352,7 @@
                 </button>
                 <div class="google-auth-divider"><span>o</span></div>
                 <form onsubmit="loginUser(event)">
-                    <input type="email" id="login-email" placeholder="Correo electrónico" required>
+                    <input type="text" id="login-codigo-revendedor" placeholder="Código de revendedor" style="text-transform:uppercase;letter-spacing:1px;" required>
                     <div class="password-input-wrapper">
                         <input type="password" id="login-password" placeholder="Contraseña" required>
                         <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('login-password', this)" tabindex="-1" aria-label="Mostrar contraseña">
@@ -3671,8 +3675,11 @@
             <div style="margin-bottom:16px;">
                 <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">% ganancia para el resto de los precios</label>
                 <div style="display:flex;align-items:center;gap:8px;">
-                    <input type="number" id="config-margen-default" min="0" max="999" placeholder="%" style="width:90px;padding:9px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:var(--font-body);">
+                    <input type="number" id="config-margen-default" min="0" max="999" placeholder="%" style="width:90px;padding:9px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:var(--font-body);" oninput="actualizarPromedioGananciaConfig()">
                     <span style="font-size:13px;color:var(--text-light);">% de ganancia</span>
+                </div>
+                <div id="config-promedio-ganancia" style="margin-top:8px;padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius);font-size:12px;color:#166534;font-weight:600;display:none;">
+                    📊 Promedio de ganancia por venta: <span id="config-promedio-valor">—</span>
                 </div>
             </div>
 
@@ -3684,6 +3691,7 @@
 
             <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:10px;" onclick="guardarConfigTienda()">Guardar configuración</button>
             <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);margin-bottom:10px;" onclick="document.getElementById('configTiendaModal').classList.remove('active')">Cancelar</button>
+            <button type="button" class="confirmation-button" style="width:100%;background:#fff0f0;color:#dc2626;border:1px solid #fecaca;margin-bottom:10px;" onclick="eliminarConfigTienda()">🗑 Eliminar configuración</button>
 
             <a href="https://gesti-n-de-revendedores.pages.dev/" target="_blank" rel="noopener" style="display:block;margin-top:4px;padding:12px 16px;background:linear-gradient(135deg,#1B7F3D,#2BA84F);color:#fff;text-align:center;text-decoration:none;border-radius:var(--radius);font-weight:700;font-size:14px;box-shadow:0 4px 12px rgba(27,127,61,.25);">🧾 Hacer Pedido</a>
         </div>
@@ -4322,8 +4330,12 @@
             
             for (let i = 0; i < window.itemsDisplayed && i < filtered.length; i++) {
                 const p = filtered[i];
+                const precioMostrar = getCustomPriceForProduct ? getCustomPriceForProduct(p) : p.precio;
+                const gananciaInfo = getGananciaInfoForProduct ? getGananciaInfoForProduct(p) : null;
+                const editBtn = `<button onclick="abrirEditPrecioProducto(${p.id},'perfumes')" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,.85);border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:2;" title="Editar precio">…</button>`;
                 html += `
-                <div class="product-card">
+                <div class="product-card" style="position:relative;">
+                    ${editBtn}
                     <div class="product-image" onclick="openZoom('${p.imagen}')">
                         <div class="zoom-icon">🔍</div>
                         <img src="${BASE_IMAGE_URL}${p.imagen}" alt="${p.nombre}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-family=%22Arial%22 font-size=%2214%22 fill=%22%23999%22%3EProducto%3C/text%3E%3C/svg%3E'">
@@ -4331,13 +4343,15 @@
                     <div class="product-info">
                         <div class="product-name">${p.nombre}</div>
                         <div class="product-price">
-                            <div class="price-current">$${p.precio.toLocaleString()}</div>
+                            <div class="price-current">$${(precioMostrar || p.precio).toLocaleString()}</div>
                             <div class="price-original">$${p.precioOriginal.toLocaleString()}</div>
                             <div class="price-discount">${Math.round((1 - p.precio/p.precioOriginal) * 100)}%</div>
                         </div>
+                        ${gananciaInfo ? `<div style="font-size:11px;color:#00a650;font-weight:600;margin-bottom:4px;">Ganancia: $${gananciaInfo.ganancia.toLocaleString()} (${gananciaInfo.pct}%)</div>` : ''}
                         <button class="btn-more" onclick="openDetails(${p.id})">Ver más</button>
                     </div>
                 </div>`;
+            }
             }
             
             grid.innerHTML = html;
@@ -4386,22 +4400,37 @@
             }
             
             let html = '';
+
+            // Generar placeholder SVG con nombre del producto
+            function shoePlaceholderSvg(nombre) {
+                const letra = (nombre || 'P').charAt(0).toUpperCase();
+                return 'data:image/svg+xml,' + encodeURIComponent(
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect fill="#e8edf5" width="200" height="200"/><text x="50%" y="44%" text-anchor="middle" dy=".3em" font-family="Arial" font-size="56" font-weight="bold" fill="#0066ff">' + letra + '</text><text x="50%" y="72%" text-anchor="middle" font-family="Arial" font-size="11" fill="#666">Imagen no disponible</text></svg>'
+                );
+            }
             
             for (let i = 0; i < window.shoesItemsDisplayed && i < filtered.length; i++) {
                 const p = filtered[i];
+                const placeholder = shoePlaceholderSvg(p.nombre);
+                // Aplicar precio personalizado si hay configuración de tienda
+                const precioMostrar = getCustomPriceForProduct ? getCustomPriceForProduct(p) : p.precio;
+                const gananciaInfo = getGananciaInfoForProduct ? getGananciaInfoForProduct(p) : null;
+                const editBtn = `<button onclick="abrirEditPrecioProducto(${p.id},'calzados')" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,.85);border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:2;" title="Editar precio">…</button>`;
                 html += `
-                <div class="product-card">
+                <div class="product-card" style="position:relative;">
+                    ${editBtn}
                     <div class="product-image" onclick="openZoom('${p.imagen}')">
                         <div class="zoom-icon">🔍</div>
-                        <img src="${BASE_IMAGE_URL}${p.imagen}" alt="${p.nombre}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-family=%22Arial%22 font-size=%2214%22 fill=%22%23999%22%3EProducto%3C/text%3E%3C/svg%3E'">
+                        <img src="${BASE_IMAGE_URL}${p.imagen}" alt="${p.nombre}" onerror="this.onerror=null;this.src='${placeholder}';">
                     </div>
                     <div class="product-info">
                         <div class="product-name">${p.nombre}</div>
                         <div class="product-price">
-                            <div class="price-current">$${p.precio.toLocaleString()}</div>
+                            <div class="price-current">$${(precioMostrar || p.precio).toLocaleString()}</div>
                             <div class="price-original">$${p.precioOriginal.toLocaleString()}</div>
                             <div class="price-discount">${Math.round((1 - p.precio/p.precioOriginal) * 100)}%</div>
                         </div>
+                        ${gananciaInfo ? `<div style="font-size:11px;color:#00a650;font-weight:600;margin-bottom:4px;">Ganancia: $${gananciaInfo.ganancia.toLocaleString()} (${gananciaInfo.pct}%)</div>` : ''}
                         <button class="btn-more" onclick="openDetailsShoes(${p.id})">Ver más</button>
                     </div>
                 </div>`;
@@ -5584,6 +5613,19 @@
             }
         }
 
+        // Helper: esperar a que Firebase Auth esté listo
+        function esperarFirebaseAuth() {
+            return new Promise(function(resolve, reject) {
+                var intentos = 0;
+                var t = setInterval(function() {
+                    intentos++;
+                    if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0 && firebase.firestore) {
+                        clearInterval(t); resolve();
+                    } else if (intentos > 60) { clearInterval(t); reject(new Error('Firebase no listo')); }
+                }, 100);
+            });
+        }
+
         // LOGIN CON FIREBASE
         async function loginUser(e) {
             e.preventDefault();
@@ -5596,8 +5638,46 @@
                 return;
             }
             
-            const email = document.getElementById('login-email').value;
+            const codigoInput = document.getElementById('login-codigo-revendedor');
+            const codigo = codigoInput ? codigoInput.value.trim().toUpperCase() : '';
             const password = document.getElementById('login-password').value;
+
+            if (!codigo) {
+                alert('❌ Ingresá tu código de revendedor.');
+                return;
+            }
+
+            // Buscar el email asociado al código vía Worker o Firestore
+            let email = null;
+            try {
+                const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.vendedor && data.vendedor.email) {
+                        email = data.vendedor.email;
+                    }
+                }
+            } catch(e) {}
+
+            // Fallback: buscar en Firestore
+            if (!email) {
+                try {
+                    await esperarFirebaseAuth();
+                    const snap = await firebase.firestore().collection('usuarios')
+                        .where('codigoVendedor', '==', codigo).limit(1).get();
+                    if (!snap.empty) email = snap.docs[0].data().email;
+                } catch(e) {}
+            }
+
+            if (!email) {
+                document.getElementById('error-message') && (document.getElementById('error-message').textContent = 'Código no encontrado.');
+                document.getElementById('registration-error-modal').classList.add('active');
+                return;
+            }
 
             try {
                 // Firebase Auth se encargará de la persistencia
@@ -7365,6 +7445,8 @@
                 document.getElementById('config-margen-default').value = 30;
             }
             document.getElementById('configTiendaModal').classList.add('active');
+            // Mostrar promedio al abrir
+            setTimeout(actualizarPromedioGananciaConfig, 100);
         }
 
         function closeConfigTiendaModal(e) {
@@ -7380,7 +7462,7 @@
             row.innerHTML = `
                 <input type="number" class="rango-de" min="0" placeholder="De $" value="${de || ''}" style="padding:7px 6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font-body);width:100%;">
                 <input type="number" class="rango-hasta" min="0" placeholder="Hasta $" value="${hasta || ''}" style="padding:7px 6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font-body);width:100%;">
-                <input type="number" class="rango-pct" min="0" max="999" placeholder="%" value="${pct || ''}" style="padding:7px 6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font-body);width:100%;">
+                <input type="number" class="rango-pct" min="0" max="999" placeholder="%" value="${pct || ''}" style="padding:7px 6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font-body);width:100%;" oninput="actualizarPromedioGananciaConfig()">
                 <button type="button" onclick="this.parentElement.remove()" style="background:#fee2e2;color:#dc2626;border:none;border-radius:var(--radius);padding:7px 9px;cursor:pointer;font-weight:700;font-size:13px;">✕</button>
             `;
             container.appendChild(row);
@@ -7497,6 +7579,107 @@
             }
         }
 
+        // Actualizar promedio de ganancia en tiempo real mientras el usuario edita el %
+        function actualizarPromedioGananciaConfig() {
+            try {
+                const cat = window.currentCatalog || 'general';
+                const defaultPct = Number(document.getElementById('config-margen-default').value) || 0;
+                const rangos = [];
+                document.querySelectorAll('.rango-config-row').forEach(row => {
+                    const de    = Number(row.querySelector('.rango-de').value) || 0;
+                    const hasta = Number(row.querySelector('.rango-hasta').value);
+                    const pct   = Number(row.querySelector('.rango-pct').value);
+                    if (hasta > 0 && pct >= 0) rangos.push({ de, hasta, porcentaje: pct });
+                });
+                const configTemp = { rangos, default: defaultPct, categoria: cat };
+                const prods = cat === 'calzados' ? (window.shoes || []) : (window.products || []);
+                if (!prods.length) return;
+                let totalGanancia = 0, count = 0;
+                prods.forEach(p => {
+                    const manualKey = 'precioManual_' + cat + '_' + p.id;
+                    const manual = localStorage.getItem(manualKey);
+                    let precioVenta;
+                    if (manual !== null) {
+                        precioVenta = Number(manual);
+                    } else {
+                        const pct = getMarginForPriceAndConfig(p.precio, configTemp);
+                        precioVenta = Math.round(p.precio * (1 + pct / 100));
+                    }
+                    totalGanancia += (precioVenta - p.precio);
+                    count++;
+                });
+                const promedio = count > 0 ? Math.round(totalGanancia / count) : 0;
+                const el = document.getElementById('config-promedio-ganancia');
+                const valEl = document.getElementById('config-promedio-valor');
+                if (el && valEl) {
+                    valEl.textContent = '$' + promedio.toLocaleString() + ' por producto';
+                    el.style.display = 'block';
+                }
+            } catch(e) {}
+        }
+
+        // Eliminar configuración: borrar de DB, guardar enlace en web externa y limpiar local
+        async function eliminarConfigTienda() {
+            if (!confirm('¿Eliminar toda la configuración de precios? Esta acción es irreversible.')) return;
+            const cat = window.currentCatalog || 'general';
+            const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                || localStorage.getItem('codigoVendedorLocal') || '';
+            const catLabel = cat === 'perfumes' ? 'Perfumes' : cat === 'calzados' ? 'Calzados' : cat;
+
+            // Leer config actual para generar enlace de respaldo
+            const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+            const configEliminada = allConfig[cat] || null;
+
+            // Eliminar de localStorage
+            delete allConfig[cat];
+            localStorage.setItem('configTiendaAll', JSON.stringify(allConfig));
+            localStorage.removeItem('configTienda');
+
+            // Eliminar precios manuales de esta categoría
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith('precioManual_' + cat + '_')) keysToRemove.push(k);
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+
+            // Eliminar de Firestore y guardar enlace de respaldo
+            const fbUser = firebase.auth().currentUser;
+            const uid = fbUser ? fbUser.uid : (window.currentUser ? window.currentUser.uid : null);
+            if (uid && fbUser) {
+                try {
+                    // Generar enlace de tienda eliminada para guardar externamente
+                    const enlaceEliminado = window.location.origin + '/tienda.html?tienda=' + codigo + '&cat=' + cat + '&eliminada=1';
+                    // Guardar referencia del enlace en Firestore (sin datos de config, solo el enlace)
+                    await firebase.firestore().collection('tiendasEliminadas').doc(codigo + '_' + cat).set({
+                        codigo,
+                        categoria: cat,
+                        enlace: enlaceEliminado,
+                        eliminadoEn: new Date(),
+                        // No guardamos configEliminada para no ocupar memoria
+                    }).catch(() => {});
+                    // Eliminar config de Firestore del usuario
+                    const updateObj = {};
+                    updateObj[`configTiendaAll.${cat}`] = firebase.firestore.FieldValue.delete();
+                    await firebase.firestore().collection('usuarios').doc(uid).update(updateObj).catch(() => {});
+                    // Eliminar precios manuales de Firestore
+                    await firebase.firestore().collection('usuarios').doc(uid).update({
+                        [`preciosManual`]: firebase.firestore.FieldValue.delete()
+                    }).catch(() => {});
+                } catch(e) {}
+            }
+
+            document.getElementById('configTiendaModal').classList.remove('active');
+            renderProducts();
+            // Mostrar toast
+            const toast = document.getElementById('wa-toast');
+            if (toast) {
+                toast.textContent = '✅ Configuración de ' + catLabel + ' eliminada correctamente.';
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 4000);
+            }
+        }
+
         // Usar margen personalizado si existe, sino tabla original
         function getMarginForPrice(precio) {
             try {
@@ -7511,6 +7694,154 @@
                 }
             } catch(e) {}
             return calculateMarginByPrice(precio);
+        }
+
+        // Obtener precio de venta personalizado para un producto según config de tienda
+        function getCustomPriceForProduct(p) {
+            try {
+                const cat = window.currentCatalog || 'general';
+                // 1. Verificar si tiene precio manual guardado
+                const manualKey = 'precioManual_' + cat + '_' + p.id;
+                const manual = localStorage.getItem(manualKey);
+                if (manual !== null) return Number(manual);
+                // 2. Aplicar % según configuración de tienda
+                const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                const config = allConfig[cat];
+                if (!config) return null;
+                const pct = getMarginForPriceAndConfig(p.precio, config);
+                return Math.round(p.precio * (1 + pct / 100));
+            } catch(e) { return null; }
+        }
+
+        function getMarginForPriceAndConfig(precio, config) {
+            if (config && Array.isArray(config.rangos) && config.rangos.length > 0) {
+                const rango = config.rangos
+                    .slice().sort((a, b) => a.hasta - b.hasta)
+                    .find(r => precio >= (r.de || 0) && precio <= r.hasta);
+                return rango ? rango.porcentaje : (config.default || 30);
+            }
+            return config ? (config.default || 30) : 30;
+        }
+
+        // Obtener info de ganancia para mostrar en la card
+        function getGananciaInfoForProduct(p) {
+            try {
+                const cat = window.currentCatalog || 'general';
+                const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                const config = allConfig[cat];
+                if (!config) return null;
+                const manualKey = 'precioManual_' + cat + '_' + p.id;
+                const manual = localStorage.getItem(manualKey);
+                let precioVenta;
+                let pct;
+                if (manual !== null) {
+                    precioVenta = Number(manual);
+                    pct = Math.round((precioVenta / p.precio - 1) * 100);
+                } else {
+                    pct = getMarginForPriceAndConfig(p.precio, config);
+                    precioVenta = Math.round(p.precio * (1 + pct / 100));
+                }
+                return { ganancia: precioVenta - p.precio, pct };
+            } catch(e) { return null; }
+        }
+
+        // Calcular promedio de ganancia por venta según configuración activa
+        function calcularPromedioGananciaPorVenta() {
+            try {
+                const cat = window.currentCatalog || 'general';
+                const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                const config = allConfig[cat];
+                if (!config) return null;
+                const prods = cat === 'calzados' ? (window.shoes || []) : (window.products || []);
+                if (!prods.length) return null;
+                let totalGanancia = 0, count = 0;
+                prods.forEach(p => {
+                    const manualKey = 'precioManual_' + cat + '_' + p.id;
+                    const manual = localStorage.getItem(manualKey);
+                    let precioVenta;
+                    if (manual !== null) {
+                        precioVenta = Number(manual);
+                    } else {
+                        const pct = getMarginForPriceAndConfig(p.precio, config);
+                        precioVenta = Math.round(p.precio * (1 + pct / 100));
+                    }
+                    totalGanancia += (precioVenta - p.precio);
+                    count++;
+                });
+                return count > 0 ? Math.round(totalGanancia / count) : 0;
+            } catch(e) { return null; }
+        }
+
+        // ─── Modal editar precio manual de un producto ────────────────────────────
+        function abrirEditPrecioProducto(id, catalogo) {
+            const cat = catalogo || window.currentCatalog || 'general';
+            const prods = cat === 'calzados' ? (window.shoes || []) : (window.products || []);
+            const p = prods.find(x => x.id === id);
+            if (!p) return;
+            const manualKey = 'precioManual_' + cat + '_' + id;
+            const manualActual = localStorage.getItem(manualKey);
+            const precioSugerido = (() => {
+                try {
+                    const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                    const config = allConfig[cat];
+                    if (!config) return p.precio;
+                    const pct = getMarginForPriceAndConfig(p.precio, config);
+                    return Math.round(p.precio * (1 + pct / 100));
+                } catch(e) { return p.precio; }
+            })();
+            // Remover modal previo si existe
+            const prev = document.getElementById('edit-precio-modal');
+            if (prev) prev.remove();
+            const m = document.createElement('div');
+            m.id = 'edit-precio-modal';
+            m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:11000;display:flex;align-items:center;justify-content:center;padding:16px;';
+            m.innerHTML = `
+                <div style="background:#fff;border-radius:14px;padding:28px 22px;max-width:360px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.2);">
+                    <h3 style="margin:0 0 4px;font-size:16px;font-weight:700;color:var(--text);">Editar precio de venta</h3>
+                    <p style="font-size:13px;color:var(--text-light);margin:0 0 16px;">${p.nombre}</p>
+                    <div style="margin-bottom:10px;">
+                        <div style="font-size:12px;color:var(--text-light);margin-bottom:4px;">Precio base (costo): <strong>$${p.precio.toLocaleString()}</strong></div>
+                        <div style="font-size:12px;color:var(--text-light);margin-bottom:10px;">Precio sugerido con %: <strong>$${precioSugerido.toLocaleString()}</strong></div>
+                        <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Precio de venta manual ($)</label>
+                        <input type="number" id="edit-precio-input" min="0" value="${manualActual !== null ? manualActual : precioSugerido}" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:15px;font-family:var(--font-body);">
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+                        <button onclick="document.getElementById('edit-precio-modal').remove()" style="padding:10px;background:#f5f5f5;border:1px solid var(--border);border-radius:var(--radius);font-weight:600;cursor:pointer;font-size:13px;">Cancelar</button>
+                        <button onclick="guardarPrecioManualProducto(${id},'${cat}')" style="padding:10px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);font-weight:700;cursor:pointer;font-size:13px;">Guardar</button>
+                    </div>
+                    ${manualActual !== null ? `<button onclick="eliminarPrecioManualProducto(${id},'${cat}')" style="width:100%;margin-top:8px;padding:8px;background:transparent;border:1px dashed #dc2626;color:#dc2626;border-radius:var(--radius);font-size:12px;cursor:pointer;font-weight:600;">↩ Usar precio con % automático</button>` : ''}
+                </div>
+            `;
+            document.body.appendChild(m);
+            m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+            document.getElementById('edit-precio-input').focus();
+        }
+
+        function guardarPrecioManualProducto(id, cat) {
+            const val = Number(document.getElementById('edit-precio-input').value);
+            if (!val || val <= 0) { alert('Ingresá un precio válido.'); return; }
+            localStorage.setItem('precioManual_' + cat + '_' + id, val);
+            // Guardar en Firestore si está logueado
+            const fbUser = firebase.auth().currentUser;
+            const uid = fbUser ? fbUser.uid : (window.currentUser ? window.currentUser.uid : null);
+            if (uid && fbUser) {
+                firebase.firestore().collection('usuarios').doc(uid)
+                    .update({ [`preciosManual.${cat}_${id}`]: val }).catch(() => {});
+            }
+            document.getElementById('edit-precio-modal').remove();
+            renderProducts();
+        }
+
+        function eliminarPrecioManualProducto(id, cat) {
+            localStorage.removeItem('precioManual_' + cat + '_' + id);
+            const fbUser = firebase.auth().currentUser;
+            const uid = fbUser ? fbUser.uid : (window.currentUser ? window.currentUser.uid : null);
+            if (uid && fbUser) {
+                firebase.firestore().collection('usuarios').doc(uid)
+                    .update({ [`preciosManual.${cat}_${id}`]: firebase.firestore.FieldValue.delete() }).catch(() => {});
+            }
+            document.getElementById('edit-precio-modal').remove();
+            renderProducts();
         }
 
         // Mostrar modal WhatsApp al iniciar sesión si no está configurado
@@ -7529,6 +7860,20 @@
                     }
                     if (data.configTienda && !localStorage.getItem('configTienda')) {
                         localStorage.setItem('configTienda', JSON.stringify(data.configTienda));
+                    }
+                    // Cargar precios manuales de productos
+                    if (data.preciosManual && typeof data.preciosManual === 'object') {
+                        Object.entries(data.preciosManual).forEach(([k, v]) => {
+                            if (!localStorage.getItem('precioManual_' + k)) {
+                                localStorage.setItem('precioManual_' + k, v);
+                            }
+                        });
+                    }
+                    // Cargar configTiendaAll por categoría
+                    if (data.configTiendaAll && typeof data.configTiendaAll === 'object') {
+                        const existing = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                        const merged = Object.assign({}, data.configTiendaAll, existing);
+                        localStorage.setItem('configTiendaAll', JSON.stringify(merged));
                     }
                     // Si no tiene WhatsApp configurado, mostrar modal a los 7 segundos
                     if (!localStorage.getItem('whatsappRevendedor')) {
@@ -7648,6 +7993,20 @@
                 }
                 if (userData.whatsappRevendedor && !localStorage.getItem('whatsappRevendedor')) {
                     localStorage.setItem('whatsappRevendedor', userData.whatsappRevendedor);
+                }
+                // Cargar precios manuales de productos
+                if (userData.preciosManual && typeof userData.preciosManual === 'object') {
+                    Object.entries(userData.preciosManual).forEach(([k, v]) => {
+                        if (!localStorage.getItem('precioManual_' + k)) {
+                            localStorage.setItem('precioManual_' + k, v);
+                        }
+                    });
+                }
+                // Cargar configTiendaAll por categoría
+                if (userData.configTiendaAll && typeof userData.configTiendaAll === 'object') {
+                    const existing = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                    const merged = Object.assign({}, userData.configTiendaAll, existing);
+                    localStorage.setItem('configTiendaAll', JSON.stringify(merged));
                 }
 
                 var fbUser = firebase.auth().currentUser;
