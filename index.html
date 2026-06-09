@@ -6180,12 +6180,18 @@
         
         function switchShoesCategory(categoria) {
             window.currentShoesCategory = categoria;
+            window.currentShoesFilter = 'todo';
             
             // Actualizar botones de categoría
             document.querySelectorAll('#shoes-category-section .category-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
+            
+            // Sincronizar filter-btns: poner activo el que corresponde (Todo)
+            document.querySelectorAll('.filter-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', idx === 0);
+            });
             
             // Renderizar productos según categoría (Adultos / Niños)
             window.shoesItemsDisplayed = 6;
@@ -6213,7 +6219,17 @@
         }
         
         function filterShoesProducts(categoria) {
-            window.currentShoesFilter = categoria;
+            // Si se filtra por 'niños' o 'adultos', cambiar la categoría principal también
+            if (categoria === 'niños' || categoria === 'adultos') {
+                window.currentShoesCategory = categoria;
+                window.currentShoesFilter = 'todo';
+                // Sincronizar botones del selector Adultos/Niños
+                document.querySelectorAll('#shoes-category-section .category-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.textContent.toLowerCase().trim() === categoria);
+                });
+            } else {
+                window.currentShoesFilter = categoria;
+            }
             window.shoesItemsDisplayed = 6;
             
             // Actualizar botones activos
