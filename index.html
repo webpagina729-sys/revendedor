@@ -3004,8 +3004,8 @@
     <section class="banner">
         <div class="banner-inner">
             <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px;">
-                <h1 class="banner-title" style="flex:1;text-align:center;">Revende Ways</h1>
-                <img src="logo.png" alt="Logo" onerror="this.style.display='none'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);box-shadow:0 2px 10px rgba(0,0,0,.15);flex-shrink:0;">
+                <h1 class="banner-title" style="flex:1;text-align:left;">Revende Ways</h1>
+                <img src="logo.png" alt="Logo Revende Ways" onerror="this.style.display='none'" style="width:54px;height:54px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);box-shadow:0 2px 10px rgba(0,102,255,.2);flex-shrink:0;">
             </div>
             <p class="banner-subtitle">Revende con nosotros. Te damos tu tienda lista para comenzar con +500 productos.</p>
             <div class="banner-badge">📦 Pedido mínimo en la categoría- Precio solo para revendedores</div>
@@ -3147,8 +3147,11 @@
             <img id="portada-uno-img" alt="Portada Revende" class="portada-image" style="width: 100%; max-width: 100%; display: block; margin: 0 auto 20px auto;">
             <div class="revend-tagline" style="text-align: center; font-weight: 600; color: white; margin-bottom: 20px;">Obtené ideas todas las semanas para llevar tu emprendimiento adelante</div>
             <button class="revend-btn" id="revend-btn-main" onclick="window.open('https://8cc1455f.sibforms.com/serve/MUIFAOe2caIUk_JszJEAGAXuWMAooq9jBLGOvdN8R2ecTP9XnIzhvmcJIr6sHXcB-ap4DPs38CfVHsbJyu1Nc6djziTbM7FfS-bGHzYXXhYj1V_wcohxKLoFy4sbfPH_xNmDgwVR4xVaaf4dyK_QlVjLzdj4E012J39XFQGdXYOvmNEzae4U9jt0_pRuCZHcElDfRt6XW7T4QwrXbA==', '_blank')" style="margin-bottom: 30px;">Quiero mi tienda</button>
-            <img src="logo.png" alt="Logo Revende Ways" onerror="this.style.display='none'" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.7);box-shadow:0 2px 16px rgba(0,0,0,.18);margin-bottom:10px;display:block;">
         </img>
+    </div>
+
+    <div style="text-align:center;padding:14px 0 6px;">
+        <img src="logo.png" alt="Logo Revende Ways" onerror="this.style.display='none'" style="width:54px;height:54px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.15);display:inline-block;">
     </div>
 
     <!-- FINAL FOOTER BANNER -->
@@ -3352,7 +3355,7 @@
                 </button>
                 <div class="google-auth-divider"><span>o</span></div>
                 <form onsubmit="loginUser(event)">
-                    <input type="text" id="login-codigo-revendedor" placeholder="Código de revendedor" style="text-transform:uppercase;letter-spacing:1px;" required>
+                    <input type="email" id="login-email" placeholder="Correo electrónico" required>
                     <div class="password-input-wrapper">
                         <input type="password" id="login-password" placeholder="Contraseña" required>
                         <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('login-password', this)" tabindex="-1" aria-label="Mostrar contraseña">
@@ -3675,11 +3678,11 @@
             <div style="margin-bottom:16px;">
                 <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">% ganancia para el resto de los precios</label>
                 <div style="display:flex;align-items:center;gap:8px;">
-                    <input type="number" id="config-margen-default" min="0" max="999" placeholder="%" style="width:90px;padding:9px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:var(--font-body);" oninput="actualizarPromedioGananciaConfig()">
+                    <input type="number" id="config-margen-default" min="0" max="999" placeholder="%" oninput="calcularPromedioGanancia()" style="width:90px;padding:9px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:var(--font-body);">
                     <span style="font-size:13px;color:var(--text-light);">% de ganancia</span>
                 </div>
-                <div id="config-promedio-ganancia" style="margin-top:8px;padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius);font-size:12px;color:#166534;font-weight:600;display:none;">
-                    📊 Promedio de ganancia por venta: <span id="config-promedio-valor">—</span>
+                <div id="promedio-ganancia-box" style="display:none;margin-top:10px;padding:10px 14px;background:#d1fae5;border-radius:var(--radius);border:1px solid #6ee7b7;">
+                    <span style="font-size:13px;font-weight:700;color:#065f46;">📊 Promedio de ganancia por venta: <span id="promedio-ganancia-valor">—</span></span>
                 </div>
             </div>
 
@@ -3691,7 +3694,7 @@
 
             <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:10px;" onclick="guardarConfigTienda()">Guardar configuración</button>
             <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);margin-bottom:10px;" onclick="document.getElementById('configTiendaModal').classList.remove('active')">Cancelar</button>
-            <button type="button" class="confirmation-button" style="width:100%;background:#fff0f0;color:#dc2626;border:1px solid #fecaca;margin-bottom:10px;" onclick="eliminarConfigTienda()">🗑 Eliminar configuración</button>
+            <button type="button" class="confirmation-button" style="width:100%;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;margin-bottom:10px;" onclick="eliminarConfigTienda()">🗑 Eliminar configuración</button>
 
             <a href="https://gesti-n-de-revendedores.pages.dev/" target="_blank" rel="noopener" style="display:block;margin-top:4px;padding:12px 16px;background:linear-gradient(135deg,#1B7F3D,#2BA84F);color:#fff;text-align:center;text-decoration:none;border-radius:var(--radius);font-weight:700;font-size:14px;box-shadow:0 4px 12px rgba(27,127,61,.25);">🧾 Hacer Pedido</a>
         </div>
@@ -4050,7 +4053,7 @@
             { id: 6, nombre: "NIKE DUNK TOTAL WHITE", imagen: "niketotal.png", precio: 37000, precioOriginal: 37000, talle: ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44"], caracteristicas: ["zapatilla brasilera adulto", "colorway blanco total", "estilo limpio y versátil"], info: "Dunk total white, look clásico que combina con cualquier outfit.", momento: "Urbana / uso diario / tarde" },
             { id: 7, nombre: "NIKE DUNK BORDO", imagen: "nikebordo.png", precio: 37000, precioOriginal: 37000, talle: ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44"], caracteristicas: ["zapatilla brasilera adulto", "colorway burdeo/vino", "estilo urbano"], info: "Dunk en colorway bordo, ideal para outfits otoño-invierno y looks nocturnos.", momento: "Urbana / tarde / noche / otoño-invierno" },
             { id: 8, nombre: "DUNK GLITTER", imagen: "glitter.png", precio: 37000, precioOriginal: 37000, talle: ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44"], caracteristicas: ["zapatilla brasilera adulto", "detalle glitter/brillos", "estilo festivo y llamativo"], info: "Dunk con detalle glitter, perfecta para looks que buscan destacar.", momento: "Noche / eventos / salidas" },
-            { id: 9, nombre: "DUNK CELESTE METALIC", imagen: "dunkceleste.png", precio: 37000, precioOriginal: 37000, talle: ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44"], caracteristicas: ["zapatilla brasilera adulto", "colorway celeste metálico", "acabado brillante/metálico"], info: "Dunk en celeste metálico, look llamativo y futurista.", momento: "Noche / eventos / salidas" },
+            { id: 9, nombre: "DUNK CELESTE METALIC", imagen: "dunkceleste.jpg", precio: 37000, precioOriginal: 37000, talle: ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44"], caracteristicas: ["zapatilla brasilera adulto", "colorway celeste metálico", "acabado brillante/metálico"], info: "Dunk en celeste metálico, look llamativo y futurista.", momento: "Noche / eventos / salidas" },
             { id: 10, nombre: "DUNK CHERRY", imagen: "dunkcherry.png", precio: 37000, precioOriginal: 37000, talle: ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44"], caracteristicas: ["zapatilla brasilera adulto", "colorway cherry/rojo cereza", "estilo urbano/llamativo"], info: "Dunk en cherry, color vibrante y llamativo para looks urbanos.", momento: "Urbana / tarde / noche" },
             { id: 11, nombre: "DUNK TOTAL BLACK", imagen: "totalblack.png", precio: 37000, precioOriginal: 37000, talle: ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44"], caracteristicas: ["zapatilla brasilera adulto", "colorway negro total", "estilo versátil y clásico"], info: "Dunk en negro total, combina con todo y es apta para cualquier ocasión.", momento: "Urbana / deporte / tarde / noche / uso diario" },
             { id: 12, nombre: "DUNK GREY AND BLACK", imagen: "dunkgreyand.png", precio: 37000, precioOriginal: 37000, talle: ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44"], caracteristicas: ["zapatilla brasilera adulto", "colorway gris y negro", "estilo urbano/deportivo"], info: "Dunk en gris y negro, combinación sobria y urbana.", momento: "Urbana / tarde / noche" },
@@ -4152,52 +4155,52 @@
             { id: 111, nombre: "PUMA SUEDE VERDES", imagen: "pumasuedeverdes.png", precio: 35900, precioOriginal: 35900, talle: ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44"], caracteristicas: ["zapatilla brasilera adulto", "modelo Puma Suede", "colorway marrón", "estilo urbano/clásico"], info: "Puma Suede en tonos verdes/tierra, zapatilla versátil y moderna.", momento: "Urbana / tarde / noche" },
             { id: 112, nombre: "NEW BALANCE 9060 WHITE", imagen: "newbalance.png", precio: 37000, precioOriginal: 37000, talle: ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44"], caracteristicas: ["zapatilla brasilera adulto", "modelo New Balance 9060", "colorway blanco", "estilo urbano/moderno"], info: "New Balance 9060 en blanco, zapatilla moderna y cómoda para uso diario.", momento: "Urbana / tarde / noche / uso diario" }
             ,
-            { id: 201, nombre: "LOUIS VUITTON STAKE NEGRA Y CREMA", imagen: "lvstakenegracream.png", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo urbano premium","color negro y crema","suela flexible"], info: "Zapatilla brasilera estilo LV Stake en negro y crema, diseño urbano premium para niños.", momento: "uso diario / salidas / todo el año" },
-            { id: 202, nombre: "LOUIS VUITTON STAKE BLANCO Y NEGRO", imagen: "lvstakeblanconegro.png", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo urbano premium","color blanco y negro","suela flexible"], info: "Zapatilla brasilera estilo LV Stake en blanco y negro, diseño urbano premium para niños.", momento: "uso diario / salidas / todo el año" },
-            { id: 203, nombre: "SAMBA BLACK", imagen: "sambaninonegra.png", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color negro","suela flexible"], info: "Zapatilla brasilera estilo Samba en color negro, clásica y cómoda para uso diario infantil.", momento: "uso diario / escuela / todo el año" },
-            { id: 204, nombre: "NEW BALANCE 9060 ROSA", imagen: "airforcenino.png", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo deportivo","color rosa","suela flexible"], info: "Zapatilla brasilera estilo New Balance 9060 en color rosa, cómoda y resistente para el uso diario infantil.", momento: "uso diario / escuela / todo el año" },
-            { id: 205, nombre: "NEW BALANCE 9060 BLACK", imagen: "campusnino.png", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo deportivo","color negro","suela flexible"], info: "Zapatilla brasilera estilo New Balance 9060 en color negro, cómoda y resistente para el uso diario infantil.", momento: "uso diario / escuela / todo el año" },
-            { id: 206, nombre: "NEW BALANCE 9060 WHITE", imagen: "aditosrosa.png", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo deportivo","color blanco","suela flexible"], info: "Zapatilla brasilera estilo New Balance 9060 en color blanco, cómoda y resistente para el uso diario infantil.", momento: "uso diario / escuela / todo el año" },
-            { id: 207, nombre: "ADI2000 BEIGE", imagen: "aditosbeige.png", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color beige","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en color beige, ideal para combinar con cualquier outfit infantil.", momento: "uso diario / escuela / todo el año" },
-            { id: 208, nombre: "ADI2000 GRIS", imagen: "aditosgris.png", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color gris","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en color gris, cómoda y versátil para el día a día infantil.", momento: "uso diario / escuela / todo el año" },
-            { id: 209, nombre: "SAMBA", imagen: "sambaninocolor.png", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","diseño clásico","suela flexible"], info: "Zapatilla brasilera estilo Samba clásica, cómoda y resistente para el uso diario de los más chicos.", momento: "uso diario / escuela / todo el año" },
-            { id: 210, nombre: "ADI2000 TOTAL BLACK", imagen: "aditostotalblack.png", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color negro total","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en total black, diseño impactante y cómodo para niños.", momento: "uso diario / escuela / todo el año" },
-            { id: 301, nombre: "RETRO 1 HYPER ROYAL", imagen: "hyperroyal.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway hyper royal"], info: "Zapatilla importada G5 estilo Retro 1 Hyper Royal, diseño icónico y cómodo para uso diario.", momento: "uso diario / salidas / todo el año" },
-            { id: 302, nombre: "LOUIS VUITTON STAKE NEGRA", imagen: "stakeneg.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano premium","color negro"], info: "Zapatilla importada G5 estilo LV Stake en negro, diseño urbano premium.", momento: "uso diario / salidas / todo el año" },
-            { id: 303, nombre: "UPTEMPO", imagen: "uptempo.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","diseño clásico"], info: "Zapatilla importada G5 estilo Uptempo, clásica y cómoda para uso diario.", momento: "uso diario / salidas / todo el año" },
-            { id: 304, nombre: "RETRO 1 STAGE HAZE", imagen: "stagehaze.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway stage haze"], info: "Zapatilla importada G5 estilo Retro 1 Stage Haze, diseño icónico.", momento: "uso diario / salidas / todo el año" },
-            { id: 305, nombre: "RETRO 1 PANDA", imagen: "panda.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway panda negro y blanco"], info: "Zapatilla importada G5 estilo Retro 1 Panda en negro y blanco, clásico atemporal.", momento: "uso diario / salidas / todo el año" },
-            { id: 306, nombre: "RETRO 1 DENIM", imagen: "denim.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway denim"], info: "Zapatilla importada G5 estilo Retro 1 Denim, look urbano y versátil.", momento: "uso diario / salidas / todo el año" },
-            { id: 307, nombre: "DN ROSA", imagen: "dnrosa.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo futurista","color rosa"], info: "Zapatilla importada G5 estilo DN en rosa, diseño futurista y llamativo.", momento: "uso diario / salidas / todo el año" },
-            { id: 308, nombre: "RETRO 4 FROZEN", imagen: "frozen.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway frozen"], info: "Zapatilla importada G5 estilo Retro 4 Frozen, diseño llamativo y cómodo.", momento: "uso diario / salidas / todo el año" },
-            { id: 309, nombre: "DUNK ROSA", imagen: "dunkrosa.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano","color rosa"], info: "Zapatilla importada G5 estilo Dunk en rosa, versátil y tendencia.", momento: "uso diario / salidas / todo el año" },
-            { id: 310, nombre: "JORDAN 1 ROSA", imagen: "jordanrosa.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color rosa"], info: "Zapatilla importada G5 estilo Jordan 1 en rosa, ícono del streetwear.", momento: "uso diario / salidas / todo el año" },
-            { id: 311, nombre: "RETRO 13", imagen: "retrotreceg.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","diseño icónico"], info: "Zapatilla importada G5 estilo Retro 13, diseño icónico y resistente.", momento: "uso diario / salidas / todo el año" },
-            { id: 312, nombre: "DUNK LOW PINK VELVET", imagen: "velvet.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano","material velvet rosa"], info: "Zapatilla importada G5 estilo Dunk Low Pink Velvet, textura premium y diseño femenino.", momento: "uso diario / salidas / todo el año" },
-            { id: 313, nombre: "RETRO 4 GREY", imagen: "retrocuatrogrey.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color gris"], info: "Zapatilla importada G5 estilo Retro 4 en gris, sobria y versátil.", momento: "uso diario / salidas / todo el año" },
-            { id: 314, nombre: "RETRO 4 METALLIC GOLD", imagen: "gold.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color dorado metálico"], info: "Zapatilla importada G5 estilo Retro 4 Metallic Gold, colorway dorado llamativo.", momento: "eventos / salidas / todo el año" },
-            { id: 315, nombre: "LOUIS VUITTON 54 VERDE", imagen: "lvcincuenta.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano premium","color verde"], info: "Zapatilla importada G5 estilo LV 54 en verde, diseño urbano premium.", momento: "uso diario / salidas / todo el año" },
-            { id: 316, nombre: "TN", imagen: "tn.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano running","diseño Tuned Air"], info: "Zapatilla importada G5 estilo TN, clásico del streetwear con tecnología Tuned Air.", momento: "uso diario / salidas / todo el año" },
-            { id: 317, nombre: "DUNK CELESTES", imagen: "dunkceleste.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano","color celeste"], info: "Zapatilla importada G5 estilo Dunk en celeste, versátil y tendencia.", momento: "uso diario / salidas / todo el año" },
-            { id: 318, nombre: "RETRO 3 CELESTES", imagen: "retrotresceleste.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color celeste"], info: "Zapatilla importada G5 estilo Retro 3 en celeste, diseño retro y fresco.", momento: "uso diario / salidas / todo el año" },
-            { id: 319, nombre: "FURYOSAS BLANCAS", imagen: "furyosa.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo running premium","color blanco"], info: "Zapatilla importada G5 estilo Furyosa en blanco, diseño running premium.", momento: "deporte / uso diario / todo el año" },
-            { id: 320, nombre: "AMIRI WHITE & BLACK", imagen: "amiri.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","color blanco y negro"], info: "Zapatilla importada G5 estilo Amiri en blanco y negro, diseño luxury streetwear.", momento: "salidas / eventos / todo el año" },
-            { id: 321, nombre: "JORDAN RETRO 11 VERDE AGUA", imagen: "jordanverdeagua.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color verde agua"], info: "Zapatilla importada G5 estilo Jordan Retro 11 en verde agua, colorway fresco y llamativo.", momento: "uso diario / salidas / todo el año" },
-            { id: 322, nombre: "JORDAN RETRO 11 NEGRO Y ROJO", imagen: "jordannegrorojo.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color negro y rojo"], info: "Zapatilla importada G5 estilo Jordan Retro 11 en negro y rojo, diseño clásico icónico.", momento: "uso diario / salidas / todo el año" },
-            { id: 323, nombre: "MAX AIR TOTAL BLACK", imagen: "maxair.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo running","color negro total"], info: "Zapatilla importada G5 estilo Max Air en negro total, amortiguación y estilo.", momento: "deporte / uso diario / todo el año" },
-            { id: 324, nombre: "RETRO 11 BLANCA Y AZUL", imagen: "retroonce.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color blanco y azul"], info: "Zapatilla importada G5 estilo Retro 11 en blanco y azul, clásica y versátil.", momento: "uso diario / salidas / todo el año" },
-            { id: 325, nombre: "OFF WHITE NEGRAS Y BLANCO", imagen: "offwhiteneg.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","color negro y blanco"], info: "Zapatilla importada G5 estilo Off White en negro y blanco, luxury streetwear.", momento: "salidas / eventos / todo el año" },
-            { id: 326, nombre: "OFF WHITE CELESTE", imagen: "offwhiteceleste.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","color celeste"], info: "Zapatilla importada G5 estilo Off White en celeste, diseño premium y fresco.", momento: "uso diario / salidas / todo el año" },
-            { id: 327, nombre: "OFF WHITE VERDE OSCURA", imagen: "offwhiteverde.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","color verde oscuro"], info: "Zapatilla importada G5 estilo Off White en verde oscuro, diseño premium.", momento: "uso diario / salidas / todo el año" },
-            { id: 328, nombre: "OFF WHITE AZUL Y BLANCO", imagen: "offwhiteazul.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","color azul y blanco"], info: "Zapatilla importada G5 estilo Off White en azul y blanco, luxury streetwear.", momento: "uso diario / salidas / todo el año" },
-            { id: 329, nombre: "OFF WHITE BLANCO Y VERDE", imagen: "offwhiteblanco.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","color blanco y verde"], info: "Zapatilla importada G5 estilo Off White en blanco y verde, diseño premium.", momento: "uso diario / salidas / todo el año" },
-            { id: 330, nombre: "RETRO 4 BEIGE", imagen: "retrocuatrobeige.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color beige"], info: "Zapatilla importada G5 estilo Retro 4 en beige, tono neutro y versátil.", momento: "uso diario / salidas / todo el año" },
-            { id: 331, nombre: "NOCTA", imagen: "nocta.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo collab streetwear","diseño Nocta"], info: "Zapatilla importada G5 estilo Nocta, collab icónica del streetwear premium.", momento: "salidas / eventos / todo el año" },
-            { id: 332, nombre: "CAMPUS ROSAS", imagen: "campusrosa.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano","color rosa"], info: "Zapatilla importada G5 estilo Campus en rosa, diseño urbano y tendencia.", momento: "uso diario / salidas / todo el año" },
-            { id: 333, nombre: "RETRO 4 TOTAL WHITE", imagen: "retrocuatrowhite.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color blanco total"], info: "Zapatilla importada G5 estilo Retro 4 en blanco total, look limpio y clásico.", momento: "uso diario / salidas / todo el año" },
-            { id: 334, nombre: "RETRO 3 BLACK CAT", imagen: "blackcat.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway black cat"], info: "Zapatilla importada G5 estilo Retro 3 Black Cat, todo negro y elegante.", momento: "uso diario / salidas / todo el año" },
-            { id: 335, nombre: "RETRO 3 PURES MONEY", imagen: "puresmoney.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway pure money"], info: "Zapatilla importada G5 estilo Retro 3 Pure Money, colorway clásico y premium.", momento: "uso diario / salidas / todo el año" },
-            { id: 336, nombre: "LOUIS VUITTON", imagen: "lv.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","diseño LV"], info: "Zapatilla importada G5 estilo Louis Vuitton, diseño luxury streetwear premium.", momento: "salidas / eventos / todo el año" }
+            { id: 201, nombre: "LOUIS VUITTON STAKE NEGRA Y CREMA", imagen: "lvstakenegracream.jpg", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo urbano premium","color negro y crema","suela flexible"], info: "Zapatilla brasilera estilo LV Stake en negro y crema, diseño urbano premium para niños.", momento: "uso diario / salidas / todo el año" },
+            { id: 202, nombre: "LOUIS VUITTON STAKE BLANCO Y NEGRO", imagen: "lvstakeblanconegro.jpg", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo urbano premium","color blanco y negro","suela flexible"], info: "Zapatilla brasilera estilo LV Stake en blanco y negro, diseño urbano premium para niños.", momento: "uso diario / salidas / todo el año" },
+            { id: 203, nombre: "SAMBA BLACK", imagen: "sambaninonegra.jpg", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color negro","suela flexible"], info: "Zapatilla brasilera estilo Samba en color negro, clásica y cómoda para uso diario infantil.", momento: "uso diario / escuela / todo el año" },
+            { id: 204, nombre: "NEW BALANCE 9060 ROSA", imagen: "airforcenino.jpg", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo deportivo","color rosa","suela flexible"], info: "Zapatilla brasilera estilo New Balance 9060 en color rosa, cómoda y resistente para el uso diario infantil.", momento: "uso diario / escuela / todo el año" },
+            { id: 205, nombre: "NEW BALANCE 9060 BLACK", imagen: "campusnino.jpg", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo deportivo","color negro","suela flexible"], info: "Zapatilla brasilera estilo New Balance 9060 en color negro, cómoda y resistente para el uso diario infantil.", momento: "uso diario / escuela / todo el año" },
+            { id: 206, nombre: "NEW BALANCE 9060 WHITE", imagen: "aditosrosa.jpg", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo deportivo","color blanco","suela flexible"], info: "Zapatilla brasilera estilo New Balance 9060 en color blanco, cómoda y resistente para el uso diario infantil.", momento: "uso diario / escuela / todo el año" },
+            { id: 207, nombre: "ADI2000 BEIGE", imagen: "aditosbeige.jpg", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color beige","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en color beige, ideal para combinar con cualquier outfit infantil.", momento: "uso diario / escuela / todo el año" },
+            { id: 208, nombre: "ADI2000 GRIS", imagen: "aditosgris.jpg", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color gris","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en color gris, cómoda y versátil para el día a día infantil.", momento: "uso diario / escuela / todo el año" },
+            { id: 209, nombre: "SAMBA", imagen: "sambaninocolor.jpg", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","diseño clásico","suela flexible"], info: "Zapatilla brasilera estilo Samba clásica, cómoda y resistente para el uso diario de los más chicos.", momento: "uso diario / escuela / todo el año" },
+            { id: 210, nombre: "ADI2000 TOTAL BLACK", imagen: "aditostotalblack.jpg", precio: 27000, precioOriginal: 53460, talle: ["25","26","27","28","29","30","31","32","33","34"], categoria: "niños", categorias: ["zapatillas","brasileras","niños"], caracteristicas: ["zapatilla brasilera","unisex niños","estilo retro deportivo","color negro total","suela flexible"], info: "Zapatilla brasilera estilo Adi2000 en total black, diseño impactante y cómodo para niños.", momento: "uso diario / escuela / todo el año" },
+            { id: 301, nombre: "RETRO 1 HYPER ROYAL", imagen: "hyperroyal.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway hyper royal"], info: "Zapatilla importada G5 estilo Retro 1 Hyper Royal, diseño icónico y cómodo para uso diario.", momento: "uso diario / salidas / todo el año" },
+            { id: 302, nombre: "LOUIS VUITTON STAKE NEGRA", imagen: "stakeneg.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano premium","color negro"], info: "Zapatilla importada G5 estilo LV Stake en negro, diseño urbano premium.", momento: "uso diario / salidas / todo el año" },
+            { id: 303, nombre: "UPTEMPO", imagen: "uptempo.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","diseño clásico"], info: "Zapatilla importada G5 estilo Uptempo, clásica y cómoda para uso diario.", momento: "uso diario / salidas / todo el año" },
+            { id: 304, nombre: "RETRO 1 STAGE HAZE", imagen: "stagehaze.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway stage haze"], info: "Zapatilla importada G5 estilo Retro 1 Stage Haze, diseño icónico.", momento: "uso diario / salidas / todo el año" },
+            { id: 305, nombre: "RETRO 1 PANDA", imagen: "panda.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway panda negro y blanco"], info: "Zapatilla importada G5 estilo Retro 1 Panda en negro y blanco, clásico atemporal.", momento: "uso diario / salidas / todo el año" },
+            { id: 306, nombre: "RETRO 1 DENIM", imagen: "denim.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway denim"], info: "Zapatilla importada G5 estilo Retro 1 Denim, look urbano y versátil.", momento: "uso diario / salidas / todo el año" },
+            { id: 307, nombre: "DN ROSA", imagen: "dnrosa.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo futurista","color rosa"], info: "Zapatilla importada G5 estilo DN en rosa, diseño futurista y llamativo.", momento: "uso diario / salidas / todo el año" },
+            { id: 308, nombre: "RETRO 4 FROZEN", imagen: "frozen.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway frozen"], info: "Zapatilla importada G5 estilo Retro 4 Frozen, diseño llamativo y cómodo.", momento: "uso diario / salidas / todo el año" },
+            { id: 309, nombre: "DUNK ROSA", imagen: "dunkrosa.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano","color rosa"], info: "Zapatilla importada G5 estilo Dunk en rosa, versátil y tendencia.", momento: "uso diario / salidas / todo el año" },
+            { id: 310, nombre: "JORDAN 1 ROSA", imagen: "jordanrosa.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color rosa"], info: "Zapatilla importada G5 estilo Jordan 1 en rosa, ícono del streetwear.", momento: "uso diario / salidas / todo el año" },
+            { id: 311, nombre: "RETRO 13", imagen: "retrotreceg.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","diseño icónico"], info: "Zapatilla importada G5 estilo Retro 13, diseño icónico y resistente.", momento: "uso diario / salidas / todo el año" },
+            { id: 312, nombre: "DUNK LOW PINK VELVET", imagen: "velvet.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano","material velvet rosa"], info: "Zapatilla importada G5 estilo Dunk Low Pink Velvet, textura premium y diseño femenino.", momento: "uso diario / salidas / todo el año" },
+            { id: 313, nombre: "RETRO 4 GREY", imagen: "retrocuatrogrey.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color gris"], info: "Zapatilla importada G5 estilo Retro 4 en gris, sobria y versátil.", momento: "uso diario / salidas / todo el año" },
+            { id: 314, nombre: "RETRO 4 METALLIC GOLD", imagen: "gold.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color dorado metálico"], info: "Zapatilla importada G5 estilo Retro 4 Metallic Gold, colorway dorado llamativo.", momento: "eventos / salidas / todo el año" },
+            { id: 315, nombre: "LOUIS VUITTON 54 VERDE", imagen: "lvcincuenta.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano premium","color verde"], info: "Zapatilla importada G5 estilo LV 54 en verde, diseño urbano premium.", momento: "uso diario / salidas / todo el año" },
+            { id: 316, nombre: "TN", imagen: "tn.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano running","diseño Tuned Air"], info: "Zapatilla importada G5 estilo TN, clásico del streetwear con tecnología Tuned Air.", momento: "uso diario / salidas / todo el año" },
+            { id: 317, nombre: "DUNK CELESTES", imagen: "dunkceleste.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano","color celeste"], info: "Zapatilla importada G5 estilo Dunk en celeste, versátil y tendencia.", momento: "uso diario / salidas / todo el año" },
+            { id: 318, nombre: "RETRO 3 CELESTES", imagen: "retrotresceleste.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color celeste"], info: "Zapatilla importada G5 estilo Retro 3 en celeste, diseño retro y fresco.", momento: "uso diario / salidas / todo el año" },
+            { id: 319, nombre: "FURYOSAS BLANCAS", imagen: "furyosa.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo running premium","color blanco"], info: "Zapatilla importada G5 estilo Furyosa en blanco, diseño running premium.", momento: "deporte / uso diario / todo el año" },
+            { id: 320, nombre: "AMIRI WHITE & BLACK", imagen: "amiri.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","color blanco y negro"], info: "Zapatilla importada G5 estilo Amiri en blanco y negro, diseño luxury streetwear.", momento: "salidas / eventos / todo el año" },
+            { id: 321, nombre: "JORDAN RETRO 11 VERDE AGUA", imagen: "jordanverdeagua.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color verde agua"], info: "Zapatilla importada G5 estilo Jordan Retro 11 en verde agua, colorway fresco y llamativo.", momento: "uso diario / salidas / todo el año" },
+            { id: 322, nombre: "JORDAN RETRO 11 NEGRO Y ROJO", imagen: "jordannegrorojo.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color negro y rojo"], info: "Zapatilla importada G5 estilo Jordan Retro 11 en negro y rojo, diseño clásico icónico.", momento: "uso diario / salidas / todo el año" },
+            { id: 323, nombre: "MAX AIR TOTAL BLACK", imagen: "maxair.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo running","color negro total"], info: "Zapatilla importada G5 estilo Max Air en negro total, amortiguación y estilo.", momento: "deporte / uso diario / todo el año" },
+            { id: 324, nombre: "RETRO 11 BLANCA Y AZUL", imagen: "retroonce.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color blanco y azul"], info: "Zapatilla importada G5 estilo Retro 11 en blanco y azul, clásica y versátil.", momento: "uso diario / salidas / todo el año" },
+            { id: 325, nombre: "OFF WHITE NEGRAS Y BLANCO", imagen: "offwhiteneg.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","color negro y blanco"], info: "Zapatilla importada G5 estilo Off White en negro y blanco, luxury streetwear.", momento: "salidas / eventos / todo el año" },
+            { id: 326, nombre: "OFF WHITE CELESTE", imagen: "offwhiteceleste.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","color celeste"], info: "Zapatilla importada G5 estilo Off White en celeste, diseño premium y fresco.", momento: "uso diario / salidas / todo el año" },
+            { id: 327, nombre: "OFF WHITE VERDE OSCURA", imagen: "offwhiteverde.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","color verde oscuro"], info: "Zapatilla importada G5 estilo Off White en verde oscuro, diseño premium.", momento: "uso diario / salidas / todo el año" },
+            { id: 328, nombre: "OFF WHITE AZUL Y BLANCO", imagen: "offwhiteazul.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","color azul y blanco"], info: "Zapatilla importada G5 estilo Off White en azul y blanco, luxury streetwear.", momento: "uso diario / salidas / todo el año" },
+            { id: 329, nombre: "OFF WHITE BLANCO Y VERDE", imagen: "offwhiteblanco.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","color blanco y verde"], info: "Zapatilla importada G5 estilo Off White en blanco y verde, diseño premium.", momento: "uso diario / salidas / todo el año" },
+            { id: 330, nombre: "RETRO 4 BEIGE", imagen: "retrocuatrobeige.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color beige"], info: "Zapatilla importada G5 estilo Retro 4 en beige, tono neutro y versátil.", momento: "uso diario / salidas / todo el año" },
+            { id: 331, nombre: "NOCTA", imagen: "nocta.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo collab streetwear","diseño Nocta"], info: "Zapatilla importada G5 estilo Nocta, collab icónica del streetwear premium.", momento: "salidas / eventos / todo el año" },
+            { id: 332, nombre: "CAMPUS ROSAS", imagen: "campusrosa.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo urbano","color rosa"], info: "Zapatilla importada G5 estilo Campus en rosa, diseño urbano y tendencia.", momento: "uso diario / salidas / todo el año" },
+            { id: 333, nombre: "RETRO 4 TOTAL WHITE", imagen: "retrocuatrowhite.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","color blanco total"], info: "Zapatilla importada G5 estilo Retro 4 en blanco total, look limpio y clásico.", momento: "uso diario / salidas / todo el año" },
+            { id: 334, nombre: "RETRO 3 BLACK CAT", imagen: "blackcat.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway black cat"], info: "Zapatilla importada G5 estilo Retro 3 Black Cat, todo negro y elegante.", momento: "uso diario / salidas / todo el año" },
+            { id: 335, nombre: "RETRO 3 PURES MONEY", imagen: "puresmoney.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo retro deportivo","colorway pure money"], info: "Zapatilla importada G5 estilo Retro 3 Pure Money, colorway clásico y premium.", momento: "uso diario / salidas / todo el año" },
+            { id: 336, nombre: "LOUIS VUITTON", imagen: "lv.jpg", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","diseño LV"], info: "Zapatilla importada G5 estilo Louis Vuitton, diseño luxury streetwear premium.", momento: "salidas / eventos / todo el año" }
         ];
 
         // Agregar categoría 'adultos' a todos los productos de zapatillas
@@ -4330,12 +4333,11 @@
             
             for (let i = 0; i < window.itemsDisplayed && i < filtered.length; i++) {
                 const p = filtered[i];
-                const precioMostrar = getCustomPriceForProduct ? getCustomPriceForProduct(p) : p.precio;
-                const gananciaInfo = getGananciaInfoForProduct ? getGananciaInfoForProduct(p) : null;
-                const editBtn = `<button onclick="abrirEditPrecioProducto(${p.id},'perfumes')" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,.85);border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:2;" title="Editar precio">…</button>`;
+                const _pmP = window.preciosManualCat && window.preciosManualCat[p.id] !== undefined ? window.preciosManualCat[p.id] : null;
+                const _prP = _pmP !== null ? _pmP : p.precio;
                 html += `
                 <div class="product-card" style="position:relative;">
-                    ${editBtn}
+                    <button onclick="abrirEditarPrecio(${p.id},'perfumes')" title="Editar precio" style="position:absolute;top:6px;right:6px;z-index:10;background:rgba(255,255,255,.9);border:1px solid var(--border);border-radius:50%;width:28px;height:28px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;font-weight:700;">⋯</button>
                     <div class="product-image" onclick="openZoom('${p.imagen}')">
                         <div class="zoom-icon">🔍</div>
                         <img src="${BASE_IMAGE_URL}${p.imagen}" alt="${p.nombre}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-family=%22Arial%22 font-size=%2214%22 fill=%22%23999%22%3EProducto%3C/text%3E%3C/svg%3E'">
@@ -4343,15 +4345,13 @@
                     <div class="product-info">
                         <div class="product-name">${p.nombre}</div>
                         <div class="product-price">
-                            <div class="price-current">$${(precioMostrar || p.precio).toLocaleString()}</div>
+                            <div class="price-current">$${_prP.toLocaleString()}</div>
                             <div class="price-original">$${p.precioOriginal.toLocaleString()}</div>
                             <div class="price-discount">${Math.round((1 - p.precio/p.precioOriginal) * 100)}%</div>
                         </div>
-                        ${gananciaInfo ? `<div style="font-size:11px;color:#00a650;font-weight:600;margin-bottom:4px;">Ganancia: $${gananciaInfo.ganancia.toLocaleString()} (${gananciaInfo.pct}%)</div>` : ''}
                         <button class="btn-more" onclick="openDetails(${p.id})">Ver más</button>
                     </div>
                 </div>`;
-            }
             }
             
             grid.innerHTML = html;
@@ -4400,37 +4400,25 @@
             }
             
             let html = '';
-
-            // Generar placeholder SVG con nombre del producto
-            function shoePlaceholderSvg(nombre) {
-                const letra = (nombre || 'P').charAt(0).toUpperCase();
-                return 'data:image/svg+xml,' + encodeURIComponent(
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect fill="#e8edf5" width="200" height="200"/><text x="50%" y="44%" text-anchor="middle" dy=".3em" font-family="Arial" font-size="56" font-weight="bold" fill="#0066ff">' + letra + '</text><text x="50%" y="72%" text-anchor="middle" font-family="Arial" font-size="11" fill="#666">Imagen no disponible</text></svg>'
-                );
-            }
             
             for (let i = 0; i < window.shoesItemsDisplayed && i < filtered.length; i++) {
                 const p = filtered[i];
-                const placeholder = shoePlaceholderSvg(p.nombre);
-                // Aplicar precio personalizado si hay configuración de tienda
-                const precioMostrar = getCustomPriceForProduct ? getCustomPriceForProduct(p) : p.precio;
-                const gananciaInfo = getGananciaInfoForProduct ? getGananciaInfoForProduct(p) : null;
-                const editBtn = `<button onclick="abrirEditPrecioProducto(${p.id},'calzados')" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,.85);border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:2;" title="Editar precio">…</button>`;
+                const _pmS = window.preciosManualCat && window.preciosManualCat[p.id] !== undefined ? window.preciosManualCat[p.id] : null;
+                const _prS = _pmS !== null ? _pmS : p.precio;
                 html += `
                 <div class="product-card" style="position:relative;">
-                    ${editBtn}
+                    <button onclick="abrirEditarPrecio(${p.id},'calzados')" title="Editar precio" style="position:absolute;top:6px;right:6px;z-index:10;background:rgba(255,255,255,.9);border:1px solid var(--border);border-radius:50%;width:28px;height:28px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;font-weight:700;">⋯</button>
                     <div class="product-image" onclick="openZoom('${p.imagen}')">
                         <div class="zoom-icon">🔍</div>
-                        <img src="${BASE_IMAGE_URL}${p.imagen}" alt="${p.nombre}" onerror="this.onerror=null;this.src='${placeholder}';">
+                        <img src="${BASE_IMAGE_URL}${p.imagen}" alt="${p.nombre}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-family=%22Arial%22 font-size=%2214%22 fill=%22%23999%22%3EProducto%3C/text%3E%3C/svg%3E'">
                     </div>
                     <div class="product-info">
                         <div class="product-name">${p.nombre}</div>
                         <div class="product-price">
-                            <div class="price-current">$${(precioMostrar || p.precio).toLocaleString()}</div>
+                            <div class="price-current">$${_prS.toLocaleString()}</div>
                             <div class="price-original">$${p.precioOriginal.toLocaleString()}</div>
                             <div class="price-discount">${Math.round((1 - p.precio/p.precioOriginal) * 100)}%</div>
                         </div>
-                        ${gananciaInfo ? `<div style="font-size:11px;color:#00a650;font-weight:600;margin-bottom:4px;">Ganancia: $${gananciaInfo.ganancia.toLocaleString()} (${gananciaInfo.pct}%)</div>` : ''}
                         <button class="btn-more" onclick="openDetailsShoes(${p.id})">Ver más</button>
                     </div>
                 </div>`;
@@ -5613,19 +5601,6 @@
             }
         }
 
-        // Helper: esperar a que Firebase Auth esté listo
-        function esperarFirebaseAuth() {
-            return new Promise(function(resolve, reject) {
-                var intentos = 0;
-                var t = setInterval(function() {
-                    intentos++;
-                    if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0 && firebase.firestore) {
-                        clearInterval(t); resolve();
-                    } else if (intentos > 60) { clearInterval(t); reject(new Error('Firebase no listo')); }
-                }, 100);
-            });
-        }
-
         // LOGIN CON FIREBASE
         async function loginUser(e) {
             e.preventDefault();
@@ -5638,46 +5613,8 @@
                 return;
             }
             
-            const codigoInput = document.getElementById('login-codigo-revendedor');
-            const codigo = codigoInput ? codigoInput.value.trim().toUpperCase() : '';
+            const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
-
-            if (!codigo) {
-                alert('❌ Ingresá tu código de revendedor.');
-                return;
-            }
-
-            // Buscar el email asociado al código vía Worker o Firestore
-            let email = null;
-            try {
-                const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ codigo })
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.success && data.vendedor && data.vendedor.email) {
-                        email = data.vendedor.email;
-                    }
-                }
-            } catch(e) {}
-
-            // Fallback: buscar en Firestore
-            if (!email) {
-                try {
-                    await esperarFirebaseAuth();
-                    const snap = await firebase.firestore().collection('usuarios')
-                        .where('codigoVendedor', '==', codigo).limit(1).get();
-                    if (!snap.empty) email = snap.docs[0].data().email;
-                } catch(e) {}
-            }
-
-            if (!email) {
-                document.getElementById('error-message') && (document.getElementById('error-message').textContent = 'Código no encontrado.');
-                document.getElementById('registration-error-modal').classList.add('active');
-                return;
-            }
 
             try {
                 // Firebase Auth se encargará de la persistencia
@@ -7445,8 +7382,7 @@
                 document.getElementById('config-margen-default').value = 30;
             }
             document.getElementById('configTiendaModal').classList.add('active');
-            // Mostrar promedio al abrir
-            setTimeout(actualizarPromedioGananciaConfig, 100);
+            setTimeout(calcularPromedioGanancia, 50);
         }
 
         function closeConfigTiendaModal(e) {
@@ -7460,10 +7396,10 @@
             row.className = 'rango-config-row';
             row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:center;margin-bottom:8px;';
             row.innerHTML = `
-                <input type="number" class="rango-de" min="0" placeholder="De $" value="${de || ''}" style="padding:7px 6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font-body);width:100%;">
-                <input type="number" class="rango-hasta" min="0" placeholder="Hasta $" value="${hasta || ''}" style="padding:7px 6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font-body);width:100%;">
-                <input type="number" class="rango-pct" min="0" max="999" placeholder="%" value="${pct || ''}" style="padding:7px 6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font-body);width:100%;" oninput="actualizarPromedioGananciaConfig()">
-                <button type="button" onclick="this.parentElement.remove()" style="background:#fee2e2;color:#dc2626;border:none;border-radius:var(--radius);padding:7px 9px;cursor:pointer;font-weight:700;font-size:13px;">✕</button>
+                <input type="number" class="rango-de" min="0" placeholder="De $" value="${de || ''}" oninput="calcularPromedioGanancia()" style="padding:7px 6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font-body);width:100%;">
+                <input type="number" class="rango-hasta" min="0" placeholder="Hasta $" value="${hasta || ''}" oninput="calcularPromedioGanancia()" style="padding:7px 6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font-body);width:100%;">
+                <input type="number" class="rango-pct" min="0" max="999" placeholder="%" value="${pct || ''}" oninput="calcularPromedioGanancia()" style="padding:7px 6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font-body);width:100%;">
+                <button type="button" onclick="this.parentElement.remove();calcularPromedioGanancia();" style="background:#fee2e2;color:#dc2626;border:none;border-radius:var(--radius);padding:7px 9px;cursor:pointer;font-weight:700;font-size:13px;">✕</button>
             `;
             container.appendChild(row);
         }
@@ -7579,105 +7515,136 @@
             }
         }
 
-        // Actualizar promedio de ganancia en tiempo real mientras el usuario edita el %
-        function actualizarPromedioGananciaConfig() {
+        // ── Promedio de ganancia por venta ──────────────────────────────────
+        function calcularPromedioGanancia() {
             try {
                 const cat = window.currentCatalog || 'general';
-                const defaultPct = Number(document.getElementById('config-margen-default').value) || 0;
+                const lista = cat === 'calzados' ? (window.shoes || []) : (typeof products !== 'undefined' ? products : []);
+                if (!lista || lista.length === 0) return;
                 const rangos = [];
-                document.querySelectorAll('.rango-config-row').forEach(row => {
+                document.querySelectorAll('.rango-config-row').forEach(function(row) {
                     const de    = Number(row.querySelector('.rango-de').value) || 0;
                     const hasta = Number(row.querySelector('.rango-hasta').value);
                     const pct   = Number(row.querySelector('.rango-pct').value);
-                    if (hasta > 0 && pct >= 0) rangos.push({ de, hasta, porcentaje: pct });
+                    if (hasta > 0 && pct >= 0) rangos.push({ de: de, hasta: hasta, porcentaje: pct });
                 });
-                const configTemp = { rangos, default: defaultPct, categoria: cat };
-                const prods = cat === 'calzados' ? (window.shoes || []) : (window.products || []);
-                if (!prods.length) return;
+                rangos.sort(function(a, b) { return a.hasta - b.hasta; });
+                const defaultPct = Number(document.getElementById('config-margen-default').value) || 0;
                 let totalGanancia = 0, count = 0;
-                prods.forEach(p => {
-                    const manualKey = 'precioManual_' + cat + '_' + p.id;
-                    const manual = localStorage.getItem(manualKey);
-                    let precioVenta;
-                    if (manual !== null) {
-                        precioVenta = Number(manual);
-                    } else {
-                        const pct = getMarginForPriceAndConfig(p.precio, configTemp);
-                        precioVenta = Math.round(p.precio * (1 + pct / 100));
-                    }
-                    totalGanancia += (precioVenta - p.precio);
+                lista.forEach(function(p) {
+                    const precio = p.precio || 0;
+                    if (!precio) return;
+                    const rango = rangos.find(function(r) { return precio >= (r.de || 0) && precio <= r.hasta; });
+                    const pct   = rango ? rango.porcentaje : defaultPct;
+                    totalGanancia += precio * (pct / 100);
                     count++;
                 });
-                const promedio = count > 0 ? Math.round(totalGanancia / count) : 0;
-                const el = document.getElementById('config-promedio-ganancia');
-                const valEl = document.getElementById('config-promedio-valor');
-                if (el && valEl) {
-                    valEl.textContent = '$' + promedio.toLocaleString() + ' por producto';
-                    el.style.display = 'block';
+                const box = document.getElementById('promedio-ganancia-box');
+                const val = document.getElementById('promedio-ganancia-valor');
+                if (!box || !val) return;
+                if (count > 0) {
+                    val.textContent = '$' + Math.round(totalGanancia / count).toLocaleString() + ' por venta';
+                    box.style.display = 'block';
+                } else {
+                    box.style.display = 'none';
                 }
             } catch(e) {}
         }
 
-        // Eliminar configuración: borrar de DB, guardar enlace en web externa y limpiar local
-        async function eliminarConfigTienda() {
-            if (!confirm('¿Eliminar toda la configuración de precios? Esta acción es irreversible.')) return;
-            const cat = window.currentCatalog || 'general';
-            const codigo = (window.currentUser && window.currentUser.codigoVendedor)
-                || localStorage.getItem('codigoVendedorLocal') || '';
-            const catLabel = cat === 'perfumes' ? 'Perfumes' : cat === 'calzados' ? 'Calzados' : cat;
+        // ── Precios manuales por producto ───────────────────────────────────
+        window.preciosManualCat = JSON.parse(localStorage.getItem('preciosManualCat') || '{}');
 
-            // Leer config actual para generar enlace de respaldo
-            const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-            const configEliminada = allConfig[cat] || null;
-
-            // Eliminar de localStorage
-            delete allConfig[cat];
-            localStorage.setItem('configTiendaAll', JSON.stringify(allConfig));
-            localStorage.removeItem('configTienda');
-
-            // Eliminar precios manuales de esta categoría
-            const keysToRemove = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const k = localStorage.key(i);
-                if (k && k.startsWith('precioManual_' + cat + '_')) keysToRemove.push(k);
+        function abrirEditarPrecio(id, catalogo) {
+            const lista = catalogo === 'calzados' ? (window.shoes || []) : (typeof products !== 'undefined' ? products : []);
+            const prod = lista.find(function(p) { return p.id === id; });
+            if (!prod) return;
+            const pct = typeof getMarginForPrice === 'function' ? getMarginForPrice(prod.precio) : 0;
+            const sugerido = Math.round(prod.precio * (1 + pct / 100));
+            const actual   = window.preciosManualCat[id] !== undefined ? window.preciosManualCat[id] : '';
+            var m = document.getElementById('editarPrecioModal');
+            if (!m) {
+                m = document.createElement('div');
+                m.id = 'editarPrecioModal';
+                m.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;';
+                m.innerHTML = '<div style="background:#fff;border-radius:10px;padding:24px;max-width:340px;width:90%;position:relative;">' +
+                  '<button onclick="document.getElementById('editarPrecioModal').style.display='none'" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:#666;">✕</button>' +
+                  '<h3 id="ep-nombre" style="font-size:14px;font-weight:700;margin-bottom:12px;padding-right:28px;"></h3>' +
+                  '<div style="font-size:12px;color:#666;margin-bottom:4px;">Precio base mayorista: <b id="ep-base"></b></div>' +
+                  '<div style="font-size:12px;color:#0066ff;margin-bottom:12px;">Precio sugerido con tu %: <b id="ep-sugerido"></b></div>' +
+                  '<label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">Precio manual ($)</label>' +
+                  '<input type="number" id="ep-input" min="0" placeholder="Ingresá precio" style="width:100%;padding:9px;border:1px solid #e5e5e5;border-radius:6px;font-size:14px;margin-bottom:14px;">' +
+                  '<div style="display:flex;gap:8px;">' +
+                  '<button id="ep-guardar" style="flex:1;padding:10px;background:var(--primary);color:white;border:none;border-radius:6px;font-weight:700;cursor:pointer;">Guardar</button>' +
+                  '<button id="ep-limpiar" style="flex:1;padding:10px;background:#f5f5f5;color:#333;border:none;border-radius:6px;font-weight:600;cursor:pointer;">Quitar manual</button>' +
+                  '</div></div>';
+                document.body.appendChild(m);
             }
-            keysToRemove.forEach(k => localStorage.removeItem(k));
-
-            // Eliminar de Firestore y guardar enlace de respaldo
-            const fbUser = firebase.auth().currentUser;
-            const uid = fbUser ? fbUser.uid : (window.currentUser ? window.currentUser.uid : null);
-            if (uid && fbUser) {
+            document.getElementById('ep-nombre').textContent   = prod.nombre;
+            document.getElementById('ep-base').textContent     = '$' + prod.precio.toLocaleString();
+            document.getElementById('ep-sugerido').textContent = '$' + sugerido.toLocaleString() + ' (' + pct + '%)';
+            document.getElementById('ep-input').value          = actual;
+            m.style.display = 'flex';
+            document.getElementById('ep-guardar').onclick = function() {
+                var v = Number(document.getElementById('ep-input').value);
+                if (v > 0) {
+                    window.preciosManualCat[id] = v;
+                    localStorage.setItem('preciosManualCat', JSON.stringify(window.preciosManualCat));
+                    try {
+                        var fbUser = firebase.auth().currentUser;
+                        if (fbUser) {
+                            var upd = {}; upd['preciosManualCat.' + id] = v;
+                            firebase.firestore().collection('usuarios').doc(fbUser.uid).update(upd).catch(function(){});
+                        }
+                    } catch(e) {}
+                    m.style.display = 'none';
+                    if (window.currentCatalog === 'calzados') renderShoesProducts();
+                    else renderPerfumesProducts();
+                }
+            };
+            document.getElementById('ep-limpiar').onclick = function() {
+                delete window.preciosManualCat[id];
+                localStorage.setItem('preciosManualCat', JSON.stringify(window.preciosManualCat));
                 try {
-                    // Generar enlace de tienda eliminada para guardar externamente
-                    const enlaceEliminado = window.location.origin + '/tienda.html?tienda=' + codigo + '&cat=' + cat + '&eliminada=1';
-                    // Guardar referencia del enlace en Firestore (sin datos de config, solo el enlace)
-                    await firebase.firestore().collection('tiendasEliminadas').doc(codigo + '_' + cat).set({
-                        codigo,
-                        categoria: cat,
-                        enlace: enlaceEliminado,
-                        eliminadoEn: new Date(),
-                        // No guardamos configEliminada para no ocupar memoria
-                    }).catch(() => {});
-                    // Eliminar config de Firestore del usuario
-                    const updateObj = {};
-                    updateObj[`configTiendaAll.${cat}`] = firebase.firestore.FieldValue.delete();
-                    await firebase.firestore().collection('usuarios').doc(uid).update(updateObj).catch(() => {});
-                    // Eliminar precios manuales de Firestore
-                    await firebase.firestore().collection('usuarios').doc(uid).update({
-                        [`preciosManual`]: firebase.firestore.FieldValue.delete()
-                    }).catch(() => {});
+                    var fbUser = firebase.auth().currentUser;
+                    if (fbUser) {
+                        var upd = {}; upd['preciosManualCat.' + id] = firebase.firestore.FieldValue.delete();
+                        firebase.firestore().collection('usuarios').doc(fbUser.uid).update(upd).catch(function(){});
+                    }
                 } catch(e) {}
-            }
+                m.style.display = 'none';
+                if (window.currentCatalog === 'calzados') renderShoesProducts();
+                else renderPerfumesProducts();
+            };
+        }
 
+        // ── Eliminar configuración ──────────────────────────────────────────
+        function eliminarConfigTienda() {
+            if (!confirm('¿Estás seguro de que querés eliminar toda la configuración? Esta acción no se puede deshacer.')) return;
+            var codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                || localStorage.getItem('codigoVendedorLocal')
+                || localStorage.getItem('codigoRevendedorValidado') || '';
+            try {
+                var fbUser = firebase.auth().currentUser;
+                if (fbUser && codigo) {
+                    var enlaceAntiguo = window.location.origin + '/?codigo=' + codigo;
+                    firebase.firestore().collection('tiendasEliminadas').add({
+                        codigo: codigo, enlace: enlaceAntiguo, eliminadoEn: new Date().toISOString()
+                    }).catch(function(){});
+                    var borrar = {};
+                    borrar['configTiendaAll']  = firebase.firestore.FieldValue.delete();
+                    borrar['configTienda']     = firebase.firestore.FieldValue.delete();
+                    borrar['preciosManualCat'] = firebase.firestore.FieldValue.delete();
+                    firebase.firestore().collection('usuarios').doc(fbUser.uid).update(borrar).catch(function(){});
+                }
+            } catch(e) {}
+            localStorage.removeItem('configTiendaAll');
+            localStorage.removeItem('configTienda');
+            localStorage.removeItem('preciosManualCat');
+            window.preciosManualCat = {};
             document.getElementById('configTiendaModal').classList.remove('active');
-            renderProducts();
-            // Mostrar toast
-            const toast = document.getElementById('wa-toast');
-            if (toast) {
-                toast.textContent = '✅ Configuración de ' + catLabel + ' eliminada correctamente.';
-                toast.style.display = 'block';
-                setTimeout(() => { toast.style.display = 'none'; }, 4000);
-            }
+            alert('Configuración eliminada correctamente.');
+            if (window.currentCatalog === 'calzados') renderShoesProducts();
+            else renderPerfumesProducts();
         }
 
         // Usar margen personalizado si existe, sino tabla original
@@ -7694,154 +7661,6 @@
                 }
             } catch(e) {}
             return calculateMarginByPrice(precio);
-        }
-
-        // Obtener precio de venta personalizado para un producto según config de tienda
-        function getCustomPriceForProduct(p) {
-            try {
-                const cat = window.currentCatalog || 'general';
-                // 1. Verificar si tiene precio manual guardado
-                const manualKey = 'precioManual_' + cat + '_' + p.id;
-                const manual = localStorage.getItem(manualKey);
-                if (manual !== null) return Number(manual);
-                // 2. Aplicar % según configuración de tienda
-                const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-                const config = allConfig[cat];
-                if (!config) return null;
-                const pct = getMarginForPriceAndConfig(p.precio, config);
-                return Math.round(p.precio * (1 + pct / 100));
-            } catch(e) { return null; }
-        }
-
-        function getMarginForPriceAndConfig(precio, config) {
-            if (config && Array.isArray(config.rangos) && config.rangos.length > 0) {
-                const rango = config.rangos
-                    .slice().sort((a, b) => a.hasta - b.hasta)
-                    .find(r => precio >= (r.de || 0) && precio <= r.hasta);
-                return rango ? rango.porcentaje : (config.default || 30);
-            }
-            return config ? (config.default || 30) : 30;
-        }
-
-        // Obtener info de ganancia para mostrar en la card
-        function getGananciaInfoForProduct(p) {
-            try {
-                const cat = window.currentCatalog || 'general';
-                const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-                const config = allConfig[cat];
-                if (!config) return null;
-                const manualKey = 'precioManual_' + cat + '_' + p.id;
-                const manual = localStorage.getItem(manualKey);
-                let precioVenta;
-                let pct;
-                if (manual !== null) {
-                    precioVenta = Number(manual);
-                    pct = Math.round((precioVenta / p.precio - 1) * 100);
-                } else {
-                    pct = getMarginForPriceAndConfig(p.precio, config);
-                    precioVenta = Math.round(p.precio * (1 + pct / 100));
-                }
-                return { ganancia: precioVenta - p.precio, pct };
-            } catch(e) { return null; }
-        }
-
-        // Calcular promedio de ganancia por venta según configuración activa
-        function calcularPromedioGananciaPorVenta() {
-            try {
-                const cat = window.currentCatalog || 'general';
-                const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-                const config = allConfig[cat];
-                if (!config) return null;
-                const prods = cat === 'calzados' ? (window.shoes || []) : (window.products || []);
-                if (!prods.length) return null;
-                let totalGanancia = 0, count = 0;
-                prods.forEach(p => {
-                    const manualKey = 'precioManual_' + cat + '_' + p.id;
-                    const manual = localStorage.getItem(manualKey);
-                    let precioVenta;
-                    if (manual !== null) {
-                        precioVenta = Number(manual);
-                    } else {
-                        const pct = getMarginForPriceAndConfig(p.precio, config);
-                        precioVenta = Math.round(p.precio * (1 + pct / 100));
-                    }
-                    totalGanancia += (precioVenta - p.precio);
-                    count++;
-                });
-                return count > 0 ? Math.round(totalGanancia / count) : 0;
-            } catch(e) { return null; }
-        }
-
-        // ─── Modal editar precio manual de un producto ────────────────────────────
-        function abrirEditPrecioProducto(id, catalogo) {
-            const cat = catalogo || window.currentCatalog || 'general';
-            const prods = cat === 'calzados' ? (window.shoes || []) : (window.products || []);
-            const p = prods.find(x => x.id === id);
-            if (!p) return;
-            const manualKey = 'precioManual_' + cat + '_' + id;
-            const manualActual = localStorage.getItem(manualKey);
-            const precioSugerido = (() => {
-                try {
-                    const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-                    const config = allConfig[cat];
-                    if (!config) return p.precio;
-                    const pct = getMarginForPriceAndConfig(p.precio, config);
-                    return Math.round(p.precio * (1 + pct / 100));
-                } catch(e) { return p.precio; }
-            })();
-            // Remover modal previo si existe
-            const prev = document.getElementById('edit-precio-modal');
-            if (prev) prev.remove();
-            const m = document.createElement('div');
-            m.id = 'edit-precio-modal';
-            m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:11000;display:flex;align-items:center;justify-content:center;padding:16px;';
-            m.innerHTML = `
-                <div style="background:#fff;border-radius:14px;padding:28px 22px;max-width:360px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.2);">
-                    <h3 style="margin:0 0 4px;font-size:16px;font-weight:700;color:var(--text);">Editar precio de venta</h3>
-                    <p style="font-size:13px;color:var(--text-light);margin:0 0 16px;">${p.nombre}</p>
-                    <div style="margin-bottom:10px;">
-                        <div style="font-size:12px;color:var(--text-light);margin-bottom:4px;">Precio base (costo): <strong>$${p.precio.toLocaleString()}</strong></div>
-                        <div style="font-size:12px;color:var(--text-light);margin-bottom:10px;">Precio sugerido con %: <strong>$${precioSugerido.toLocaleString()}</strong></div>
-                        <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Precio de venta manual ($)</label>
-                        <input type="number" id="edit-precio-input" min="0" value="${manualActual !== null ? manualActual : precioSugerido}" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:15px;font-family:var(--font-body);">
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
-                        <button onclick="document.getElementById('edit-precio-modal').remove()" style="padding:10px;background:#f5f5f5;border:1px solid var(--border);border-radius:var(--radius);font-weight:600;cursor:pointer;font-size:13px;">Cancelar</button>
-                        <button onclick="guardarPrecioManualProducto(${id},'${cat}')" style="padding:10px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);font-weight:700;cursor:pointer;font-size:13px;">Guardar</button>
-                    </div>
-                    ${manualActual !== null ? `<button onclick="eliminarPrecioManualProducto(${id},'${cat}')" style="width:100%;margin-top:8px;padding:8px;background:transparent;border:1px dashed #dc2626;color:#dc2626;border-radius:var(--radius);font-size:12px;cursor:pointer;font-weight:600;">↩ Usar precio con % automático</button>` : ''}
-                </div>
-            `;
-            document.body.appendChild(m);
-            m.addEventListener('click', e => { if (e.target === m) m.remove(); });
-            document.getElementById('edit-precio-input').focus();
-        }
-
-        function guardarPrecioManualProducto(id, cat) {
-            const val = Number(document.getElementById('edit-precio-input').value);
-            if (!val || val <= 0) { alert('Ingresá un precio válido.'); return; }
-            localStorage.setItem('precioManual_' + cat + '_' + id, val);
-            // Guardar en Firestore si está logueado
-            const fbUser = firebase.auth().currentUser;
-            const uid = fbUser ? fbUser.uid : (window.currentUser ? window.currentUser.uid : null);
-            if (uid && fbUser) {
-                firebase.firestore().collection('usuarios').doc(uid)
-                    .update({ [`preciosManual.${cat}_${id}`]: val }).catch(() => {});
-            }
-            document.getElementById('edit-precio-modal').remove();
-            renderProducts();
-        }
-
-        function eliminarPrecioManualProducto(id, cat) {
-            localStorage.removeItem('precioManual_' + cat + '_' + id);
-            const fbUser = firebase.auth().currentUser;
-            const uid = fbUser ? fbUser.uid : (window.currentUser ? window.currentUser.uid : null);
-            if (uid && fbUser) {
-                firebase.firestore().collection('usuarios').doc(uid)
-                    .update({ [`preciosManual.${cat}_${id}`]: firebase.firestore.FieldValue.delete() }).catch(() => {});
-            }
-            document.getElementById('edit-precio-modal').remove();
-            renderProducts();
         }
 
         // Mostrar modal WhatsApp al iniciar sesión si no está configurado
@@ -7861,19 +7680,11 @@
                     if (data.configTienda && !localStorage.getItem('configTienda')) {
                         localStorage.setItem('configTienda', JSON.stringify(data.configTienda));
                     }
-                    // Cargar precios manuales de productos
-                    if (data.preciosManual && typeof data.preciosManual === 'object') {
-                        Object.entries(data.preciosManual).forEach(([k, v]) => {
-                            if (!localStorage.getItem('precioManual_' + k)) {
-                                localStorage.setItem('precioManual_' + k, v);
-                            }
-                        });
-                    }
-                    // Cargar configTiendaAll por categoría
-                    if (data.configTiendaAll && typeof data.configTiendaAll === 'object') {
-                        const existing = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-                        const merged = Object.assign({}, data.configTiendaAll, existing);
-                        localStorage.setItem('configTiendaAll', JSON.stringify(merged));
+                    if (data.preciosManualCat) {
+                        var _stored = JSON.parse(localStorage.getItem('preciosManualCat') || '{}');
+                        var _merged = Object.assign({}, data.preciosManualCat, _stored);
+                        localStorage.setItem('preciosManualCat', JSON.stringify(_merged));
+                        window.preciosManualCat = _merged;
                     }
                     // Si no tiene WhatsApp configurado, mostrar modal a los 7 segundos
                     if (!localStorage.getItem('whatsappRevendedor')) {
@@ -7993,20 +7804,6 @@
                 }
                 if (userData.whatsappRevendedor && !localStorage.getItem('whatsappRevendedor')) {
                     localStorage.setItem('whatsappRevendedor', userData.whatsappRevendedor);
-                }
-                // Cargar precios manuales de productos
-                if (userData.preciosManual && typeof userData.preciosManual === 'object') {
-                    Object.entries(userData.preciosManual).forEach(([k, v]) => {
-                        if (!localStorage.getItem('precioManual_' + k)) {
-                            localStorage.setItem('precioManual_' + k, v);
-                        }
-                    });
-                }
-                // Cargar configTiendaAll por categoría
-                if (userData.configTiendaAll && typeof userData.configTiendaAll === 'object') {
-                    const existing = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-                    const merged = Object.assign({}, userData.configTiendaAll, existing);
-                    localStorage.setItem('configTiendaAll', JSON.stringify(merged));
                 }
 
                 var fbUser = firebase.auth().currentUser;
