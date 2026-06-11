@@ -1346,6 +1346,20 @@ async function cargarVendedor() {
                 if (!vendedor.colorTienda && fs.colorTienda) vendedor.colorTienda = fs.colorTienda;
                 if (!vendedor.coloresTiendaPorCat && fs.coloresTiendaPorCat) vendedor.coloresTiendaPorCat = fs.coloresTiendaPorCat;
                 if (!vendedor.configTiendaAll && fs.configTiendaAll) vendedor.configTiendaAll = fs.configTiendaAll;
+                if (!vendedor.promocionesTienda && fs.promocionesTienda) vendedor.promocionesTienda = fs.promocionesTienda;
+            }
+        } catch(_) {}
+    }
+
+    // ── Cargar promocionesTienda desde Firestore si no viene incluido ──
+    if (!vendedor.promocionesTienda && codigoParam) {
+        try {
+            const snapPromo = await db.collection('usuarios')
+                .where('codigoVendedor', '==', codigoParam)
+                .limit(1).get();
+            if (!snapPromo.empty) {
+                const fsPromo = snapPromo.docs[0].data();
+                if (fsPromo.promocionesTienda) vendedor.promocionesTienda = fsPromo.promocionesTienda;
             }
         } catch(_) {}
     }
@@ -1883,9 +1897,26 @@ window.promoGiftElegido = null; // {producto, cat}
 })();
 
 // Modal flotante a los 5 segundos del inicio
+// Si no hay promo en la URL, intentar cargarla desde Firestore usando los datos del vendedor
+function _cargarPromoDesdeVendedor() {
+    try {
+        if (window.promoActiva) return; // ya viene por URL, no sobreescribir
+        if (!catParam) return;
+        // vendedor ya fue cargado por iniciarTienda; intentar obtener promo del campo promocionesTienda
+        const promos = vendedor && vendedor.promocionesTienda;
+        if (!promos) return;
+        const promo = promos[catParam];
+        if (promo && (Array.isArray(promo.rangos) || promo.gift)) {
+            window.promoActiva = promo;
+        }
+    } catch(e) {}
+}
+
 const _origIniciarTienda = iniciarTienda;
 iniciarTienda = function() {
     _origIniciarTienda.apply(this, arguments);
+    // Cargar promo desde Firestore si no vino por URL
+    _cargarPromoDesdeVendedor();
     if (window.promoActiva) {
         setTimeout(mostrarPromoFloat, 5000);
     }
