@@ -6807,6 +6807,9 @@
                 try { agregarPedidoAlCarrito(pedido); } catch(_) {}
             }
             const esWorker = !!(pedido && pedido._origenWorker);
+            const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                || localStorage.getItem('codigoVendedorLocal')
+                || localStorage.getItem('codigoRevendedorValidado') || '';
             try {
                 if (!esWorker) {
                     await firebase.firestore()
@@ -6817,15 +6820,17 @@
                             fechaAprobacion: new Date()
                         });
                 }
-                // Notificar al Worker (best-effort)
+                // Notificar al worker de pedidos de clientes (WORKER_CLIENTE_BASE)
                 try {
-                    await fetch(WORKER_URL + '/api/aprobar-pedido', {
+                    await fetch(WORKER_CLIENTE_BASE + '/api/aprobar-pedido', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            uid: user.uid,
                             pedidoId: pedidoId,
+                            codigoVendedor: codigo,
+                            uid: user.uid,
                             estado: nuevoEstado,
+                            estadoAprobacion: nuevoEstado,
                             fecha: Date.now()
                         })
                     });
