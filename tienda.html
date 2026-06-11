@@ -1346,20 +1346,22 @@ async function cargarVendedor() {
                 if (!vendedor.colorTienda && fs.colorTienda) vendedor.colorTienda = fs.colorTienda;
                 if (!vendedor.coloresTiendaPorCat && fs.coloresTiendaPorCat) vendedor.coloresTiendaPorCat = fs.coloresTiendaPorCat;
                 if (!vendedor.configTiendaAll && fs.configTiendaAll) vendedor.configTiendaAll = fs.configTiendaAll;
-                if (!vendedor.promocionesTienda && fs.promocionesTienda) vendedor.promocionesTienda = fs.promocionesTienda;
+                if (fs.promocionesTienda && typeof fs.promocionesTienda === 'object' && Object.keys(fs.promocionesTienda).length > 0) vendedor.promocionesTienda = fs.promocionesTienda;
             }
         } catch(_) {}
     }
 
-    // ── Cargar promocionesTienda desde Firestore si no viene incluido ──
-    if (!vendedor.promocionesTienda && codigoParam) {
+    // ── Cargar promocionesTienda desde Firestore siempre (garantiza datos frescos) ──
+    if (codigoParam) {
         try {
             const snapPromo = await db.collection('usuarios')
                 .where('codigoVendedor', '==', codigoParam)
                 .limit(1).get();
             if (!snapPromo.empty) {
                 const fsPromo = snapPromo.docs[0].data();
-                if (fsPromo.promocionesTienda) vendedor.promocionesTienda = fsPromo.promocionesTienda;
+                if (fsPromo.promocionesTienda && typeof fsPromo.promocionesTienda === 'object' && Object.keys(fsPromo.promocionesTienda).length > 0) {
+                    vendedor.promocionesTienda = fsPromo.promocionesTienda;
+                }
             }
         } catch(_) {}
     }
@@ -1904,7 +1906,7 @@ function _cargarPromoDesdeVendedor() {
         if (!catParam) return;
         // vendedor ya fue cargado por iniciarTienda; intentar obtener promo del campo promocionesTienda
         const promos = vendedor && vendedor.promocionesTienda;
-        if (!promos) return;
+        if (!promos || typeof promos !== 'object' || Object.keys(promos).length === 0) return;
         const promo = promos[catParam];
         if (promo && (Array.isArray(promo.rangos) || promo.gift)) {
             window.promoActiva = promo;
