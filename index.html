@@ -8820,7 +8820,7 @@
     #promoGiftConfigModal .pg-row {
         display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
     }
-    #promoGiftConfigModal .pg-field { display: flex; flex-direction: column; gap: 3px; }
+    #promoGiftConfigModal .pg-field { display: flex; flex-direction: column; gap: 4px; }
     #promoGiftConfigModal .pg-field label {
         font-size: 10px; font-weight: 700; text-transform: uppercase;
         letter-spacing: .4px; color: var(--text-light, #666);
@@ -8828,7 +8828,30 @@
     #promoGiftConfigModal .pg-field input {
         padding: 9px 10px; border: 1px solid var(--border, #e5e5e5);
         border-radius: 8px; font-size: 13px; font-family: inherit; background: #fff;
+        width: 100%; box-sizing: border-box;
+        transition: border-color .15s, box-shadow .15s;
     }
+    #promoGiftConfigModal .pg-field input:focus {
+        outline: none; border-color: var(--primary, #0066ff);
+        box-shadow: 0 0 0 3px rgba(0,102,255,.1);
+    }
+    #promoGiftConfigModal .pg-save {
+        width: 100%; margin-top: 14px; padding: 13px; border: none;
+        border-radius: 10px; background: var(--primary, #0066ff);
+        color: #fff; font-weight: 700; font-size: 14px;
+        cursor: pointer; font-family: inherit;
+        box-shadow: 0 4px 12px rgba(0,102,255,.18);
+        transition: background .2s;
+    }
+    #promoGiftConfigModal .pg-save:hover { background: var(--primary-light, #0052cc); }
+    #promoGiftConfigModal .pg-cancel {
+        width: 100%; margin-top: 8px; padding: 11px;
+        border: 1px solid var(--border, #e5e5e5); border-radius: 10px;
+        background: var(--gray-light, #f3f4f6); color: #dc2626;
+        font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit;
+        transition: background .2s;
+    }
+    #promoGiftConfigModal .pg-cancel:hover { background: #fee2e2; border-color: #fca5a5; }
     /* Badge % en lista de tiendas */
     #misTiendasModal .mt-promo-badge {
         display: inline-flex; align-items: center; justify-content: center;
@@ -9211,7 +9234,7 @@
 <div class="modal-overlay" id="promoGiftConfigModal" onclick="if(event.target.id==='promoGiftConfigModal')this.classList.remove('active')">
     <div class="modal-content" style="max-width:440px;" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <h2 class="modal-title">🎁 Selecciona el rango de precios</h2>
+            <h2 class="modal-title" style="font-size:clamp(13px,3.5vw,17px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎁 Selecciona el rango de precios</h2>
             <button type="button" class="modal-close" onclick="document.getElementById('promoGiftConfigModal').classList.remove('active')" aria-label="Cerrar">×</button>
         </div>
 
@@ -9250,8 +9273,8 @@
             </div>
         </div>
 
-        <button type="button" class="promo-save" onclick="guardarPromoGiftConfig()">Guardar regalo</button>
-        <button type="button" class="promo-cancel" onclick="quitarPromoGiftConfig()">Quitar regalo</button>
+        <button type="button" class="pg-save" onclick="guardarPromoGiftConfig()">💾 Guardar regalo</button>
+        <button type="button" class="pg-cancel" onclick="quitarPromoGiftConfig()">✕ Quitar regalo</button>
     </div>
 </div>
 
@@ -9314,20 +9337,25 @@
 
         window.agregarRangoPromo = function(de, hasta, pct) {
             const cont = document.getElementById('promoRangosContainer');
+            const isFirst = cont.children.length === 0;
+            // Si es la primera fila y no hay valores, usar predeterminados
+            const deVal = (de !== undefined && de !== '') ? de : (isFirst ? 0 : '');
+            const hastaVal = (hasta !== undefined && hasta !== '') ? hasta : (isFirst ? 10000 : '');
+            const pctVal = (pct === 0 || pct) ? pct : '';
             const row = document.createElement('div');
             row.className = 'promo-row';
             row.innerHTML = `
                 <div class="field">
                     <span class="promo-input-label">De $</span>
-                    <input type="number" min="0" class="pr-de" placeholder="0" value="${de||''}">
+                    <input type="number" min="0" class="pr-de" placeholder="0" value="${deVal}">
                 </div>
                 <div class="field">
                     <span class="promo-input-label">Hasta $</span>
-                    <input type="number" min="0" class="pr-hasta" placeholder="0" value="${hasta||''}">
+                    <input type="number" min="0" class="pr-hasta" placeholder="0" value="${hastaVal}">
                 </div>
                 <div class="field">
                     <span class="promo-input-label">% desc.</span>
-                    <input type="number" min="0" max="99" class="pr-pct" placeholder="0" value="${(pct===0||pct)?pct:''}">
+                    <input type="number" min="0" max="99" class="pr-pct" placeholder="%" value="${pctVal}">
                 </div>
                 <button type="button" class="ok" onclick="confirmarRangoPromo(this)">Ok</button>
                 <button type="button" class="rm" onclick="this.parentElement.remove();refrescarPromoCalc();" title="Eliminar">✕</button>
@@ -9403,10 +9431,10 @@
 
         window.abrirPromoGiftConfig = function() {
             const g = _promoGiftDraft || {};
-            document.getElementById('pgRegaloDe').value = g.regaloDe || '';
-            document.getElementById('pgRegaloHasta').value = g.regaloHasta || '';
-            document.getElementById('pgCondDe').value = g.condicionDe || '';
-            document.getElementById('pgCondHasta').value = g.condicionHasta || '';
+            document.getElementById('pgRegaloDe').value = g.regaloDe !== undefined ? g.regaloDe : 0;
+            document.getElementById('pgRegaloHasta').value = g.regaloHasta !== undefined ? g.regaloHasta : 8500;
+            document.getElementById('pgCondDe').value = g.condicionDe !== undefined ? g.condicionDe : 40000;
+            document.getElementById('pgCondHasta').value = g.condicionHasta !== undefined ? g.condicionHasta : 65000;
             document.getElementById('promoGiftConfigModal').classList.add('active');
         };
 
@@ -9551,6 +9579,234 @@
             }
         };
     })();
+</script>
+
+<!-- ── Modal promoción "Por única vez" para clientes finales ── -->
+<div id="promoClienteModal" style="
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+    z-index:10500;align-items:center;justify-content:center;padding:16px;
+    backdrop-filter:blur(3px);animation:pcmFadeIn .35s ease;
+" onclick="if(event.target===this)cerrarPromoClienteModal()">
+    <div style="
+        background:#fff;border-radius:18px;width:100%;max-width:480px;
+        max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.22);
+        animation:pcmSlideUp .35s ease;position:relative;
+    " onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div style="
+            background:linear-gradient(135deg,#0066ff 0%,#0052cc 100%);
+            border-radius:18px 18px 0 0;padding:20px 20px 16px;color:#fff;
+            position:relative;
+        ">
+            <button onclick="cerrarPromoClienteModal()" style="
+                position:absolute;top:12px;right:14px;background:rgba(255,255,255,.2);
+                border:none;color:#fff;width:30px;height:30px;border-radius:50%;
+                font-size:18px;cursor:pointer;display:flex;align-items:center;
+                justify-content:center;line-height:1;transition:background .2s;
+            " onmouseover="this.style.background='rgba(255,255,255,.35)'" onmouseout="this.style.background='rgba(255,255,255,.2)'">×</button>
+            <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.8;margin-bottom:4px;">🎉 Por única vez</div>
+            <div id="pcmNombre" style="font-size:20px;font-weight:800;line-height:1.2;margin-bottom:2px;"></div>
+            <div id="pcmSubtitulo" style="font-size:13px;opacity:.85;line-height:1.4;"></div>
+        </div>
+
+        <!-- Cuerpo -->
+        <div style="padding:18px 20px 20px;">
+            <div style="font-size:13px;color:#475569;margin-bottom:14px;font-weight:500;">
+                Productos disponibles en tu rango:
+            </div>
+
+            <!-- Carrusel -->
+            <div style="position:relative;">
+                <div id="pcmCarrusel" style="
+                    display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;
+                    padding:4px 2px 10px;scrollbar-width:thin;scrollbar-color:#cbd5e1 #f1f5f9;
+                    -webkit-overflow-scrolling:touch;
+                "></div>
+                <!-- Flechas carrusel -->
+                <button id="pcmPrev" onclick="pcmScroll(-1)" style="
+                    position:absolute;top:50%;left:-14px;transform:translateY(-60%);
+                    background:#fff;border:1px solid #e2e8f0;border-radius:50%;
+                    width:30px;height:30px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12);
+                    font-size:14px;display:flex;align-items:center;justify-content:center;
+                    color:#0066ff;transition:all .2s;z-index:2;
+                " onmouseover="this.style.background='#eff5ff'" onmouseout="this.style.background='#fff'">‹</button>
+                <button id="pcmNext" onclick="pcmScroll(1)" style="
+                    position:absolute;top:50%;right:-14px;transform:translateY(-60%);
+                    background:#fff;border:1px solid #e2e8f0;border-radius:50%;
+                    width:30px;height:30px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12);
+                    font-size:14px;display:flex;align-items:center;justify-content:center;
+                    color:#0066ff;transition:all .2s;z-index:2;
+                " onmouseover="this.style.background='#eff5ff'" onmouseout="this.style.background='#fff'">›</button>
+            </div>
+
+            <!-- CTA -->
+            <button onclick="verPromocionCompleta()" style="
+                width:100%;margin-top:16px;padding:14px;border:none;border-radius:12px;
+                background:linear-gradient(135deg,#0066ff,#0052cc);color:#fff;
+                font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;
+                box-shadow:0 4px 14px rgba(0,102,255,.3);transition:all .2s;
+                display:flex;align-items:center;justify-content:center;gap:8px;
+            " onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(0,102,255,.38)'"
+               onmouseout="this.style.transform='';this.style.boxShadow='0 4px 14px rgba(0,102,255,.3)'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Ver promoción
+            </button>
+
+            <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:10px;">Este aviso no volverá a aparecer.</p>
+        </div>
+    </div>
+</div>
+<style>
+@keyframes pcmFadeIn { from{opacity:0} to{opacity:1} }
+@keyframes pcmSlideUp { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+#pcmCarrusel::-webkit-scrollbar { height:4px; }
+#pcmCarrusel::-webkit-scrollbar-track { background:#f1f5f9;border-radius:4px; }
+#pcmCarrusel::-webkit-scrollbar-thumb { background:#cbd5e1;border-radius:4px; }
+</style>
+<script>
+(function(){
+    // ── Lógica modal promo "por única vez" para clientes ──
+
+    function getPromoFromUrl() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const raw = params.get('promo');
+            if (!raw) return null;
+            return JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(raw)))));
+        } catch(e) { return null; }
+    }
+
+    function getPromoSeenKey(promoId) {
+        return 'promoVisto_' + promoId;
+    }
+
+    function getProductsInRange(de, hasta) {
+        const all = window.products || [];
+        return all.filter(p => {
+            const precio = Number(p.precio) || 0;
+            return precio >= Number(de) && precio <= Number(hasta);
+        });
+    }
+
+    function buildCarrusel(productos) {
+        const cont = document.getElementById('pcmCarrusel');
+        if (!cont) return;
+        cont.innerHTML = '';
+        if (!productos.length) {
+            cont.innerHTML = '<div style="padding:20px;color:#94a3b8;font-size:13px;text-align:center;width:100%;">Sin productos en este rango.</div>';
+            return;
+        }
+        productos.forEach(p => {
+            const imgSrc = (window.BASE_IMAGE_URL || '/') + (p.imagen || '');
+            const precioFmt = '$' + Number(p.precio).toLocaleString('es-AR');
+            const card = document.createElement('div');
+            card.style.cssText = 'flex:0 0 140px;scroll-snap-align:start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s;';
+            card.innerHTML = `
+                <div style="width:140px;height:120px;background:#f1f5f9;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                    <img src="${imgSrc}" alt="${p.nombre}" loading="lazy"
+                        style="width:100%;height:100%;object-fit:cover;display:block;"
+                        onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\\'font-size:28px;\\'>🧴</span>'">
+                </div>
+                <div style="padding:8px 10px 10px;">
+                    <div style="font-size:11px;font-weight:600;color:#1e293b;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${p.nombre}</div>
+                    <div style="font-size:13px;font-weight:800;color:#0066ff;margin-top:5px;">${precioFmt}</div>
+                </div>
+            `;
+            card.addEventListener('mouseenter', ()=>{ card.style.transform='translateY(-2px)'; card.style.boxShadow='0 4px 14px rgba(0,0,0,.1)'; });
+            card.addEventListener('mouseleave', ()=>{ card.style.transform=''; card.style.boxShadow=''; });
+            cont.appendChild(card);
+        });
+    }
+
+    window.pcmScroll = function(dir) {
+        const cont = document.getElementById('pcmCarrusel');
+        if (cont) cont.scrollBy({ left: dir * 160, behavior: 'smooth' });
+    };
+
+    window.cerrarPromoClienteModal = function() {
+        const m = document.getElementById('promoClienteModal');
+        if (m) { m.style.opacity='0'; m.style.transition='opacity .25s'; setTimeout(()=>{ m.style.display='none'; m.style.opacity=''; m.style.transition=''; }, 250); }
+        document.body.style.overflow = '';
+    };
+
+    window.verPromocionCompleta = function() {
+        cerrarPromoClienteModal();
+        // Scroll suave al inicio de los productos
+        const grid = document.querySelector('.products-container') || document.querySelector('.products-grid');
+        if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    function mostrarPromoClienteModal(promo) {
+        const seenKey = getPromoSeenKey(promo.id || promo.nombre || 'promo');
+        if (localStorage.getItem(seenKey)) return; // ya fue visto
+
+        const gift = promo.gift;
+        const nombre = promo.nombre || 'Promoción especial';
+        
+        // Título y subtítulo
+        const elNombre = document.getElementById('pcmNombre');
+        const elSub = document.getElementById('pcmSubtitulo');
+        if (elNombre) elNombre.textContent = '🎁 ' + nombre;
+        
+        let subtitulo = '';
+        if (gift && (gift.regaloDe >= 0) && gift.regaloHasta > 0) {
+            subtitulo = `Comprá entre $${Number(gift.condicionDe||0).toLocaleString('es-AR')} y $${Number(gift.condicionHasta||0).toLocaleString('es-AR')} y elegí un regalo.`;
+        } else if (promo.rangos && promo.rangos.length) {
+            const r = promo.rangos[0];
+            subtitulo = `Hasta ${r.porcentaje}% de descuento en productos seleccionados.`;
+        }
+        if (elSub) elSub.textContent = subtitulo;
+
+        // Productos en rango regalo (o rango de descuento)
+        let de = 0, hasta = 0;
+        if (gift && gift.regaloHasta > 0) {
+            de = gift.regaloDe || 0;
+            hasta = gift.regaloHasta;
+        } else if (promo.rangos && promo.rangos.length) {
+            de = promo.rangos[0].de || 0;
+            hasta = promo.rangos[0].hasta || 0;
+        }
+        const productos = getProductsInRange(de, hasta);
+        buildCarrusel(productos);
+
+        // Mostrar modal
+        const m = document.getElementById('promoClienteModal');
+        if (m) {
+            m.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Marcar como visto
+        localStorage.setItem(seenKey, '1');
+    }
+
+    // Inicializar: esperar a que el usuario esté logueado (o no) y disparar una vez
+    function intentarMostrarPromo() {
+        const promo = getPromoFromUrl();
+        if (!promo) return;
+        // Esperar sesión de Firebase si está disponible
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            firebase.auth().onAuthStateChanged(function(user) {
+                // Mostrar si hay sesión activa (cliente logueado) o si es tienda pública
+                if (user) {
+                    // Pequeño delay para no interrumpir la carga inicial
+                    setTimeout(() => mostrarPromoClienteModal(promo), 1200);
+                } else {
+                    setTimeout(() => mostrarPromoClienteModal(promo), 1200);
+                }
+            });
+        } else {
+            setTimeout(() => mostrarPromoClienteModal(promo), 1200);
+        }
+    }
+
+    // Ejecutar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', intentarMostrarPromo);
+    } else {
+        intentarMostrarPromo();
+    }
+})();
 </script>
 
 </body>
