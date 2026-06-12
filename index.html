@@ -8122,6 +8122,19 @@
             if (fbUser) {
                 firebase.firestore().collection('usuarios').doc(fbUser.uid).update({ [`preciosManualCat.${catalogo}.${productId}`]: Math.round(precio) }).catch(() => {});
             }
+            // ── Enviar precio manual al worker ──
+            try {
+                const _cvWorker = (window.currentUser && window.currentUser.codigoVendedor)
+                    || localStorage.getItem('codigoVendedorLocal') || '';
+                if (_cvWorker) {
+                    fetch('https://preciomanual.tuweb.workers.dev/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codigoVendedor: _cvWorker, catalogo: catalogo, productId: productId, precio: Math.round(precio) })
+                    }).catch(function(){});
+                }
+            } catch(e) {}
+            mostrarToastOk('Precio guardado');
             document.getElementById('editarPrecioProductoModal').classList.remove('active');
             renderProducts();
         }
@@ -9576,6 +9589,18 @@
                 }
             } catch(e) {}
 
+            // ── Enviar promo al worker ──
+            try {
+                const _cvPromo = (window.currentUser && window.currentUser.codigoVendedor)
+                    || localStorage.getItem('codigoVendedorLocal') || '';
+                if (_cvPromo) {
+                    fetch('https://preciomanual.tuweb.workers.dev/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codigoVendedor: _cvPromo, tipo: 'promocion', catalogo: _promoCat, promo: promo })
+                    }).catch(function(){});
+                }
+            } catch(e) {}
             const enlace = _buildEnlacePromo(_promoCat, promo);
             document.getElementById('promoEnlaceInput').value = enlace;
             document.getElementById('promoModal').classList.remove('active');
