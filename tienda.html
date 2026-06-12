@@ -1415,6 +1415,28 @@ async function cargarVendedor() {
         }
     } catch(_) {}
 
+    // ── Leer precios manuales y promo desde el worker ──
+    try {
+        const _pmRes = await fetch('https://preciomanual.tuweb.workers.dev/?codigoVendedor=' + encodeURIComponent(codigoParam));
+        if (_pmRes.ok) {
+            const _pmData = await _pmRes.json();
+            // Precios manuales
+            if (_pmData && _pmData.preciosManualCat && typeof _pmData.preciosManualCat === 'object') {
+                if (!vendedor.preciosManualCat) vendedor.preciosManualCat = {};
+                Object.keys(_pmData.preciosManualCat).forEach(function(cat) {
+                    if (!vendedor.preciosManualCat[cat]) vendedor.preciosManualCat[cat] = {};
+                    Object.assign(vendedor.preciosManualCat[cat], _pmData.preciosManualCat[cat]);
+                });
+            }
+            // Promociones
+            if (_pmData && _pmData.promocionesTienda && typeof _pmData.promocionesTienda === 'object'
+                && Object.keys(_pmData.promocionesTienda).length > 0) {
+                if (!vendedor.promocionesTienda) vendedor.promocionesTienda = {};
+                Object.assign(vendedor.promocionesTienda, _pmData.promocionesTienda);
+            }
+        }
+    } catch(_) {}
+
     // ── Resolver configTiendaAll con todos los fallbacks posibles ──
     let cfgAll = null;
 
