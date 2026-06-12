@@ -8955,7 +8955,15 @@
             try {
                 if (cfg) cfgParam = '&cfg=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(cfg)))));
             } catch(e) {}
-            return base + '?tienda=' + encodeURIComponent(codigo) + '&cat=' + encodeURIComponent(cat) + cfgParam;
+            let promoParam = '';
+            try {
+                const promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}');
+                const promo = promos[cat];
+                if (promo && (Array.isArray(promo.rangos) || promo.gift)) {
+                    promoParam = '&promo=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(promo)))));
+                }
+            } catch(e) {}
+            return base + '?tienda=' + encodeURIComponent(codigo) + '&cat=' + encodeURIComponent(cat) + cfgParam + promoParam;
         }
 
         window.tienePromoCat = function(cat) {
