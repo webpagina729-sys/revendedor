@@ -393,7 +393,47 @@
         .store-footer p { font-size: 13px; color: var(--text-light); }
         .store-footer strong { color: var(--text); }
 
-        /* ── NUEVO: MODAL CHECKOUT ── */
+        /* ── MODAL TIPO ENTREGA ── */
+        .entrega-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.6); z-index: 1250;
+            align-items: flex-end; justify-content: center;
+        }
+        .entrega-overlay.active { display: flex; }
+        @media (min-width: 600px) { .entrega-overlay { align-items: center; } }
+        .entrega-box {
+            background: var(--surface); border-radius: 16px 16px 0 0;
+            width: 100%; max-width: 480px; padding: 24px 20px 28px;
+            animation: slideUp .25s ease;
+        }
+        @media (min-width: 600px) { .entrega-box { border-radius: 16px; } }
+        .entrega-title {
+            font-size: 18px; font-weight: 700; margin-bottom: 6px; text-align: center;
+        }
+        .entrega-sub {
+            font-size: 13px; color: var(--text-light); text-align: center; margin-bottom: 20px;
+        }
+        .entrega-opciones {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;
+        }
+        .entrega-opcion {
+            border: 2px solid var(--border); border-radius: 12px;
+            padding: 18px 12px; text-align: center; cursor: pointer;
+            transition: all .15s; background: var(--surface);
+            font-family: var(--font);
+        }
+        .entrega-opcion:hover { border-color: var(--primary); background: rgba(0,102,255,.04); }
+        .entrega-opcion .eo-icon { font-size: 32px; margin-bottom: 8px; }
+        .entrega-opcion .eo-label { font-size: 14px; font-weight: 700; color: var(--text); }
+        .entrega-opcion .eo-desc { font-size: 11px; color: var(--text-light); margin-top: 3px; }
+        .entrega-cancel {
+            width: 100%; padding: 10px; background: none;
+            border: 1px solid var(--border); border-radius: 8px;
+            font-size: 14px; cursor: pointer; font-family: var(--font);
+            color: var(--text-light);
+        }
+
+
         .checkout-overlay {
             display: none; position: fixed; inset: 0;
             background: rgba(0,0,0,.6); z-index: 1200;
@@ -726,6 +766,27 @@
                 Pedir por WhatsApp
             </button>
         </div>
+    </div>
+</div>
+
+<!-- ── MODAL TIPO ENTREGA ── -->
+<div class="entrega-overlay" id="modal-entrega" onclick="if(event.target.id==='modal-entrega') cerrarEntrega()">
+    <div class="entrega-box">
+        <div class="entrega-title">¿Cómo recibís tu pedido?</div>
+        <div class="entrega-sub">Elegí la forma de entrega que mejor te quede 🛍️</div>
+        <div class="entrega-opciones">
+            <div class="entrega-opcion" onclick="elegirEntrega('retiro')">
+                <div class="eo-icon">🏪</div>
+                <div class="eo-label">Pasar a retirar</div>
+                <div class="eo-desc">Coordinamos el punto de encuentro</div>
+            </div>
+            <div class="entrega-opcion" onclick="elegirEntrega('domicilio')">
+                <div class="eo-icon">🚚</div>
+                <div class="eo-label">Recibir a domicilio</div>
+                <div class="eo-desc">Te lo llevamos hasta tu puerta</div>
+            </div>
+        </div>
+        <button class="entrega-cancel" onclick="cerrarEntrega()">Cancelar</button>
     </div>
 </div>
 
@@ -1537,6 +1598,8 @@ function filtrarProductos() {
     renderizarProductos();
 }
 
+let _productosVisibles = 8;
+
 function renderizarProductos() {
     const grid = document.getElementById('products-grid');
     const noResults = document.getElementById('no-results');
@@ -1544,11 +1607,16 @@ function renderizarProductos() {
     if (productosFilt.length === 0) {
         grid.innerHTML = '';
         noResults.style.display = 'block';
+        // Eliminar botón ver más si existe
+        const btnVM = document.getElementById('btn-ver-mas');
+        if (btnVM) btnVM.remove();
         return;
     }
     noResults.style.display = 'none';
 
-    grid.innerHTML = productosFilt.map(p => `
+    const visibles = productosFilt.slice(0, _productosVisibles);
+
+    grid.innerHTML = visibles.map(p => `
         <div class="product-card" onclick="abrirModal(${p.id})">
             <div class="product-img-wrap">
                 <img src="${BASE_IMAGE_URL}${p.imagen}" alt="${p.nombre}"
@@ -1562,7 +1630,33 @@ function renderizarProductos() {
             </div>
         </div>
     `).join('');
+
+    // Botón "Ver más" debajo del grid
+    let btnVM = document.getElementById('btn-ver-mas');
+    if (_productosVisibles < productosFilt.length) {
+        if (!btnVM) {
+            btnVM = document.createElement('div');
+            btnVM.id = 'btn-ver-mas';
+            btnVM.style.cssText = 'text-align:center;padding:12px 16px 24px;';
+            btnVM.innerHTML = '<button onclick="verMasProductos()" style="padding:10px 32px;border:2px solid var(--primary);background:var(--surface);color:var(--primary);border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s;" onmouseover="this.style.background=\'var(--primary)\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'var(--surface)\';this.style.color=\'var(--primary)\'">Ver más productos ▾</button>';
+            grid.parentNode.insertBefore(btnVM, grid.nextSibling);
+        }
+    } else {
+        if (btnVM) btnVM.remove();
+    }
 }
+
+function verMasProductos() {
+    _productosVisibles += 8;
+    renderizarProductos();
+}
+
+// Resetear visibles al filtrar
+const _origFiltrarProductos = filtrarProductos;
+filtrarProductos = function() {
+    _productosVisibles = 8;
+    _origFiltrarProductos.apply(this, arguments);
+};
 
 // ═══════════════════════════════════════════════════════════════
 // MODAL PRODUCTO
@@ -1768,27 +1862,45 @@ window.addEventListener('load', cargarVendedor);
 
 const WORKER_CLIENTE = 'https://workerwebcliente.tuweb.workers.dev/pedido';
 
-// Reemplaza enviarPorWhatsApp: primero abre el checkout de datos
-// El botón WhatsApp llama a esta función en lugar del original.
-// Para no romper nada, el botón WhatsApp sigue existiendo igual;
-// sólo interceptamos con un overlay previo.
+// ── Modal de tipo de entrega ────────────────────────────────────
+// El botón WhatsApp ahora abre primero este modal.
 (function patchWhatsApp() {
-    // Esperamos a que el DOM esté listo y sobreescribimos el onclick del botón
     window.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('btn-whatsapp');
-        if (btn) {
-            btn.onclick = abrirCheckout;
-        }
+        if (btn) btn.onclick = abrirModalEntrega;
     });
-    // Por si DOMContentLoaded ya pasó
     if (document.readyState !== 'loading') {
         const btn = document.getElementById('btn-whatsapp');
-        if (btn) btn.onclick = abrirCheckout;
+        if (btn) btn.onclick = abrirModalEntrega;
     }
 })();
 
-function abrirCheckout() {
+function abrirModalEntrega() {
     if (carrito.length === 0) return;
+    const wa = vendedor.whatsappRevendedor || '';
+    if (!wa) {
+        alert('Este vendedor aún no configuró su número de WhatsApp. Contactalo para confirmar el pedido.');
+        return;
+    }
+    document.getElementById('modal-entrega').classList.add('active');
+}
+
+function cerrarEntrega() {
+    document.getElementById('modal-entrega').classList.remove('active');
+}
+
+function elegirEntrega(tipo) {
+    cerrarEntrega();
+    if (tipo === 'retiro') {
+        // Enviar directamente a WhatsApp indicando retiro, con resumen
+        _enviarWAConTipoEntrega('retiro', null);
+    } else {
+        // Abrir checkout para datos de domicilio
+        abrirCheckout();
+    }
+}
+
+function abrirCheckout() {
     // Limpiar estado previo
     document.getElementById('co-status').style.display = 'none';
     document.getElementById('co-error').style.display  = 'none';
@@ -1829,6 +1941,8 @@ async function enviarPedidoConDatos() {
     const preciosIndividuales = carrito.map(i => i.producto.precioFinal);
     const total              = carrito.reduce((s, x) => s + x.producto.precioFinal * x.qty, 0);
 
+    const datosEnvio = { nombre, apellido, telefono, direccion, direccionAlternativa: dirAlt };
+
     const payload = {
         nombre,
         apellido,
@@ -1855,15 +1969,13 @@ async function enviarPedidoConDatos() {
         const data = await res.json();
 
         if (res.ok && data.ok) {
-            // Éxito: mostrar confirmación y luego abrir WhatsApp
             document.getElementById('co-status').style.display = 'block';
             btn.textContent = '✓ Pedido registrado';
 
             setTimeout(() => {
                 cerrarCheckout();
                 cerrarCarrito();
-                // Continuar con el flujo original de WhatsApp
-                _enviarPorWhatsAppOriginal();
+                _enviarWAConTipoEntrega('domicilio', datosEnvio);
             }, 1800);
         } else {
             mostrarErrorCheckout('No se pudo registrar el pedido. Intentá de nuevo.');
@@ -1874,7 +1986,7 @@ async function enviarPedidoConDatos() {
         // Si el worker falla, igual abrimos WhatsApp para no bloquear la venta
         cerrarCheckout();
         cerrarCarrito();
-        _enviarPorWhatsAppOriginal();
+        _enviarWAConTipoEntrega('domicilio', datosEnvio);
     }
 }
 
@@ -1884,9 +1996,57 @@ function mostrarErrorCheckout(msg) {
     el.style.display = 'block';
 }
 
-// Guardamos referencia a la función original de WhatsApp
+// ── Construye y envía el mensaje a WhatsApp con tipo de entrega ──
+function _enviarWAConTipoEntrega(tipo, datosEnvio) {
+    const wa = vendedor.whatsappRevendedor || '';
+    if (!wa) return;
+
+    const total = carrito.reduce((s, x) => {
+        if (x.regalo) return s;
+        return s + x.producto.precioFinal * x.qty;
+    }, 0);
+
+    const lineas = carrito.map(item => {
+        if (item.regalo) {
+            return `• *${item.producto.nombre}*${item.talle ? ' (T. ' + item.talle + ')' : ''}\n  Precio: GRATIS 🎁\n  Cantidad: ${item.qty}`;
+        }
+        return `• *${item.producto.nombre}*${item.talle ? ' (T. ' + item.talle + ')' : ''}\n  Precio: ${formatPrice(item.producto.precioFinal)}\n  Cantidad: ${item.qty}`;
+    });
+
+    const partes = [
+        '¡Hola! 😊 Quiero hacer el siguiente pedido:',
+        '',
+        ...lineas,
+        '',
+        `*Total: ${formatPrice(total)}*`,
+    ];
+
+    if (window.promoActiva) {
+        partes.push(`\n🎉 Promoción aplicada: ${window.promoActiva.nombre || ''}`);
+    }
+
+    if (tipo === 'domicilio' && datosEnvio) {
+        partes.push('');
+        partes.push('📦 *Datos de envío:*');
+        partes.push(`Nombre: ${datosEnvio.nombre} ${datosEnvio.apellido}`);
+        partes.push(`Teléfono: ${datosEnvio.telefono}`);
+        partes.push(`Dirección: ${datosEnvio.direccion}`);
+        if (datosEnvio.direccionAlternativa) {
+            partes.push(`Referencia: ${datosEnvio.direccionAlternativa}`);
+        }
+        partes.push('🚚 Entrega: *A domicilio*');
+    } else {
+        partes.push('');
+        partes.push('🏪 Entrega: *Paso a retirar*');
+    }
+
+    const msg = partes.filter(x => x !== undefined).join('\n');
+    window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+// Guardamos referencia a la función original de WhatsApp (por compatibilidad con el bloque de promo)
 function _enviarPorWhatsAppOriginal() {
-    enviarPorWhatsApp();
+    _enviarWAConTipoEntrega('retiro', null);
 }
 
 
