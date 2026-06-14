@@ -5049,6 +5049,38 @@
                     // No bloquear el flujo si falla la sincronización
                 }
 
+                // ── Enviar pedido al Worker de clientes (workerwebcliente) ──
+                try {
+                    await fetch('https://workerwebcliente.tuweb.workers.dev/pedido', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: docRef.id,
+                            codigoVendedor: pedidoData.codigoVendedor,
+                            uid: user.uid,
+                            cliente: {
+                                nombre: pedidoData.cliente.nombre,
+                                apellido: pedidoData.cliente.apellido,
+                                email: pedidoData.cliente.email,
+                                telefono: pedidoData.cliente.telefono,
+                                direccion: pedidoData.cliente.direccion,
+                                ciudad: pedidoData.cliente.ciudad,
+                                provincia: pedidoData.cliente.provincia,
+                                cp: pedidoData.cliente.cp,
+                                observaciones: pedidoData.cliente.observaciones
+                            },
+                            productos: pedidoData.items.map(i => i.nombre || ''),
+                            cantidades: pedidoData.items.map(i => i.cantidad || 1),
+                            preciosIndividuales: pedidoData.items.map(i => i.precio || 0),
+                            items: pedidoData.items,
+                            total: pedidoData.totalFinal,
+                            estadoAprobacion: 'pendiente',
+                            fecha: new Date().toLocaleDateString('es-AR'),
+                            hora: new Date().toLocaleTimeString('es-AR')
+                        })
+                    });
+                } catch (e) { /* no bloquear el flujo */ }
+
                 return docRef.id;
             } catch (error) {
                 console.error('Error guardando pedido:', error);
@@ -6910,26 +6942,29 @@
                 || localStorage.getItem('codigoVendedorLocal')
                 || localStorage.getItem('codigoRevendedorValidado') || '';
 
-            // 1) Intentar Worker (rápido, sin bloquear)
+            // 1) Leer pedidos del workerwebcliente (fuente principal)
             let workerItems = [];
-            if (codigo) {
-                const endpoints = [
-                    `${WORKER_CLIENTE_BASE}/logistica?codigo=${encodeURIComponent(codigo)}`
-                ];
-                for (const url of endpoints) {
-                    try {
-                        const ctrl = new AbortController();
-                        const t = setTimeout(() => ctrl.abort(), 6000);
-                        const res = await fetch(url, { signal: ctrl.signal });
-                        clearTimeout(t);
-                        if (!res.ok) continue;
-                        const data = await res.json().catch(() => null);
-                        const arr = Array.isArray(data) ? data
-                                    : (data && Array.isArray(data.pedidos)) ? data.pedidos
-                                    : (data && Array.isArray(data.items)) ? data.items : null;
-                        if (arr) { workerItems = arr.map(normalizarPedidoWorker); break; }
-                    } catch (_) {}
-                }
+            const _endpoints = [
+                codigo ? `${WORKER_CLIENTE_BASE}/pedidos?codigo=${encodeURIComponent(codigo)}` : null,
+                codigo ? `${WORKER_CLIENTE_BASE}/pedidos?codigoVendedor=${encodeURIComponent(codigo)}` : null,
+                `${WORKER_CLIENTE_BASE}/pedidos?uid=${encodeURIComponent(user.uid)}`,
+                codigo ? `${WORKER_CLIENTE_BASE}/logistica?codigo=${encodeURIComponent(codigo)}` : null
+            ].filter(Boolean);
+            for (const url of _endpoints) {
+                try {
+                    const ctrl = new AbortController();
+                    const t = setTimeout(() => ctrl.abort(), 7000);
+                    const res = await fetch(url, { signal: ctrl.signal });
+                    clearTimeout(t);
+                    if (!res.ok) continue;
+                    const data = await res.json().catch(() => null);
+                    const arr = Array.isArray(data) ? data
+                                : (data && Array.isArray(data.pedidos)) ? data.pedidos
+                                : (data && Array.isArray(data.items)) ? data.items
+                                : (data && Array.isArray(data.data)) ? data.data : null;
+                    if (arr && arr.length > 0) { workerItems = arr.map(normalizarPedidoWorker); break; }
+                    if (arr && arr.length === 0) { workerItems = []; break; }
+                } catch (_) {}
             }
 
             // 2) Fallback Firestore
@@ -7067,19 +7102,43 @@
                             fechaAprobacion: new Date()
                         });
                 }
-                // Notificar al Worker (best-effort)
-                try {
-                    await fetch(WORKER_URL + '/api/aprobar-pedido', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            uid: user.uid,
-                            pedidoId: pedidoId,
-                            estado: nuevoEstado,
-                            fecha: Date.now()
-                        })
-                    });
-                } catch (_) { /* no bloquear */ }
+                // Al APROBAR: enviar pedido completo a datosderevendedor
+                if (nuevoEstado === 'aprobado' && pedido) {
+                    try {
+                        const cli = pedido.cliente || {};
+                        const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                            || localStorage.getItem('codigoVendedorLocal')
+                            || localStorage.getItem('codigoRevendedorValidado') || '';
+                        await fetch(WORKER_URL + '/api/pedido', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                uid: user.uid,
+                                pedidoId: pedidoId,
+                                estadoAprobacion: 'aprobado',
+                                codigoVendedor: codigo,
+                                cliente: cli,
+                                productos: (pedido.items || []).map(i => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
+                                total: pedido.totalFinal,
+                                fecha: Date.now()
+                            })
+                        });
+                    } catch (_) { /* no bloquear */ }
+                }
+                // Al NO APROBAR: intentar eliminar del workerwebcliente
+                if (nuevoEstado === 'no_aprobado') {
+                    try {
+                        await fetch(`${WORKER_CLIENTE_BASE}/pedido/${encodeURIComponent(pedidoId)}`, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ uid: user.uid, pedidoId: pedidoId })
+                        });
+                    } catch (_) { /* no bloquear */ }
+                    // Eliminar de cache local definitivamente
+                    window.pedidosRecibidosCache = (window.pedidosRecibidosCache || []).filter(x => x.id !== pedidoId);
+                    renderPedidosRecibidos();
+                    return;
+                }
                 // Actualizar cache local
                 const p = (window.pedidosRecibidosCache || []).find(x => x.id === pedidoId);
                 if (p) p.estadoAprobacion = nuevoEstado;
