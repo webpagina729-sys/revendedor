@@ -7101,6 +7101,212 @@
             }
             if (btn) { btn.disabled = false; btn.textContent = '✓ Aprobar todos'; }
         }
+
+    <!-- ══════════════════════════════════════════════════════
+         INTEGRACIÓN WORKERWEBCLIENTE — solo agrega conexión,
+         no modifica ni elimina ninguna línea existente.
+         ══════════════════════════════════════════════════════ -->
+    <script>
+    (function() {
+        var WC  = 'https://workerwebcliente.tuweb.workers.dev';
+        var DR  = 'https://datosderevendedor.tuweb.workers.dev';
+
+        // ────────────────────────────────────────────────────
+        // 1) HOOK sobre savePedidoToFirestore
+        //    Cuando el cliente hace un pedido desde la tienda,
+        //    además de todo lo que ya hace, envía al WC.
+        // ────────────────────────────────────────────────────
+        var _hookSave = setInterval(function () {
+            if (typeof window.savePedidoToFirestore !== 'function') return;
+            clearInterval(_hookSave);
+
+            var _origSave = window.savePedidoToFirestore;
+
+            window.savePedidoToFirestore = async function (checkout, cartItems, totales) {
+                // Ejecutar la función original primero — sin tocarla
+                var result = await _origSave.apply(this, arguments);
+
+                // Adicionalmente: enviar al workerwebcliente
+                try {
+                    var codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                        || localStorage.getItem('codigoVendedorLocal')
+                        || localStorage.getItem('codigoRevendedorValidado') || '';
+
+                    var productos   = (totales.detallesItems || []).map(function (i) { return i.nombre || ''; });
+                    var cantidades  = (totales.detallesItems || []).map(function (i) { return i.cantidad || 1; });
+                    var precios     = (totales.detallesItems || []).map(function (i) { return i.precio || 0; });
+
+                    await fetch(WC + '/pedido', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            nombre:              checkout.nombre     || '',
+                            apellido:            checkout.apellido   || '',
+                            telefono:            checkout.telefono   || '',
+                            direccion:           (checkout.direccion || '') + (checkout.ciudad ? ', ' + checkout.ciudad : ''),
+                            direccionAlternativa: checkout.observaciones || '',
+                            codigoVendedor:      codigo,
+                            fecha:               new Date().toLocaleDateString('es-AR'),
+                            hora:                new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                            productos:           productos,
+                            cantidades:          cantidades,
+                            preciosIndividuales: precios,
+                            total:               totales.totalFinal || 0,
+                            estado:              'pendiente'
+                        })
+                    });
+                } catch (_) { /* no bloquear el flujo */ }
+
+                return result;
+            };
+        }, 200);
+
+        // ────────────────────────────────────────────────────
+        // 2) HOOK sobre cargarPedidosRecibidos
+        //    Lee del WC (/logistica?codigo=XXX) y si responde
+        //    con pedidos los usa; si no, cae al original.
+        // ────────────────────────────────────────────────────
+        var _hookCargar = setInterval(function () {
+            if (typeof window.cargarPedidosRecibidos !== 'function') return;
+            clearInterval(_hookCargar);
+
+            var _origCargar = window.cargarPedidosRecibidos;
+
+            window.cargarPedidosRecibidos = async function () {
+                var user   = (typeof firebase !== 'undefined') ? firebase.auth().currentUser : null;
+                var lista  = document.getElementById('pr-lista');
+                if (!user || !lista) { return _origCargar.apply(this, arguments); }
+
+                lista.innerHTML = '<div style="text-align:center;padding:40px 12px;color:var(--text-light);font-size:14px;">Cargando pedidos…</div>';
+
+                var codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                    || localStorage.getItem('codigoVendedorLocal')
+                    || localStorage.getItem('codigoRevendedorValidado') || '';
+
+                // Consultar el WC — GET /logistica?codigo=XXX
+                var wcPedidos = null;
+                if (codigo) {
+                    try {
+                        var ctrl = new AbortController();
+                        var tid  = setTimeout(function () { ctrl.abort(); }, 7000);
+                        var res  = await fetch(WC + '/logistica?codigo=' + encodeURIComponent(codigo), { signal: ctrl.signal });
+                        clearTimeout(tid);
+                        if (res.ok) {
+                            var data = await res.json().catch(function () { return null; });
+                            // El worker devuelve { ok, pedidos[], porEstado }
+                            if (data && Array.isArray(data.pedidos)) {
+                                wcPedidos = data.pedidos;
+                            }
+                        }
+                    } catch (_) {}
+                }
+
+                // Si el WC no tiene pedidos, usar el comportamiento original
+                if (!wcPedidos || wcPedidos.length === 0) {
+                    return _origCargar.apply(this, arguments);
+                }
+
+                // Normalizar al formato que usa renderPedidosRecibidos
+                var normFn = typeof window.normalizarPedidoWorker === 'function'
+                    ? window.normalizarPedidoWorker
+                    : function (p) {
+                        return {
+                            id:               p.id        || (Date.now() + Math.random()),
+                            nombre:           p.nombre    || '',
+                            apellido:         p.apellido  || '',
+                            telefono:         p.telefono  || '',
+                            direccion:        p.direccion || '',
+                            localidad:        p.direccionAlternativa || '',
+                            provincia:        '',
+                            cp:               '',
+                            metodoPago:       '',
+                            observaciones:    p.direccionAlternativa || '',
+                            fecha:            p.fecha     || '',
+                            hora:             p.hora      || '',
+                            estadoAprobacion: p.estado    || 'pendiente',
+                            totalFinal:       p.total     || 0,
+                            items: (p.productos || []).map(function (nombre, i) {
+                                return {
+                                    nombre:   nombre,
+                                    cantidad: (p.cantidades && p.cantidades[i]) || 1,
+                                    precio:   (p.preciosIndividuales && p.preciosIndividuales[i]) || 0
+                                };
+                            }),
+                            _origenWorker: true
+                        };
+                    };
+
+                window.pedidosRecibidosCache = wcPedidos.map(normFn);
+
+                if (typeof window.renderPedidosRecibidos === 'function') {
+                    window.renderPedidosRecibidos();
+                } else {
+                    lista.innerHTML = '<div style="text-align:center;padding:40px 12px;color:var(--text-light);font-size:14px;">No hay pedidos por el momento</div>';
+                }
+            };
+        }, 200);
+
+        // ────────────────────────────────────────────────────
+        // 3) HOOK sobre cambiarEstadoPedido
+        //    Al APROBAR: envía el pedido completo al DR.
+        //    Al NO APROBAR: no hace nada extra.
+        // ────────────────────────────────────────────────────
+        var _hookCambiar = setInterval(function () {
+            if (typeof window.cambiarEstadoPedido !== 'function') return;
+            clearInterval(_hookCambiar);
+
+            var _origCambiar = window.cambiarEstadoPedido;
+
+            window.cambiarEstadoPedido = async function (pedidoId, nuevoEstado) {
+                // Guardar referencia al pedido ANTES de que el original lo procese
+                var pedido = (window.pedidosRecibidosCache || []).find(function (x) { return x.id === pedidoId; });
+
+                // Ejecutar la función original primero — sin tocarla
+                await _origCambiar.apply(this, arguments);
+
+                // Al APROBAR: enviar pedido completo al DR (/api/pedido)
+                if (nuevoEstado === 'aprobado' && pedido) {
+                    try {
+                        var user   = firebase.auth().currentUser;
+                        var codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                            || localStorage.getItem('codigoVendedorLocal')
+                            || localStorage.getItem('codigoRevendedorValidado') || '';
+
+                        var cli = pedido.cliente || {};
+
+                        await fetch(DR + '/api/pedido', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                uid:            user ? user.uid : '',
+                                codigoVendedor: codigo,
+                                cliente: {
+                                    nombre:        pedido.nombre    || cli.nombre    || '',
+                                    apellido:      pedido.apellido  || cli.apellido  || '',
+                                    email:         cli.email        || '',
+                                    telefono:      pedido.telefono  || cli.telefono  || '',
+                                    direccion:     pedido.direccion || cli.direccion || '',
+                                    provincia:     pedido.provincia || cli.provincia || '',
+                                    ciudad:        pedido.localidad || cli.ciudad    || '',
+                                    cp:            pedido.cp        || cli.cp        || '',
+                                    observaciones: pedido.observaciones || cli.observaciones || ''
+                                },
+                                productos: (pedido.items || []).map(function (i) {
+                                    return { nombre: i.nombre, cantidad: i.cantidad, precio: i.precio };
+                                }),
+                                total:            pedido.totalFinal || 0,
+                                estadoAprobacion: 'aprobado',
+                                fecha:            Date.now()
+                            })
+                        });
+                    } catch (_) { /* no bloquear */ }
+                }
+            };
+        }, 200);
+
+    })();
+    </script>
+
     </script>
 
     <!-- FIREBASE SCRIPTS -->
