@@ -6899,6 +6899,8 @@
         window.pedidosRecibidosCache = [];
         window.pedidosRecibidosFiltro = 'pendiente';
 
+        const WORKER_CLIENTE_BASE = 'https://workerwebcliente.tuweb.workers.dev';
+
         async function openPedidosRecibidos() {
             const user = firebase.auth().currentUser;
             if (!user) { showSessionRequiredModal(); return; }
@@ -6909,8 +6911,6 @@
         function closePedidosRecibidos() {
             document.getElementById('pedidosRecibidosModal').classList.remove('active');
         }
-
-        const WORKER_CLIENTE_BASE = 'https://workerwebcliente.tuweb.workers.dev';
 
         function normalizarPedidoWorker(raw, idx) {
             const id = raw.id || raw._id || ('w_' + idx + '_' + (raw.fecha || Date.now()));
