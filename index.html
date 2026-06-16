@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Revende Ways | Mi Tienda Propia</title>
+    <title>Revende Ways | Mayorista de Perfumes</title>
     <meta name="description" content="Revende con nosotros. Te damos tu tienda lista para comenzar con +250 productos. Precio solo para revendedores.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -7095,7 +7095,10 @@
             const user = firebase.auth().currentUser;
             if (!user) return;
             const pedido = (window.pedidosRecibidosCache || []).find(x => x.id === pedidoId);
-            // Al aprobar: NO agregar al carrito. El estado se persiste en Firebase y el Worker.
+            // Si es aprobado: agregar al carrito principal
+            if (nuevoEstado === 'aprobado' && pedido && pedido.estadoAprobacion !== 'aprobado') {
+                try { agregarPedidoAlCarrito(pedido); } catch(_) {}
+            }
             const esWorker = !!(pedido && pedido._origenWorker);
             const codigoVendedor = (window.currentUser && window.currentUser.codigoVendedor)
                 || localStorage.getItem('codigoVendedorLocal')
@@ -7123,6 +7126,47 @@
                         })
                     });
                 } catch (_) { /* no bloquear */ }
+
+                // ── Enviar pedido completo al panel de gestión cuando se aprueba ──
+                if (nuevoEstado === 'aprobado' && pedido) {
+                    try {
+                        const cli = pedido.cliente || {};
+                        // Normalizar items (pueden venir en distintos formatos)
+                        const items = (pedido.items || []).map(i => ({
+                            nombre:   i.nombre || i.name || '',
+                            cantidad: Number(i.cantidad || i.qty || 1),
+                            precio:   Number(i.precio || i.precioFinal || 0),
+                            talle:    i.talle || null,
+                            catalogo: i.catalogo || null
+                        }));
+                        // Detectar nicho por palabras clave en los nombres de productos
+                        const nombresUp = items.map(i => (i.nombre || '').toUpperCase()).join(' ');
+                        const esCalzado  = /NIKE|ADIDAS|JORDAN|DUNK|SAMBA|CAMPUS|AIR FORCE|NEW BALANCE|ZAPATILLA|BOTITA|FORUM|SUPERSTAR/.test(nombresUp);
+                        const esPerfume  = /PERFUME|ARABE|ÁRABE|LATTAFA|AFNAN|ARMAF|YARA|OUD|ATTAR|CLUB DE NUIT|HAYA|HARAMAIN/.test(nombresUp);
+                        const nicho = esCalzado ? 'calzados' : esPerfume ? 'perfumes' : 'multishop';
+
+                        const panelPayload = {
+                            pedidoId:       pedido.id,
+                            codigoVendedor: codigoVendedor || '',
+                            estadoAprobacion: 'aprobado',
+                            categoria:      nicho,
+                            nicho:          nicho,
+                            cliente:        ((cli.nombre || '') + ' ' + (cli.apellido || '')).trim() || cli.email || '',
+                            telefono:       cli.telefono || '',
+                            direccion:      cli.ciudad   || cli.direccion || '',
+                            fecha:          new Date().toISOString(),
+                            items:          items,
+                            // Para los cálculos del worker (panel-gestion los recalcula por categoría)
+                            precio_venta:   Number(pedido.totalFinal || 0),
+                        };
+
+                        await fetch(WORKER_URL + '/api/panel-gestion', {
+                            method:  'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body:    JSON.stringify(panelPayload)
+                        });
+                    } catch (_) { /* no bloquear el flujo principal */ }
+                }
                 // ── Persistir estado en workerwebcliente (pedidos de tienda.html) ──
                 if (esWorker && codigoVendedor) {
                     try {
