@@ -5452,7 +5452,7 @@
 
         function closeCart() {
             document.getElementById('modal-cart').classList.remove('active');
-            
+            preventBodyScroll(false);
             // Si estamos en el catálogo de calzados, volver al catálogo
             if (window.currentCatalog === 'calzados') {
                 mostrarCatalogo();
@@ -6450,13 +6450,29 @@
         }
 
         // PREVENIR/PERMITIR SCROLL DEL BODY CUANDO HAY MODALES ABIERTOS
+        // Contador de modales abiertos: el body solo se desbloquea cuando todos están cerrados
+        window._modalOpenCount = 0;
         function preventBodyScroll(prevent) {
             if (prevent) {
+                window._modalOpenCount = (window._modalOpenCount || 0) + 1;
                 document.body.style.overflow = 'hidden';
             } else {
-                document.body.style.overflow = '';
+                window._modalOpenCount = Math.max(0, (window._modalOpenCount || 1) - 1);
+                if (window._modalOpenCount === 0) {
+                    document.body.style.overflow = '';
+                }
             }
         }
+        // Seguridad: si por algún error el body queda trabado sin modales visibles, liberarlo
+        document.addEventListener('click', function() {
+            var hayModalAbierto = document.querySelector(
+                '.modal-overlay.active, .modal-cart.active, .auth-modal.active, #pedidosRecibidosModal.active'
+            );
+            if (!hayModalAbierto && document.body.style.overflow === 'hidden') {
+                window._modalOpenCount = 0;
+                document.body.style.overflow = '';
+            }
+        }, true);
 
         // MOSTRAR/OCULTAR CINTA SUPERIOR DESPUÉS DEL LOGIN
         function updateUIForAuthentication(isLoggedIn) {
@@ -6903,11 +6919,13 @@
             const user = firebase.auth().currentUser;
             if (!user) { showSessionRequiredModal(); return; }
             document.getElementById('pedidosRecibidosModal').classList.add('active');
+            preventBodyScroll(true);
             await cargarPedidosRecibidos();
         }
 
         function closePedidosRecibidos() {
             document.getElementById('pedidosRecibidosModal').classList.remove('active');
+            preventBodyScroll(false);
         }
 
         const WORKER_CLIENTE_BASE = 'https://workerwebcliente.tuweb.workers.dev';
