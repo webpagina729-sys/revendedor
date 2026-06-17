@@ -10,7 +10,7 @@
     <link rel="dns-prefetch" href="https://firestore.googleapis.com">
     <link rel="dns-prefetch" href="https://www.googleapis.com">
     <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap&font-display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #0066ff;
@@ -3217,45 +3217,22 @@
             margin-right: 4px;
         }
 
-        /* ===== OPTIMIZACIONES DE RENDIMIENTO ===== */
-        /* GPU layer para tarjetas — evita reflow en hover */
+        /* ===== OPTIMIZACIONES DE RENDIMIENTO (sin cambiar funcionalidad) ===== */
         .product-card {
             will-change: transform;
             transform: translateZ(0);
             contain: layout style;
+            transition: box-shadow .2s, transform .2s;
         }
-        /* Limitar transición a propiedades baratas */
-        .product-card { transition: box-shadow .2s, transform .2s; }
-        /* GPU layer para imágenes — evita repaint en scale */
         .product-image img {
             will-change: transform;
             transform: translateZ(0);
         }
-        /* Contener el grid para no invalidar layout del resto de la página */
-        .products-grid {
-            contain: layout;
-        }
-        /* Header sticky: promover a capa propia para no repintar en scroll */
-        .header-top {
-            will-change: transform;
-            transform: translateZ(0);
-        }
-        /* Modales: preparar GPU layer antes de mostrar */
-        .modal-overlay,
-        .modal-details,
-        .modal-cart,
-        .auth-modal {
-            transform: translateZ(0);
-        }
-        /* Carrusel: capa GPU para transforms suaves */
-        #carrusel-wrapper {
-            will-change: transform;
-            transform: translateZ(0);
-        }
-        /* Evitar backdrop-filter en navegación (caro en móvil) */
-        @media (max-width: 768px) {
-            .modal-overlay { backdrop-filter: none; }
-        }
+        .products-grid { contain: layout; }
+        .header-top { will-change: transform; transform: translateZ(0); }
+        .modal-overlay, .modal-details, .modal-cart, .auth-modal { transform: translateZ(0); }
+        #carrusel-wrapper { will-change: transform; transform: translateZ(0); }
+        @media (max-width: 768px) { .modal-overlay { backdrop-filter: none; } }
         /* ===== FIN OPTIMIZACIONES ===== */
 
     </style>
@@ -4748,10 +4725,8 @@
                 </div>`;
             }
             
-            // Usar requestAnimationFrame para no bloquear el hilo principal
             requestAnimationFrame(() => {
                 grid.innerHTML = html;
-                // Mostrar u ocultar botón de "Ver más"
                 const paginationSection = document.getElementById('pagination-section');
                 if (paginationSection) {
                     paginationSection.style.display = window.itemsDisplayed < filtered.length ? 'flex' : 'none';
@@ -4817,10 +4792,8 @@
                 </div>`;
             }
             
-            // Usar requestAnimationFrame para no bloquear el hilo principal
             requestAnimationFrame(() => {
                 grid.innerHTML = html;
-                // Mostrar u ocultar botón de "Ver más"
                 const paginationSection = document.getElementById('pagination-section');
                 if (paginationSection) {
                     paginationSection.style.display = window.shoesItemsDisplayed < filtered.length ? 'flex' : 'none';
@@ -6961,7 +6934,7 @@
         window.pedidosRecibidosFiltro = 'pendiente';
 
         async function openPedidosRecibidos() {
-            const user = firebase.auth().currentUser;
+            const user = firebase.auth().currentUser || window.currentUser;
             if (!user) { showSessionRequiredModal(); return; }
             document.getElementById('pedidosRecibidosModal').classList.add('active');
             preventBodyScroll(true);
