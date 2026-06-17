@@ -1,0 +1,2944 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revende Ways | Mi Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- jsPDF + AutoTable para facturas PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <style>
+        :root {
+            --blue:        #0066ff;
+            --blue-dim:    #1a4fff;
+            --blue-pale:   rgba(0,102,255,.12);
+            --blue-glow:   rgba(0,102,255,.25);
+            --bg:          #0b0d12;
+            --bg2:         #111318;
+            --bg3:         #16181f;
+            --surface:     #1c1f2a;
+            --surface2:    #222536;
+            --border:      rgba(255,255,255,.07);
+            --border2:     rgba(255,255,255,.12);
+            --text:        #e8eaf0;
+            --text2:       #9aa0b4;
+            --text3:       #5a6070;
+            --green:       #00c96e;
+            --green-pale:  rgba(0,201,110,.12);
+            --amber:       #f59e0b;
+            --amber-pale:  rgba(245,158,11,.12);
+            --red:         #f43f5e;
+            --red-pale:    rgba(244,63,94,.12);
+            --radius:      10px;
+            --shadow:      0 4px 20px rgba(0,0,0,.4);
+            --shadow-lg:   0 12px 40px rgba(0,0,0,.6);
+            --font:        'DM Sans', sans-serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; overflow-x: hidden; width: 100%; }
+        body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.6; min-height: 100vh; width: 100%; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg2); }
+        ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            position: sticky; top: 0; z-index: 200;
+            background: rgba(11,13,18,.92); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px; height: 60px;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px;
+        }
+        .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; min-width: 0; }
+        .brand-info { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; overflow: hidden; }
+        .brand-title { font-size: 17px; font-weight: 700; color: var(--text); white-space: nowrap; }
+        .brand-code { font-size: 11px; font-weight: 600; color: var(--blue); letter-spacing: .3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+        .brand-mark { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; flex-shrink: 0; border: 2px solid var(--blue-glow); box-shadow: 0 0 0 2px var(--blue-pale); display: flex; align-items: center; justify-content: center; }
+        .brand-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
+        .badge-live { display: flex; align-items: center; gap: 6px; background: var(--green-pale); border: 1px solid rgba(0,201,110,.2); color: var(--green); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-live::before { content: ''; width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+        .badge-code { background: var(--blue-pale); border: 1px solid var(--blue-glow); color: var(--blue); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .btn-logout { padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border2); background: transparent; color: var(--text2); font-family: var(--font); transition: all .18s; }
+        .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+        /* ── LOGIN ── */
+        .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,102,255,.08), transparent); }
+        .login-box { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 32px 28px; width: 100%; max-width: 340px; box-shadow: var(--shadow-lg); }
+        .login-icon { width: 72px; height: 72px; border-radius: 50%; overflow: hidden; border: 3px solid var(--blue-glow); box-shadow: 0 0 0 4px var(--blue-pale), var(--shadow); margin-bottom: 20px; display: flex; align-items: center; justify-content: center; }
+        .login-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .login-box h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .login-box p { color: var(--text2); font-size: 12px; margin-bottom: 20px; }
+        .field { margin-bottom: 16px; }
+        .field label { display: block; font-size: 11px; font-weight: 700; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .6px; }
+        .field input { width: 100%; padding: 11px 14px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 14px; font-family: var(--font); transition: all .18s; }
+        .field input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+        .btn-login { width: 100%; padding: 13px; background: var(--blue); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--font); transition: background .18s; }
+        .btn-login:hover { background: var(--blue-dim); }
+        .login-err { background: var(--red-pale); color: var(--red); border: 1px solid rgba(244,63,94,.2); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
+        .login-err.show { display: block; }
+        .recaptcha-wrap { display: flex; justify-content: center; margin-bottom: 16px; transform: scale(0.88); transform-origin: center; }
+        .login-foot { font-size: 11px; font-weight: 500; color: var(--text3); margin-top: 10px; letter-spacing: .4px; text-align: center; }
+
+        /* ── LIGHT THEME ── */
+        body.light-theme {
+            --bg:          #f0f2f8;
+            --bg2:         #e6e9f2;
+            --bg3:         #dde1ee;
+            --surface:     #ffffff;
+            --surface2:    #ebeef7;
+            --border:      rgba(0,0,0,.09);
+            --border2:     rgba(0,0,0,.14);
+            --text:        #1a1d2e;
+            --text2:       #4a5068;
+            --text3:       #8890aa;
+            --shadow:      0 4px 20px rgba(0,0,0,.10);
+            --shadow-lg:   0 12px 40px rgba(0,0,0,.15);
+        }
+        body.light-theme .topbar {
+            background: rgba(240,242,248,.95);
+        }
+        body.light-theme .modal-overlay {
+            background: rgba(0,0,0,.45);
+        }
+
+        /* ── THEME SELECTOR ── */
+        .theme-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,102,255,.08), transparent); }
+        .theme-box { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 32px 28px; width: 100%; max-width: 420px; box-shadow: var(--shadow-lg); text-align: center; }
+        .theme-box h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+        .theme-box p { color: var(--text2); font-size: 13px; margin-bottom: 28px; }
+        .theme-options { display: flex; gap: 16px; justify-content: center; }
+        .theme-card { flex: 1; max-width: 160px; border: 2px solid var(--border2); border-radius: 12px; padding: 20px 16px; cursor: pointer; transition: all .2s; background: var(--bg2); }
+        .theme-card:hover { border-color: var(--blue); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,102,255,.2); }
+        .theme-card .tc-icon { font-size: 32px; margin-bottom: 12px; }
+        .theme-card .tc-label { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+        .theme-card .tc-sub { font-size: 11px; color: var(--text3); }
+        .theme-card.dark-card { background: #16181f; border-color: rgba(255,255,255,.12); }
+        .theme-card.dark-card .tc-label { color: #e8eaf0; }
+        .theme-card.dark-card .tc-sub { color: #5a6070; }
+        .theme-card.dark-card:hover { border-color: var(--blue); }
+        .theme-card.light-card { background: #f0f2f8; border-color: rgba(0,0,0,.12); }
+        .theme-card.light-card .tc-label { color: #1a1d2e; }
+        .theme-card.light-card .tc-sub { color: #8890aa; }
+        .theme-card.light-card:hover { border-color: var(--blue); }
+
+        .main { display: none; }
+        .main.show { display: block; }
+        .wrap { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+        /* ── PAGE HEAD ── */
+        .page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; flex-wrap: wrap; gap: 14px; }
+        .page-title { font-size: 26px; font-weight: 700; }
+        .page-title span { color: var(--text3); font-size: 14px; font-weight: 400; margin-left: 8px; }
+        .head-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-head { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: var(--surface); color: var(--text); border: 1px solid var(--border2); border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: all .18s; }
+        .btn-head:hover { border-color: var(--blue); color: var(--blue); }
+        .btn-head svg { width:15px; height:15px; flex-shrink:0; }
+        .btn-send-all { background: var(--green-pale); border-color: rgba(0,201,110,.3); color: var(--green); }
+        .btn-send-all:hover { background: var(--green); color: #0b0d12; border-color: var(--green); }
+
+        /* ── MENU NAV ── */
+        .menu-nav { display: flex; gap: 0; margin-bottom: 24px; flex-wrap: nowrap; overflow-x: auto; border-bottom: 2px solid var(--border); -webkit-overflow-scrolling: touch; }
+        .menu-btn { display: flex; align-items: center; gap: 6px; padding: 12px 20px; border-radius: 0; font-size: 13px; font-weight: 600; cursor: pointer; border: none; border-bottom: 3px solid transparent; margin-bottom: -2px; background: transparent; color: var(--text2); font-family: var(--font); transition: all .18s; white-space: nowrap; flex: 1; justify-content: center; }
+        .menu-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+        .menu-btn:hover:not(.active) { color: var(--text); background: var(--surface); }
+
+        /* ── VIEWS ── */
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* ── STATUS TABS ── */
+        .status-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .stab { display: flex; align-items: center; gap: 7px; padding: 9px 16px; border-radius: 9px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid var(--border2); background: var(--surface); color: var(--text2); font-family: var(--font); transition: all .18s; white-space: nowrap; flex: 1; justify-content: center; }
+        .stab.active.pend { border-color: var(--amber); color: var(--amber); background: var(--amber-pale); }
+        .stab.active.apro { border-color: var(--green); color: var(--green); background: var(--green-pale); }
+        .stab .cnt { min-width: 20px; height: 20px; padding: 0 6px; display: flex; align-items: center; justify-content: center; background: var(--surface2); border-radius: 20px; font-size: 11px; font-weight: 800; color: var(--text3); }
+        .stab.active.pend .cnt { background: var(--amber); color: #0b0d12; }
+        .stab.active.apro .cnt { background: var(--green); color: #0b0d12; }
+
+        /* ── NICHO TABS ── */
+        .tabs-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 28px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+        .tab-btn { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 16px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; font-size: 12px; font-weight: 600; color: var(--text2); cursor: pointer; font-family: var(--font); transition: all .18s; white-space: nowrap; flex: 1; }
+        .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+        .tab-btn:hover:not(.active) { color: var(--text); }
+        .pill { background: var(--surface2); color: var(--text3); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+        .pill.on { background: var(--blue); color: white; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* ── STATS ROW ── */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+        .stat-lbl { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+        .stat-val { font-size: 24px; font-weight: 700; color: var(--blue); }
+        .stat-val.g { color: var(--green); }
+        .stat-val.a { color: var(--amber); }
+
+        /* ── RIBBON (order card) ── */
+        .ribbon { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; animation: fadeIn .25s ease; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+        .ribbon:hover { border-color: var(--border2); }
+        .ribbon-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; background: var(--bg2); cursor: pointer; flex-wrap: wrap; gap: 8px; }
+        .ribbon-main { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+        .r-name { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .r-code { background: var(--surface2); color: var(--text3); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+        .ribbon-meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .r-date { font-size: 11px; color: var(--text3); }
+        .r-caret { width: 15px; height: 15px; color: var(--text3); transition: transform .25s; flex-shrink: 0; }
+        .ribbon.expanded .r-caret { transform: rotate(180deg); }
+        .ribbon-body { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+        .ribbon.expanded .ribbon-body { max-height: 1200px; }
+        .ribbon-inner { padding: 16px 18px; border-top: 1px solid var(--border); }
+
+        /* status chip */
+        .status-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .s-pendiente { background: var(--amber-pale); color: var(--amber); border: 1px solid rgba(245,158,11,.2); }
+        .s-pagado { background: var(--green-pale); color: var(--green); border: 1px solid rgba(0,201,110,.2); }
+
+        /* product table */
+        .prod-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+        .prod-table th { text-align: left; padding: 6px 8px; font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); }
+        .prod-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); color: var(--text2); }
+        .prod-table tr:last-child td { border-bottom: none; }
+        .prod-name { font-weight: 600; color: var(--text); }
+        .qty-num { font-weight: 700; color: var(--blue); text-align: center; }
+        .price-cell { font-weight: 700; color: var(--text); text-align: right; }
+        .gain-cell { font-weight: 700; color: var(--green); text-align: right; }
+
+        /* order footer */
+        .order-foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+        .foot-meta { font-size: 12px; color: var(--text3); }
+        .foot-meta strong { color: var(--text); }
+        .foot-gain { font-size: 13px; font-weight: 700; color: var(--green); }
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-act { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; font-family: var(--font); transition: all .18s; }
+        .btn-send { background: var(--green-pale); color: var(--green); border: 1px solid rgba(0,201,110,.25); }
+        .btn-send:hover { background: var(--green); color: #0b0d12; }
+        .btn-send:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-del { background: var(--red-pale); color: var(--red); border: 1px solid rgba(244,63,94,.2); }
+        .btn-del:hover { background: var(--red); color: white; }
+
+        /* envio block */
+        .ship-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: 12px; }
+        .ship-row { margin-bottom: 4px; color: var(--text2); }
+        .ship-row:last-child { margin-bottom: 0; }
+        .ship-row strong { color: var(--text); }
+
+        /* ── VENDOR BLOCK ── */
+        .vendor-block { margin-bottom: 28px; }
+        .vendor-head { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--blue); border-radius: 0 var(--radius) var(--radius) 0; margin-bottom: 10px; flex-wrap: wrap; }
+        .vendor-icon { width: 24px; height: 24px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; background: var(--blue-pale); border: 1px solid var(--blue-glow); color: var(--blue); flex-shrink: 0; }
+        .vendor-icon svg { width: 14px; height: 14px; }
+        .vendor-name { font-size: 14px; font-weight: 700; }
+        .vendor-qty { margin-left: auto; font-size: 12px; color: var(--text3); }
+
+        /* ── EMPTY ── */
+        .empty { text-align: center; padding: 60px 24px; color: var(--text3); }
+        .empty-icon { font-size: 44px; margin-bottom: 14px; }
+        .empty h3 { font-size: 17px; font-weight: 700; color: var(--text2); margin-bottom: 6px; }
+        .empty p { font-size: 13px; }
+
+        /* ── LOADER ── */
+        .loader { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 60px 24px; }
+        .spin { width: 32px; height: 32px; border: 3px solid var(--surface2); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loader p { color: var(--text3); font-size: 13px; }
+
+        /* ── MODAL ── */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(6px); z-index: 9000; display: none; align-items: center; justify-content: center; padding: 16px; }
+        .modal-overlay.show { display: flex; }
+        .modal-box { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; width: 100%; max-width: 380px; padding: 24px; box-shadow: var(--shadow-lg); }
+        .modal-icon { width: 42px; height: 42px; border-radius: 10px; background: var(--red-pale); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+        .modal-box h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+        .modal-box p { color: var(--text2); font-size: 13px; margin-bottom: 18px; }
+        .modal-actions { display: flex; gap: 10px; }
+        .modal-cancel { flex: 1; padding: 11px; border-radius: 8px; border: 1px solid var(--border2); background: transparent; color: var(--text2); font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); }
+        .modal-confirm-btn { flex: 1; padding: 11px; border-radius: 8px; border: none; background: var(--red); color: white; font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--font); }
+
+        /* ── TOAST ── */
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 12px 20px; font-size: 13px; font-weight: 600; color: var(--text); box-shadow: var(--shadow-lg); transition: transform .3s ease, opacity .3s; opacity: 0; z-index: 9999; white-space: nowrap; pointer-events: none; }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.ok { border-color: var(--green); color: var(--green); }
+        .toast.err { border-color: var(--red); color: var(--red); }
+
+        /* ── STATS VIEW ── */
+        .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 20px; }
+        .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
+        .kpi-lbl { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .4px; }
+        .kpi-val { font-size: 20px; font-weight: 700; color: var(--text); margin-top: 2px; }
+        .kpi-delta { font-size: 11px; font-weight: 700; margin-top: 4px; color: var(--text3); }
+        .kpi-delta.up { color: var(--green); }
+        .kpi-delta.dn { color: var(--red); }
+        .section-title { font-size: 15px; font-weight: 700; margin: 0 0 12px; color: var(--text); }
+        .section-block { margin-bottom: 28px; }
+
+        /* charts */
+        .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; }
+        .chart-card h4 { font-size: 13px; font-weight: 700; color: var(--text2); margin-bottom: 14px; }
+        .chart-wrap { position: relative; height: 200px; }
+        .chart-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: nowrap; overflow-x: auto; align-items: center; }
+        .chart-tab { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid var(--border2); background: transparent; color: var(--text3); font-family: var(--font); transition: all .15s; white-space: nowrap; flex-shrink: 0; }
+        .chart-tab.active { background: var(--blue); border-color: var(--blue); color: white; }
+
+        /* mini ribbon */
+        .mini-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+        .mini-ribbon { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: border-color .18s; }
+        .mini-ribbon:hover { border-color: var(--border2); }
+        .mini-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 14px; cursor: pointer; user-select: none; background: var(--bg2); }
+        .mini-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; min-width: 0; }
+        .mini-value { font-size: 16px; font-weight: 800; color: var(--text); white-space: nowrap; }
+        .mini-value.green { color: var(--green); }
+        .mini-value.blue { color: var(--blue); }
+        .mini-value.amber { color: var(--amber); }
+        .mini-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+        .mini-caret { width: 14px; height: 14px; color: var(--text3); transition: transform .25s; flex-shrink: 0; }
+        .mini-ribbon.expanded .mini-caret { transform: rotate(180deg); }
+        .mini-body { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+        .mini-ribbon.expanded .mini-body { max-height: 600px; }
+        .mini-content { padding: 10px 14px 13px; border-top: 1px solid var(--border); display: grid; gap: 7px; }
+        .mini-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--text2); }
+        .mini-row strong { color: var(--text); font-weight: 700; text-align: right; }
+        .mini-chart-btn { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--blue-glow); background: var(--blue-pale); color: var(--blue); cursor: pointer; font-family: var(--font); transition: all .15s; margin-left: 6px; }
+        .mini-chart-btn:hover { background: var(--blue); color: white; }
+
+        /* ── RANKING ── */
+        .rank-row { display: flex; align-items: center; padding: 14px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; gap: 14px; }
+        .rank-pos { font-size: 18px; font-weight: 800; color: var(--blue); width: 42px; text-align: center; flex-shrink: 0; }
+        .rank-row:first-child .rank-pos { color: #f5b400; }
+        .rank-row:nth-child(2) .rank-pos { color: #c0c0c0; }
+        .rank-row:nth-child(3) .rank-pos { color: #cd7f32; }
+        .rank-body { flex: 1; min-width: 0; }
+        .rank-name { font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+        .rank-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+        .rank-val { font-weight: 800; color: var(--green); font-size: 15px; margin-left: auto; white-space: nowrap; text-align: right; }
+        .rank-val span { display: block; font-size: 10px; font-weight: 500; color: var(--text3); }
+
+        /* ganancias view */
+        .section-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+        .section-tab { padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid var(--border2); background: var(--surface); color: var(--text2); font-family: var(--font); transition: all .15s; }
+        .section-tab.active { background: var(--green-pale); border-color: rgba(0,201,110,.3); color: var(--green); }
+
+        /* lv chips */
+        .lv-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+        .lv-1 { background: rgba(90,96,112,.2); color: var(--text3); border: 1px solid rgba(90,96,112,.3); }
+        .lv-2 { background: rgba(0,102,255,.12); color: var(--blue); border: 1px solid rgba(0,102,255,.2); }
+        .lv-3 { background: rgba(0,201,110,.12); color: var(--green); border: 1px solid rgba(0,201,110,.2); }
+        .lv-4 { background: rgba(245,158,11,.12); color: var(--amber); border: 1px solid rgba(245,158,11,.2); }
+        .lv-5 { background: rgba(139,92,246,.12); color: #a78bfa; border: 1px solid rgba(139,92,246,.2); }
+        .lv-stars { display: inline-flex; gap: 1px; margin-left: 2px; }
+        .lv-star { width: 9px; height: 9px; color: currentColor; }
+
+        /* ── GOOGLE LOGIN BTN ── */
+        .btn-google-g {
+            position: absolute; top: 14px; right: 14px;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--bg2); border: 1px solid var(--border2);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all .18s; padding: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,.25);
+        }
+        .btn-google-g:hover { border-color: #4285F4; box-shadow: 0 0 0 3px rgba(66,133,244,.15); background: var(--surface2); }
+        .btn-google-g svg { width: 18px; height: 18px; display: block; }
+        .login-box { position: relative; }
+        .btn-google-icon {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid #dadce0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,.18);
+            transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+            z-index: 2;
+        }
+        .btn-google-icon:hover { transform: translateY(-1px); border-color: #4285F4; box-shadow: 0 4px 10px rgba(66,133,244,.25); }
+        .btn-google-icon:disabled { opacity: .6; cursor: not-allowed; }
+
+        /* ── REVENDEDORES ── */
+        .btn-revendedores { background: rgba(139,92,246,.1); border-color: rgba(139,92,246,.3); color: #a78bfa; }
+        .btn-revendedores:hover { background: rgba(139,92,246,.2); color: #c4b5fd; border-color: rgba(139,92,246,.5); }
+        .rv-list { display: flex; flex-direction: column; gap: 8px; }
+        .rv-ribbon { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all .18s; }
+        .rv-ribbon:hover { border-color: var(--blue); background: var(--surface2); }
+        .rv-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--blue-pale); border: 1px solid var(--blue-glow); color: var(--blue); font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .rv-avatar-lg { width: 48px; height: 48px; font-size: 20px; }
+        .rv-info { flex: 1; min-width: 0; }
+        .rv-name { font-size: 14px; font-weight: 700; color: var(--text); }
+        .rv-meta { display: flex; align-items: center; gap: 8px; margin-top: 3px; flex-wrap: wrap; }
+        .rv-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+        @media (max-width: 640px) {
+            .topbar { padding: 0 16px; }
+            .wrap { padding: 20px 14px; }
+            .head-actions { gap: 6px; }
+            .btn-head { padding: 8px 12px; font-size: 12px; }
+            .page-title { font-size: 20px; }
+            .badge-live { display: none; }
+
+            /* Las pestañas con flex:1 + nowrap se desbordan en pantallas chicas:
+               se les quita flex:1 para que cada una mida solo lo que necesita
+               y se reduce tipografía/padding para que entren sin cortarse. */
+            .menu-btn { flex: 0 0 auto; padding: 10px 14px; font-size: 12px; }
+            .stab     { flex: 0 0 auto; padding: 8px 12px; font-size: 11px; gap: 5px; }
+            .tab-btn  { flex: 0 0 auto; padding: 9px 12px; font-size: 11.5px; gap: 5px; }
+        }
+
+        @media (max-width: 400px) {
+            .menu-btn { padding: 9px 11px; font-size: 11.5px; gap: 4px; }
+            .stab     { padding: 7px 10px; font-size: 10.5px; }
+            .tab-btn  { padding: 8px 10px; font-size: 11px; }
+            .page-title { font-size: 18px; }
+            .brand-code { max-width: 110px; }
+            .brand-title { font-size: 15px; }
+        }
+
+        /* ── GUÍA ── */
+        .btn-guide-icon { display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--blue-pale);border:1.5px solid var(--blue-glow);color:var(--blue-glow);cursor:pointer;transition:background .18s,transform .18s;flex-shrink:0; }
+        .btn-guide-icon:hover { background:var(--blue-glow);color:#fff;transform:scale(1.1); }
+        #guide-modal { align-items:flex-start !important;justify-content:flex-start !important;padding:0 !important; }
+        #guide-box { transform-origin:top left;transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s;transform:scale(0);opacity:0;border-radius:0 0 16px 16px !important;position:fixed;top:0;left:0; }
+        #guide-modal.show #guide-box { transform:scale(1);opacity:1; }
+        .guide-ribbon { background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color .2s; }
+        .guide-ribbon:hover { border-color:var(--blue-glow); }
+        .guide-head { display:flex;align-items:center;gap:10px;padding:13px 14px; }
+        .guide-icon { font-size:17px;flex-shrink:0; }
+        .guide-title { flex:1;font-size:13px;font-weight:700;color:var(--text); }
+        .guide-caret { width:15px;height:15px;color:var(--text3);flex-shrink:0;transition:transform .25s; }
+        .guide-body { max-height:0;overflow:hidden;transition:max-height .35s ease;padding:0 14px; }
+        .guide-body p { font-size:12.5px;color:var(--text2);line-height:1.6;margin:0 0 8px; }
+        .guide-body p:last-child { margin-bottom:12px; }
+        .guide-ribbon.open .guide-caret { transform:rotate(180deg); }
+        .guide-ribbon.open .guide-body { max-height:260px; }
+
+        /* ── BTN REGALO ── */
+        .btn-gift { background:linear-gradient(135deg,#f59e0b,#f43f5e)!important;color:#fff!important;border:0!important;width:38px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;box-shadow:0 2px 10px rgba(245,158,11,.35);transition:transform .18s,box-shadow .18s; }
+        .btn-gift:hover { transform:translateY(-1px) scale(1.04);box-shadow:0 4px 14px rgba(245,158,11,.5); }
+
+        /* ── CLIENTE DEL MES ── */
+        .cliente-mes-card { background:linear-gradient(135deg,rgba(245,158,11,.16),rgba(244,63,94,.10));border:1.5px solid rgba(245,158,11,.45);border-radius:14px;padding:16px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap; }
+        .cliente-mes-medal { font-size:38px;flex-shrink:0; }
+        .cliente-mes-body { flex:1;min-width:160px; }
+        .cliente-mes-title { font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#f59e0b;font-weight:800;margin-bottom:4px; }
+        .cliente-mes-name { font-size:17px;font-weight:800;color:var(--text);margin-bottom:4px; }
+        .cliente-mes-meta { font-size:12px;color:var(--text2); }
+        .cliente-mes-gift { background:rgba(0,0,0,.25);border-radius:10px;padding:10px 14px;text-align:right; }
+        .cliente-mes-gift-lbl { font-size:10px;text-transform:uppercase;color:var(--text3);font-weight:700; }
+        .cliente-mes-gift-val { font-size:18px;font-weight:800;color:#f59e0b; }
+
+        /* ── NIVEL REVENDEDOR (topbar) ── */
+        .level-block { display:flex; align-items:center; gap:10px; padding:6px 12px; background:rgba(10,71,222,.08); border:1px solid rgba(57,104,246,.25); border-radius:12px; min-width:0; max-width:420px; }
+        .level-avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#0a47de,#3968f6); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:14px; flex:none; box-shadow:0 2px 8px rgba(10,71,222,.4); }
+        .level-info { display:flex; flex-direction:column; gap:3px; min-width:0; flex:1; }
+        .level-name { font-size:11px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; }
+        .level-row { display:flex; align-items:center; gap:8px; }
+        .level-stars { display:flex; gap:2px; }
+        .level-star { width:13px; height:13px; color:#3a3f55; transition:color .3s, transform .3s, filter .3s; }
+        .level-star.on { color:#f5b400; filter:drop-shadow(0 0 4px rgba(245,180,0,.6)); }
+        .level-bar-wrap { flex:1; min-width:80px; height:8px; background:rgba(255,255,255,.06); border-radius:4px; overflow:hidden; position:relative; }
+        .level-bar-fill { height:100%; width:0%; border-radius:4px; background:linear-gradient(90deg,#f43f5e 0%,#f59e0b 50%,#2d924c 100%); transition:width 1.2s cubic-bezier(.4,0,.2,1); box-shadow:0 0 8px rgba(45,146,76,.4); }
+        .level-count { font-size:10px; color:var(--text2); white-space:nowrap; font-weight:600; }
+        @media (max-width:780px) { .level-block { padding:5px 9px; gap:7px; max-width:240px; } .level-name { max-width:90px; font-size:10px; } .level-avatar { width:30px; height:30px; font-size:12px; } }
+
+        /* ── MODAL SUBIDA DE NIVEL ── */
+        .level-up-overlay { position:fixed; inset:0; background:rgba(0,0,0,.78); backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center; z-index:3000; padding:20px; animation:lvFade .3s ease; }
+        .level-up-overlay.show { display:flex; }
+        @keyframes lvFade { from{opacity:0} to{opacity:1} }
+        .level-up-box { background:linear-gradient(160deg,#0a47de 0%,#16181f 70%); border:2px solid #3968f6; border-radius:20px; padding:36px 28px; max-width:380px; width:100%; text-align:center; box-shadow:0 20px 60px rgba(10,71,222,.5), 0 0 80px rgba(57,104,246,.3); animation:lvPop .5s cubic-bezier(.34,1.56,.64,1); position:relative; overflow:hidden; }
+        @keyframes lvPop { from{opacity:0;transform:scale(.7) translateY(40px)} to{opacity:1;transform:scale(1) translateY(0)} }
+        .level-up-box::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:radial-gradient(circle,rgba(245,180,0,.15) 0%,transparent 60%); animation:lvSpin 8s linear infinite; pointer-events:none; }
+        @keyframes lvSpin { to { transform:rotate(360deg) } }
+        .level-up-box > * { position:relative; z-index:1; }
+        .level-up-trophy { font-size:64px; margin-bottom:8px; animation:lvBounce 1.2s ease infinite; display:inline-block; }
+        @keyframes lvBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        .level-up-title { font-size:22px; font-weight:800; color:#fff; margin-bottom:6px; letter-spacing:.3px; }
+        .level-up-sub { font-size:13px; color:rgba(255,255,255,.75); margin-bottom:18px; }
+        .level-up-stars { display:flex; justify-content:center; gap:6px; margin-bottom:20px; }
+        .level-up-stars svg { width:30px; height:30px; color:#3a3f55; transition:all .4s; }
+        .level-up-stars svg.on { color:#f5b400; filter:drop-shadow(0 0 10px rgba(245,180,0,.8)); animation:lvStarPop .5s ease both; }
+        @keyframes lvStarPop { 0%{transform:scale(0) rotate(-180deg)} 100%{transform:scale(1) rotate(0)} }
+        .level-up-btn { background:#2d924c; color:#fff; border:0; padding:12px 32px; border-radius:10px; font-weight:700; font-size:14px; cursor:pointer; transition:transform .15s, box-shadow .15s; box-shadow:0 4px 16px rgba(45,146,76,.4); }
+        .level-up-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(45,146,76,.6); }
+
+        /* ── TOAST RICH (ganancia/costo en colores) ── */
+        .toast-rich { position:fixed; bottom:28px; right:28px; background:#0b0d12; border:1.5px solid #3968f6; border-radius:14px; padding:14px 18px; min-width:280px; max-width:380px; box-shadow:0 12px 40px rgba(10,71,222,.4), 0 0 0 1px rgba(57,104,246,.2); z-index:2500; opacity:0; transform:translateY(20px) scale(.95); transition:all .35s cubic-bezier(.34,1.56,.64,1); pointer-events:none; }
+        .toast-rich.show { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+        .toast-rich-head { font-size:13px; font-weight:800; color:#fff; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+        .toast-rich-head::before { content:'✓'; width:22px; height:22px; border-radius:50%; background:#2d924c; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; }
+        .toast-rich-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:12.5px; }
+        .toast-rich-lbl { color:rgba(255,255,255,.7); font-weight:600; }
+        .toast-rich-val { font-weight:800; font-size:14px; }
+        .toast-rich-val.blue { color:#3968f6; }
+        .toast-rich-val.green { color:#2d924c; }
+        @media (max-width:600px) { .toast-rich { left:14px; right:14px; bottom:14px; max-width:none; min-width:0; } }
+
+        /* ── BOTÓN PDF EN PEDIDO ── */
+        .btn-pdf { background:#0a47de !important; color:#fff !important; border:0 !important; }
+        .btn-pdf:hover { background:#3968f6 !important; }
+
+    </style>
+</head>
+<body>
+
+<!-- ══ TOPBAR ══ -->
+<header class="topbar" id="topbar" style="display:none">
+    <div class="brand">
+        <div class="brand-mark"><img src="logo.png" alt="Logo"/></div>
+        <div class="brand-info">
+            <span class="brand-title">Mi Panel</span>
+            <span class="brand-code" id="badge-code"></span>
+        </div>
+    </div>
+    <div class="level-block" id="level-block" style="display:none">
+        <div class="level-avatar" id="level-avatar">R</div>
+        <div class="level-info">
+            <div class="level-name" id="level-name">Revendedor</div>
+            <div class="level-row">
+                <div class="level-stars" id="level-stars"></div>
+                <div class="level-bar-wrap" title="Progreso al siguiente nivel">
+                    <div class="level-bar-fill" id="level-bar-fill"></div>
+                </div>
+                <div class="level-count" id="level-count">0/100</div>
+            </div>
+        </div>
+    </div>
+    <div class="topbar-right">
+        <span class="badge-live">Activo</span>
+        <button class="btn-logout" onclick="logout()">Salir</button>
+    </div>
+</header>
+
+<!-- ══ LOGIN ══ -->
+<div class="login-wrap" id="login-wrap">
+    <div class="login-box">
+        <button class="btn-google-icon" onclick="doGoogleLogin()" title="Ingresar con Google" aria-label="Ingresar con Google">
+            <svg width="20" height="20" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/></svg>
+        </button>
+        <div class="login-icon"><img src="logo.png" alt="Logo"/></div>
+        <h1>Mi Panel de Ventas</h1>
+        <p>Ingresá tu correo y contraseña para acceder</p>
+        <div class="login-err" id="login-err"></div>
+        <form id="email-login-form" onsubmit="event.preventDefault(); doEmailLogin();" autocomplete="on">
+            <div class="field">
+                <label for="inp-email">Correo</label>
+                <input id="inp-email" type="email" autocomplete="email" required placeholder="tu@correo.com">
+            </div>
+            <div class="field">
+                <label for="inp-pass">Contraseña</label>
+                <input id="inp-pass" type="password" autocomplete="current-password" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn-login" id="btn-email-login">Ingresar</button>
+        </form>
+        <div class="login-subtitle">Panel principal - Revende Ways</div>
+    </div>
+</div>
+
+<!-- ══ THEME SELECTOR ══ -->
+<div class="theme-wrap" id="theme-wrap" style="display:none">
+    <div class="theme-box">
+        <div class="login-icon" style="margin:0 auto 16px"><img src="logo.png" alt="Logo"/></div>
+        <h2>Elegí tu tema</h2>
+        <p>Seleccioná cómo querés ver tu panel. Podés cambiarlo cuando quieras.</p>
+        <div class="theme-options">
+            <div class="theme-card dark-card" onclick="selectTheme('dark')">
+                <div class="tc-icon">🌙</div>
+                <div class="tc-label">Oscuro</div>
+                <div class="tc-sub">Diseño actual del panel</div>
+            </div>
+            <div class="theme-card light-card" onclick="selectTheme('light')">
+                <div class="tc-icon">☀️</div>
+                <div class="tc-label">Claro</div>
+                <div class="tc-sub">Colores claros y frescos</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="main" id="main">
+    <div class="wrap">
+
+        <div class="page-head">
+            <div style="display:flex;align-items:center;gap:12px">
+                <div class="page-title">Mis Pedidos <span id="count-lbl"></span></div>
+                <button id="btn-guide" class="btn-guide-icon" onclick="openGuide()" title="Guía del panel" aria-label="Abrir guía">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </button>
+            </div>
+            <div class="head-actions">
+                <button class="btn-head btn-send-all" onclick="sendAllPedidos()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Enviar todos
+                </button>
+                <button class="btn-head" onclick="this.blur();loadData()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    Actualizar
+                </button>
+                <button class="btn-head btn-gift" onclick="this.blur();openGiftModal()" title="Regalo al mejor cliente" aria-label="Configurar regalo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- MENU -->
+        <div class="menu-nav">
+            <button class="menu-btn active" data-view="pedidos" onclick="switchView('pedidos')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Pedidos
+            </button>
+            <button class="menu-btn" data-view="stats" onclick="switchView('stats')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                Estadísticas
+            </button>
+            <button class="menu-btn" data-view="ganancias" onclick="switchView('ganancias')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Ganancias
+            </button>
+            <button class="menu-btn" data-view="ranking" onclick="switchView('ranking')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+                Clientes
+            </button>
+        </div>
+
+        <!-- VIEW: PEDIDOS -->
+        <div class="view active" id="view-pedidos">
+            <div class="status-tabs">
+                <button class="stab pend active" id="stab-pendiente" onclick="switchStatus('pendiente')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Pedidos pendientes
+                    <span class="cnt" id="scnt-pendiente">0</span>
+                </button>
+                <button class="stab apro" id="stab-pagado" onclick="switchStatus('pagado')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    Pedidos aprobados
+                    <span class="cnt" id="scnt-pagado">0</span>
+                </button>
+            </div>
+
+            <div class="tabs-bar">
+                <button class="tab-btn active" id="tbtn-calzados" onclick="switchTab('calzados')">Calzados <span class="pill on" id="pill-calzados">0</span></button>
+                <button class="tab-btn" id="tbtn-perfumes" onclick="switchTab('perfumes')">Perfumes Árabes <span class="pill" id="pill-perfumes">0</span></button>
+                <button class="tab-btn" id="tbtn-multishop" onclick="switchTab('multishop')">Multishop <span class="pill" id="pill-multishop">0</span></button>
+            </div>
+
+            <div class="tab-pane active" id="pane-calzados">
+                <div class="stats-row" id="stats-calzados"></div>
+                <div id="list-calzados"><div class="loader"><div class="spin"></div><p>Cargando pedidos...</p></div></div>
+            </div>
+            <div class="tab-pane" id="pane-perfumes">
+                <div class="stats-row" id="stats-perfumes"></div>
+                <div id="list-perfumes"><div class="loader"><div class="spin"></div><p>Cargando pedidos...</p></div></div>
+            </div>
+            <div class="tab-pane" id="pane-multishop">
+                <div class="stats-row" id="stats-multishop"></div>
+                <div id="list-multishop"><div class="loader"><div class="spin"></div><p>Cargando pedidos...</p></div></div>
+            </div>
+        </div>
+
+        <!-- VIEW: ESTADÍSTICAS -->
+        <div class="view" id="view-stats">
+            <div id="stats-content"></div>
+        </div>
+
+        <!-- VIEW: GANANCIAS -->
+        <div class="view" id="view-ganancias">
+            <div id="ganancias-content"></div>
+        </div>
+
+        <!-- VIEW: RANKING CLIENTES -->
+        <div class="view" id="view-ranking">
+            <div id="ranking-content"></div>
+        </div>
+
+
+    </div>
+</div>
+
+<!-- ══ MODAL ENVIAR TODOS ══ -->
+<div class="modal-overlay" id="send-all-modal">
+    <div class="modal-box">
+        <div class="modal-icon" style="background:var(--green-pale)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </div>
+        <h3>Confirmar envío</h3>
+        <p>¿Querés enviar todos los pedidos pendientes? Esta acción notificará a los destinatarios.</p>
+        <div class="modal-actions">
+            <button class="modal-cancel" onclick="document.getElementById('send-all-modal').classList.remove('show')">Cancelar</button>
+            <button class="modal-confirm-btn" style="background:var(--green)" onclick="confirmSendAll()">Enviar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL ELIMINAR ══ --><div class="modal-overlay" id="del-modal">
+    <div class="modal-box">
+        <div class="modal-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </div>
+        <h3>Eliminar pedido</h3>
+        <p>Esta acción eliminará el pedido de tus registros. No se puede deshacer.</p>
+        <div class="modal-actions">
+            <button class="modal-cancel" onclick="closeModal()">Cancelar</button>
+            <button class="modal-confirm-btn" id="del-confirm-btn" onclick="confirmDelete()">Eliminar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL CHART ══ -->
+<div class="modal-overlay" id="chart-modal">
+    <div class="modal-box" style="max-width:600px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <h3 id="chart-modal-title" style="font-size:15px"></h3>
+            <button class="modal-cancel" style="padding:6px 12px;flex:none" onclick="closeChartModal()">✕</button>
+        </div>
+        <div class="chart-tabs" id="chart-modal-tabs"></div>
+        <div class="chart-wrap" style="height:260px"><canvas id="chart-modal-canvas"></canvas></div>
+    </div>
+</div>
+
+<!-- ══ MODAL REGALO CLIENTE DEL MES ══ -->
+<div class="modal-overlay" id="gift-modal">
+    <div class="modal-box" style="max-width:440px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:10px">
+                <div class="modal-icon" style="background:rgba(245,158,11,.15);margin:0">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                </div>
+                <h3 style="margin:0">Regalo del mes</h3>
+            </div>
+            <button class="modal-cancel" style="padding:6px 12px;flex:none" onclick="closeGiftModal()">✕</button>
+        </div>
+        <p style="margin-bottom:14px;font-size:13px;color:var(--text2)">Configurá el precio máximo (de costo) del regalo que vas a otorgar al mejor cliente del mes. Esto te ayuda a fidelizar y aumentar la recurrencia.</p>
+        <div style="margin-bottom:18px">
+            <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:600">Precio máximo del regalo</label>
+            <div style="display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:10px 12px">
+                <span style="color:var(--text2);font-weight:700">$</span>
+                <input id="gift-input" type="number" min="0" step="100" placeholder="0" style="flex:1;background:transparent;border:0;color:var(--text);font-size:15px;font-weight:600;outline:none">
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-top:6px">El cliente número 1 del ranking recibirá un regalo de hasta este monto.</div>
+        </div>
+        <div id="gift-preview" style="display:none;background:rgba(0,201,110,.08);border:1px solid rgba(0,201,110,.3);border-radius:8px;padding:12px;margin-bottom:14px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Cliente del mes actual:</div>
+            <div id="gift-preview-name" style="font-size:14px;font-weight:700;color:var(--green)"></div>
+            <div id="gift-preview-meta" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-cancel" onclick="closeGiftModal()">Cancelar</button>
+            <button class="modal-confirm-btn" style="background:#f59e0b" onclick="saveGift()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL GUÍA ══ -->
+<div class="modal-overlay" id="guide-modal" onclick="if(event.target===this)closeGuide()">
+    <div class="modal-box" id="guide-box" style="max-width:500px;max-height:85vh;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+            <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:38px;height:38px;border-radius:10px;background:var(--blue-pale);border:1px solid var(--blue-glow);display:flex;align-items:center;justify-content:center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div>
+                    <div style="font-size:16px;font-weight:800">Guía del panel</div>
+                    <div style="font-size:11px;color:var(--text3)">Cómo usar cada sección</div>
+                </div>
+            </div>
+            <button class="modal-cancel" style="padding:6px 12px;flex:none" onclick="closeGuide()">✕</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+
+            <div class="guide-ribbon" onclick="toggleGuide(this)">
+                <div class="guide-head">
+                    <span class="guide-icon">📦</span>
+                    <span class="guide-title">Pedidos — Pendientes y Aprobados</span>
+                    <svg class="guide-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="guide-body">
+                    <p>Acá ves todos tus pedidos organizados por estado. Los <strong>Pedidos Pendientes</strong> son los que tus clientes hicieron pero todavía no confirmaste. Los <strong>Pedidos Aprobados</strong> son los que ya aprobaste desde el panel de la tienda (index).</p>
+                    <p>Para que un pedido pase de Pendiente a Aprobado, tenés que ir a tu perfil en la tienda → Pedidos recibidos → tocá "Aprobado" en el pedido. Automáticamente aparecerá aquí en Aprobados.</p>
+                    <p>Dentro de cada pedido encontrás los productos, datos del cliente, dirección de envío y tus ganancias estimadas.</p>
+                </div>
+            </div>
+
+            <div class="guide-ribbon" onclick="toggleGuide(this)">
+                <div class="guide-head">
+                    <span class="guide-icon">🗂️</span>
+                    <span class="guide-title">Calzados · Perfumes Árabes · Multishop</span>
+                    <svg class="guide-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="guide-body">
+                    <p>Los pedidos se clasifican automáticamente por categoría según los productos que contienen. Tocá cada pestaña para ver solo los pedidos de esa categoría.</p>
+                    <p>El número en cada pestaña muestra cuántos pedidos hay en ese nicho con el estado seleccionado (pendiente o aprobado).</p>
+                </div>
+            </div>
+
+            <div class="guide-ribbon" onclick="toggleGuide(this)">
+                <div class="guide-head">
+                    <span class="guide-icon">📊</span>
+                    <span class="guide-title">Estadísticas</span>
+                    <svg class="guide-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="guide-body">
+                    <p>Muestra un resumen completo de tu actividad: total de pedidos, pedidos de esta semana, comparativas con períodos anteriores y gráficos de crecimiento.</p>
+                    <p>Podés cambiar entre vista por semanas y por meses, y entre métricas de pedidos, facturación y ganancia.</p>
+                </div>
+            </div>
+
+            <div class="guide-ribbon" onclick="toggleGuide(this)">
+                <div class="guide-head">
+                    <span class="guide-icon">💰</span>
+                    <span class="guide-title">Ganancias</span>
+                    <svg class="guide-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="guide-body">
+                    <p>Calculá cuánto ganás en cada pedido según los márgenes que configuraste en tu tienda. Muestra la diferencia entre el precio mayorista (lo que vos pagás) y el precio que le cobrás a tus clientes.</p>
+                    <p>Si no ves ganancias, es porque todavía no configuraste los márgenes en tu panel de tienda (index).</p>
+                </div>
+            </div>
+
+            <div class="guide-ribbon" onclick="toggleGuide(this)">
+                <div class="guide-head">
+                    <span class="guide-icon">🏆</span>
+                    <span class="guide-title">Clientes — Ranking</span>
+                    <svg class="guide-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="guide-body">
+                    <p>Ranking de tus mejores clientes ordenado por compras y dinero gastado. El primero del mes puede recibir un regalo. Configurá el monto máximo del regalo tocando el botón 🎁 en la parte superior.</p>
+                </div>
+            </div>
+
+            <div class="guide-ribbon" onclick="toggleGuide(this)">
+                <div class="guide-head">
+                    <span class="guide-icon">✈️</span>
+                    <span class="guide-title">Botón "Enviar todos"</span>
+                    <svg class="guide-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="guide-body">
+                    <p>Envía todos los pedidos pendientes a la plataforma de pagos de una sola vez. Cada pedido también puede enviarse individualmente con el botón "Enviar" dentro de la tarjeta del pedido.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══ TOAST RICH (ganancia tras enviar) ══ -->
+<div class="toast-rich" id="toast-rich">
+    <div class="toast-rich-head" id="toast-rich-head">Pedido enviado</div>
+    <div class="toast-rich-row"><span class="toast-rich-lbl">Tu ganancia</span><span class="toast-rich-val blue" id="toast-rich-gain">$0</span></div>
+    <div class="toast-rich-row"><span class="toast-rich-lbl">Total a precio costo</span><span class="toast-rich-val green" id="toast-rich-cost">$0</span></div>
+</div>
+
+<!-- ══ MODAL SUBIDA DE NIVEL ══ -->
+<div class="level-up-overlay" id="level-up-modal" onclick="if(event.target===this)closeLevelUp()">
+    <div class="level-up-box">
+        <div class="level-up-trophy">🏆</div>
+        <div class="level-up-title">¡Subiste de nivel!</div>
+        <div class="level-up-sub" id="level-up-sub">Sumaste una nueva estrella</div>
+        <div class="level-up-stars" id="level-up-stars"></div>
+        <button class="level-up-btn" onclick="closeLevelUp()">¡Genial!</button>
+    </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════
+const WORKER_PENDIENTES     = 'https://workerwebcliente.tuweb.workers.dev';   // pedidos pendientes
+const WORKER_APROBADOS      = 'https://datosderevendedor.tuweb.workers.dev';  // pedidos aprobados
+const WORKER_PAGOS          = 'https://workerpagos.tuweb.workers.dev';         // envío de pedidos
+const S_KEY                 = 'rw_reseller_v1';
+const D_KEY                 = 'rw_reseller_del_v1';
+
+let pedidos         = [];
+let activeTab       = 'calzados';
+let activeStatus    = 'pendiente';
+let deleteTarget    = null;
+let currentCode     = '';
+let currentUid      = '';
+let currentVendorNombre   = '';
+let currentVendorApellido = '';
+let configTienda    = {};
+let chartModalInst  = null;
+
+// ═══════════════════════════════════════════════════════════
+// UTILIDADES
+// ═══════════════════════════════════════════════════════════
+function ba(date) {
+    if (!date) date = new Date();
+    return date.toLocaleString('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        day:'2-digit', month:'2-digit', year:'numeric',
+        hour:'2-digit', minute:'2-digit'
+    });
+}
+function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fullName(o) {
+    if (!o) return '';
+    return [o.nombre, o.apellido].filter(Boolean).join(' ').trim();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SISTEMA DE NIVELES DEL REVENDEDOR
+// 5 estrellas · pedidos acumulados (no productos)
+// E1: 100 · E2: 200 · E3: 350 (+150) · E4: 500 (+150) · E5: 750 (+250)
+// ═══════════════════════════════════════════════════════════
+const LEVEL_THRESHOLDS = [0, 100, 200, 350, 500, 750];
+const LEVEL_KEY = 'rw_reseller_level_v1';
+
+function levelInfoFromCount(n) {
+    n = Number(n) || 0;
+    let stars = 0;
+    for (let i = 1; i < LEVEL_THRESHOLDS.length; i++) {
+        if (n >= LEVEL_THRESHOLDS[i]) stars = i;
+    }
+    const prev = LEVEL_THRESHOLDS[stars] || 0;
+    const next = LEVEL_THRESHOLDS[stars + 1] || LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
+    const max = stars >= 5;
+    const inLevel = n - prev;
+    const need = max ? 1 : (next - prev);
+    const pct = max ? 100 : Math.min(100, Math.round((inLevel / need) * 100));
+    return { stars, prev, next, max, inLevel, need, pct, count: n };
+}
+
+function starsSvg(filled) {
+    return `<svg class="level-star ${filled?'on':''}" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12,2 15.1,8.6 22,9.3 16.8,14 18.3,21 12,17.3 5.7,21 7.2,14 2,9.3 8.9,8.6"/></svg>`;
+}
+function bigStarSvg() {
+    return `<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12,2 15.1,8.6 22,9.3 16.8,14 18.3,21 12,17.3 5.7,21 7.2,14 2,9.3 8.9,8.6"/></svg>`;
+}
+
+function renderLevelBar() {
+    const block = document.getElementById('level-block');
+    if (!block) return;
+    const count = pedidos.length;
+    const info = levelInfoFromCount(count);
+    block.style.display = 'flex';
+
+    const nameFull = [currentVendorNombre, currentVendorApellido].filter(Boolean).join(' ').trim() || 'Revendedor';
+    const initial = (currentVendorNombre || currentCode || 'R').charAt(0).toUpperCase();
+    document.getElementById('level-avatar').textContent = initial;
+    document.getElementById('level-name').textContent = nameFull;
+
+    const starsEl = document.getElementById('level-stars');
+    let starsHtml = '';
+    for (let i = 1; i <= 5; i++) starsHtml += starsSvg(i <= info.stars);
+    starsEl.innerHTML = starsHtml;
+
+    const fill = document.getElementById('level-bar-fill');
+    // animar con un tick
+    requestAnimationFrame(() => { fill.style.width = info.pct + '%'; });
+
+    const countEl = document.getElementById('level-count');
+    countEl.textContent = info.max
+        ? `${count} · ¡Máximo!`
+        : `${info.inLevel}/${info.need}`;
+
+    // detectar subida de nivel
+    let prevStars = 0;
+    try { prevStars = Number(localStorage.getItem(LEVEL_KEY)) || 0; } catch(_) {}
+    if (info.stars > prevStars) {
+        try { localStorage.setItem(LEVEL_KEY, String(info.stars)); } catch(_) {}
+        if (prevStars > 0 || count > 0) showLevelUp(info.stars);
+    } else if (info.stars !== prevStars) {
+        try { localStorage.setItem(LEVEL_KEY, String(info.stars)); } catch(_) {}
+    }
+}
+
+function showLevelUp(stars) {
+    const modal = document.getElementById('level-up-modal');
+    if (!modal) return;
+    document.getElementById('level-up-sub').textContent =
+        stars >= 5 ? '¡Alcanzaste el nivel máximo! 5 estrellas' : `Ahora tenés ${stars} de 5 estrellas`;
+    const cont = document.getElementById('level-up-stars');
+    cont.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+        const s = document.createElement('div');
+        s.innerHTML = bigStarSvg();
+        const svg = s.firstChild;
+        if (i <= stars) svg.classList.add('on');
+        cont.appendChild(svg);
+        // animar entrada escalonada
+        svg.style.animationDelay = (i * 0.12) + 's';
+    }
+    modal.classList.add('show');
+}
+function closeLevelUp() {
+    document.getElementById('level-up-modal').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST RICH (ganancia azul · costo verde)
+// ═══════════════════════════════════════════════════════════
+function toastRich(ganancia, costo, headTxt) {
+    const el = document.getElementById('toast-rich');
+    if (!el) return;
+    if (headTxt) document.getElementById('toast-rich-head').textContent = headTxt;
+    document.getElementById('toast-rich-gain').textContent = '$' + Math.round(ganancia || 0).toLocaleString('es-AR');
+    document.getElementById('toast-rich-cost').textContent = '$' + Math.round(costo || 0).toLocaleString('es-AR');
+    el.classList.add('show');
+    clearTimeout(window._tr);
+    window._tr = setTimeout(() => el.classList.remove('show'), 5200);
+}
+
+// ═══════════════════════════════════════════════════════════
+// FACTURA PDF (jsPDF + AutoTable)
+// Comprobante de Compra y Venta · NO FISCAL · sin monotributo
+// ═══════════════════════════════════════════════════════════
+function downloadInvoicePDF(id) {
+    const p = pedidos.find(x => x.id === id);
+    if (!p) { toast('Pedido no encontrado', 'err'); return; }
+    if (!window.jspdf || !window.jspdf.jsPDF) { toast('Cargando PDF... reintentá en 1s', 'err'); return; }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+
+    // Colores
+    const BLUE = [10, 71, 222];
+    const BLUE2 = [57, 104, 246];
+    const GREEN = [45, 146, 76];
+    const RED = [220, 38, 38];
+    const DARK = [25, 30, 50];
+    const GRAY = [110, 120, 135];
+
+    const nichoKey = cat(p);
+    const hasConfig = Object.keys(configTienda).length > 0;
+    const items = p.items || [];
+    const totalInv = totalInversionRevendedor(p);
+    const totalFin = totalFinalRevendedor(p);
+    const ganancia = resellerGainOf(p);
+    const pctAplicado = totalInv > 0 ? ((ganancia / totalInv) * 100) : 0;
+
+    const env = p.envio || p.cliente || {};
+    const cli = p.cliente || p.envio || {};
+    const envNombre = fullName(env) || p._clienteName || 'Sin datos';
+    const fRaw = new Date((p.fechaCreacion?.seconds || 0) * 1000);
+    const fecha = ba(fRaw);
+    const nroFact = 'RW-' + (p.id || '').slice(-8).toUpperCase();
+
+    // ── BANNER AZUL SUPERIOR ──
+    doc.setFillColor(...BLUE);
+    doc.rect(0, 0, W, 38, 'F');
+    doc.setFillColor(...BLUE2);
+    doc.rect(0, 34, W, 4, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.text('RW · Revende Ways', 14, 16);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('Comprobante de Compra y Venta', 14, 23);
+    doc.setFontSize(8);
+    doc.text('Documento interno · No constituye factura fiscal (AFIP)', 14, 29);
+
+    // Caja del N° de factura
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(W - 66, 8, 52, 22, 2, 2, 'F');
+    doc.setTextColor(...BLUE);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('FACTURA Nº', W - 62, 14);
+    doc.setFontSize(13);
+    doc.text(nroFact, W - 62, 21);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...GRAY);
+    doc.text('Fecha: ' + fecha, W - 62, 27);
+
+    let y = 48;
+
+    // ── DATOS REVENDEDOR / CLIENTE (dos columnas) ──
+    const drawPartyBox = (x, title, lines, accent) => {
+        doc.setFillColor(245, 247, 252);
+        doc.roundedRect(x, y, 88, 36, 2, 2, 'F');
+        doc.setFillColor(...accent);
+        doc.rect(x, y, 88, 6, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text(title, x + 3, y + 4.2);
+        doc.setTextColor(...DARK);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        let ly = y + 11;
+        lines.forEach(l => {
+            if (!l) return;
+            doc.text(String(l).slice(0, 55), x + 3, ly);
+            ly += 4.5;
+        });
+    };
+
+    const revName = [currentVendorNombre, currentVendorApellido].filter(Boolean).join(' ') || 'Revendedor';
+    drawPartyBox(14, 'REVENDEDOR', [
+        revName,
+        'Código: ' + (currentCode || '—'),
+        'Panel: Revende Ways'
+    ], BLUE);
+
+    const dirCli = [env.direccion, env.ciudad, env.provincia, env.cp].filter(Boolean).join(', ');
+    drawPartyBox(W - 14 - 88, 'CLIENTE', [
+        envNombre,
+        env.telefono ? 'Tel: ' + env.telefono : '',
+        env.email || '',
+        dirCli
+    ], BLUE2);
+
+    y += 44;
+
+    // ── TABLA DE PRODUCTOS ──
+    const body = items.map(it => {
+        const qty = Number(it.cantidad) || 1;
+        const pCost = Number(it.precio) || 0;
+        const pFin = hasConfig ? (resellerPriceFinal(it, nichoKey) || pCost) : pCost;
+        const subCost = pCost * qty;
+        const subFin = pFin * qty;
+        return [
+            String(it.nombre || '—'),
+            String(qty),
+            '$' + pCost.toLocaleString('es-AR'),
+            '$' + Math.round(pFin).toLocaleString('es-AR'),
+            '$' + Math.round(subFin).toLocaleString('es-AR')
+        ];
+    });
+
+    doc.autoTable({
+        startY: y,
+        head: [['Producto', 'Cant.', 'P. Costo', 'P. Venta', 'Subtotal']],
+        body: body,
+        theme: 'grid',
+        headStyles: { fillColor: BLUE, textColor: 255, fontStyle: 'bold', fontSize: 9, halign: 'center' },
+        bodyStyles: { fontSize: 9, textColor: DARK },
+        columnStyles: {
+            0: { cellWidth: 78 },
+            1: { halign: 'center', cellWidth: 16 },
+            2: { halign: 'right', cellWidth: 28 },
+            3: { halign: 'right', cellWidth: 28 },
+            4: { halign: 'right', cellWidth: 32, fontStyle: 'bold' }
+        },
+        alternateRowStyles: { fillColor: [245, 248, 253] },
+        margin: { left: 14, right: 14 }
+    });
+
+    y = doc.lastAutoTable.finalY + 6;
+
+    // ── BLOQUE DE TOTALES ──
+    if (y > H - 80) { doc.addPage(); y = 20; }
+
+    const boxW = 90;
+    const boxX = W - 14 - boxW;
+    const rowH = 8;
+    doc.setDrawColor(...BLUE);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(boxX, y, boxW, rowH * 4 + 4, 2, 2, 'S');
+
+    const drawRow = (idx, lbl, val, color, bold) => {
+        const ry = y + 2 + idx * rowH + 5.5;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(...GRAY);
+        doc.text(lbl, boxX + 3, ry);
+        doc.setFont('helvetica', bold ? 'bold' : 'normal');
+        doc.setFontSize(bold ? 11 : 10);
+        doc.setTextColor(...color);
+        doc.text(val, boxX + boxW - 3, ry, { align: 'right' });
+    };
+
+    drawRow(0, 'Total venta (cliente)', '$' + Math.round(totalFin).toLocaleString('es-AR'), DARK, true);
+    drawRow(1, 'Costo (mayorista)', '$' + Math.round(totalInv).toLocaleString('es-AR'), GREEN, true);
+    drawRow(2, '% aplicado en esta venta', pctAplicado.toFixed(1) + ' %', BLUE, true);
+    drawRow(3, 'Ganancia neta', '$' + Math.round(ganancia).toLocaleString('es-AR'), RED, true);
+
+    y += rowH * 4 + 12;
+
+    // ── ESTADÍSTICAS DEL PEDIDO ──
+    if (y > H - 50) { doc.addPage(); y = 20; }
+    doc.setFillColor(...BLUE);
+    doc.rect(14, y, W - 28, 6, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('ESTADÍSTICAS DEL PEDIDO', 17, y + 4.2);
+    y += 10;
+
+    const totalUnid = items.reduce((s, i) => s + (Number(i.cantidad) || 1), 0);
+    const stats = [
+        ['Productos distintos', String(items.length)],
+        ['Unidades totales', String(totalUnid)],
+        ['Nicho', nichoKey],
+        ['Estado', (p.estado === 'pagado' ? 'Aprobado' : 'Pendiente')],
+        ['Precio promedio por unidad (costo)', '$' + (totalUnid ? Math.round(totalInv / totalUnid) : 0).toLocaleString('es-AR')],
+        ['Ganancia promedio por unidad', '$' + (totalUnid ? Math.round(ganancia / totalUnid) : 0).toLocaleString('es-AR')]
+    ];
+    doc.autoTable({
+        startY: y,
+        body: stats,
+        theme: 'plain',
+        bodyStyles: { fontSize: 9, textColor: DARK },
+        columnStyles: {
+            0: { cellWidth: 90, textColor: GRAY },
+            1: { halign: 'right', fontStyle: 'bold' }
+        },
+        margin: { left: 14, right: 14 }
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // ── FOOTER LEGAL ──
+    const footerY = H - 22;
+    doc.setDrawColor(...BLUE2);
+    doc.setLineWidth(0.3);
+    doc.line(14, footerY, W - 14, footerY);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GRAY);
+    doc.text(
+        'Este documento es un comprobante interno de compra y venta emitido por el revendedor a su cliente. ' +
+        'No reemplaza factura fiscal AFIP. Conservar como respaldo de la operación.',
+        14, footerY + 5, { maxWidth: W - 28 }
+    );
+    doc.setFontSize(7);
+    doc.setTextColor(...BLUE);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RW · Revende Ways', 14, footerY + 14);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...GRAY);
+    doc.text('Generado: ' + ba(new Date()), W - 14, footerY + 14, { align: 'right' });
+
+    doc.save(`Factura_${nroFact}.pdf`);
+    toast('Factura descargada', true);
+}
+function toast(m, type) {
+    const e = document.getElementById('toast');
+    e.textContent = m;
+    e.className = 'toast show' + (type===true||type==='ok'?' ok':type==='err'?' err':'');
+    clearTimeout(window._t);
+    window._t = setTimeout(()=>{ e.className='toast'; }, 3200);
+}
+function localDeletedIds() {
+    try { return JSON.parse(localStorage.getItem(D_KEY) || '[]'); } catch(_) { return []; }
+}
+function isLocallyDeleted(id) { return localDeletedIds().includes(id); }
+function rememberLocalDelete(id) {
+    const ids = localDeletedIds();
+    if (!ids.includes(id)) { ids.push(id); localStorage.setItem(D_KEY, JSON.stringify(ids.slice(-500))); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CÁLCULO DE GANANCIA DEL REVENDEDOR
+// Usa la misma lógica que tienda.html: configTiendaAll con rangos
+// precioFinal = precioBase * (1 + porcentaje/100)
+// ganancia    = precioFinal - precioBase
+// ═══════════════════════════════════════════════════════════
+function getConfigForCat(nichoKey) {
+    return configTienda[nichoKey] || configTienda['general'] || null;
+}
+
+function resellerGainForItem(item, nichoKey) {
+    const precioBase = Number(item.precio || 0);
+    const qty = Number(item.cantidad || 1);
+    if (!precioBase) return 0;
+
+    const cfg = getConfigForCat(nichoKey);
+    if (!cfg || !Array.isArray(cfg.rangos) || !cfg.rangos.length) {
+        // Sin config de tienda: no hay ganancia de revendedor calculable
+        return 0;
+    }
+    const rangos = cfg.rangos
+        .map(r => ({ de: Number(r.de)||0, hasta: Number(r.hasta)||Infinity, porcentaje: Number(r.porcentaje)||0 }))
+        .sort((a,b) => a.hasta - b.hasta);
+    const rango = rangos.find(r => precioBase >= r.de && precioBase <= r.hasta);
+    if (!rango || !rango.porcentaje) return 0;
+    const precioFinal = Math.round(precioBase * (1 + rango.porcentaje / 100));
+    return (precioFinal - precioBase) * qty;
+}
+
+function resellerGainOf(p) {
+    const nichoKey = cat(p);
+    return (p.items || []).reduce((s, i) => s + resellerGainForItem(i, nichoKey), 0);
+}
+
+function resellerPriceFinal(item, nichoKey) {
+    // precio que el revendedor cobra al cliente final
+    const base = Number(item.precio || 0);
+    if (!base) return base;
+    const cfg = getConfigForCat(nichoKey);
+    if (!cfg || !Array.isArray(cfg.rangos) || !cfg.rangos.length) return base;
+    const rangos = cfg.rangos
+        .map(r => ({ de: Number(r.de)||0, hasta: Number(r.hasta)||Infinity, porcentaje: Number(r.porcentaje)||0 }))
+        .sort((a,b) => a.hasta - b.hasta);
+    const rango = rangos.find(r => base >= r.de && base <= r.hasta);
+    if (!rango) return base;
+    return Math.round(base * (1 + rango.porcentaje / 100));
+}
+
+function totalFinalRevendedor(p) {
+    // total que cobra el revendedor al cliente
+    const nicho = cat(p);
+    return (p.items || []).reduce((s, i) => {
+        return s + resellerPriceFinal(i, nicho) * Number(i.cantidad || 1);
+    }, 0);
+}
+
+function totalInversionRevendedor(p) {
+    // lo que le cuesta al revendedor (precio mayorista)
+    return (p.items || []).reduce((s, i) => s + Number(i.precio||0) * Number(i.cantidad||1), 0);
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLASIFICAR NICHO
+// Prioridad absoluta: la categoría tal como la envía el panel de
+// index.html en p.nicho ('calzados' | 'perfumes' | 'multishop').
+// El fallback por palabras clave es solo un respaldo para pedidos
+// viejos sin ese campo; si no se puede determinar con certeza,
+// se devuelve null en vez de forzar una categoría (evita aplicar
+// el % de margen de una categoría equivocada).
+// ═══════════════════════════════════════════════════════════
+function cat(p) {
+    if (p.nicho) {
+        const n = p.nicho.toLowerCase();
+        if (n.includes('calzad') || n.includes('adult') || n.includes('niñ') || n.includes('nino')) return 'calzados';
+        if (n.includes('perfum') || n.includes('árabe') || n.includes('arabe')) return 'perfumes';
+        if (n.includes('multishop')) return 'multishop';
+    }
+    const items = p.items || [];
+    const nm = i => (i.nombre || '').toUpperCase();
+    const KP = ['PERFUME','ARABE','ÁRABE','BODY SPLASH','LATTAFA','AFNAN','ARMAF','YARA','ASAD','HALAMAN','CLUB DE NUIT','PRIDE OF','ODYSSEY','OUD','ATTAR'];
+    if (items.some(i => KP.some(k => nm(i).includes(k)))) return 'perfumes';
+    const KZ = ['DUNK','NIKE','ADIDAS','JORDAN','AIR FORCE','CAMPUS','FORUM','SAMBA','SUPERSTAR','BOSTON','NEW BALANCE','ADIZERO','DURAMO','BOTITA','ZAPATILLA'];
+    if (items.some(i => KZ.some(k => nm(i).includes(k)))) return 'calzados';
+    return null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SESIÓN
+// ═══════════════════════════════════════════════════════════
+function init() {
+    // Aplicar tema guardado antes de mostrar nada
+    const savedTheme = localStorage.getItem('rw_theme') || 'dark';
+    if (savedTheme === 'light') document.body.classList.add('light-theme');
+
+    // La sesión válida es SIEMPRE la de Firebase Auth, resuelta por UID.
+    // Si hay una sesión local guardada con un uid coincidente con el usuario
+    // actual de Firebase, la usamos como caché rápida; si no, esperamos a
+    // onAuthStateChanged (más abajo) para resolver el código real.
+    const stored = sessionStorage.getItem(S_KEY);
+    if (stored) {
+        try {
+            const d = JSON.parse(stored);
+            if (d.code && d.uid) {
+                currentCode = d.code;
+                currentUid  = d.uid;
+                configTienda = d.config || {};
+                currentVendorNombre = d.nombre || '';
+                currentVendorApellido = d.apellido || '';
+                showMain();
+                loadData();
+                return;
+            }
+        } catch(_) {}
+    }
+    showLogin();
+}
+
+
+function showThemeSelector() {
+    document.getElementById('login-wrap').style.display = 'none';
+    document.getElementById('theme-wrap').style.display = 'flex';
+}
+
+function selectTheme(theme) {
+    localStorage.setItem('rw_theme', theme);
+    if (theme === 'light') {
+        document.body.classList.add('light-theme');
+    } else {
+        document.body.classList.remove('light-theme');
+    }
+    document.getElementById('theme-wrap').style.display = 'none';
+    showMain();
+    loadData();
+}
+
+
+async function doGoogleLogin() {
+    const btn = document.querySelector('.btn-login');
+    const origHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Verificando...';
+    loginErr('');
+    try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await firebase.auth().signInWithPopup(provider);
+        const user = result.user;
+        if (!user) throw new Error('No se pudo obtener el usuario');
+
+        await _resolverCodigoVendedor(user);
+        showThemeSelector();
+    } catch (e) {
+        console.error(e);
+        if (!document.getElementById('login-err').classList.contains('show')) {
+            loginErr(e && e.message ? e.message : 'No se pudo iniciar sesión con Google.');
+        }
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHTML;
+    }
+}
+
+// ─── Resuelve el código real de revendedor a partir del UID de Firebase ───
+// Busca en datosderevendedor /api/login-vendedor-uid filtrando por el campo
+// "uid" del documento en la colección "usuarios" (igual UID que Firebase Auth).
+async function _resolverCodigoVendedor(user) {
+    let codigoFinal = '';
+    let cfg = {};
+    let nombre  = (user.displayName || '').split(' ')[0] || '';
+    let apellido = (user.displayName || '').split(' ').slice(1).join(' ') || '';
+
+    try {
+        const res = await fetch(`${WORKER_APROBADOS}/api/login-vendedor-uid`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uid: user.uid })
+        });
+        if (res.ok) {
+            const data = await res.json().catch(() => null);
+            if (data && data.success && data.vendedor) {
+                codigoFinal = data.vendedor.codigoVendedor || '';
+                cfg = data.vendedor.configTiendaAll || data.vendedor.configTienda || {};
+                nombre   = data.vendedor.nombre   || nombre;
+                apellido = data.vendedor.apellido || apellido;
+            }
+        }
+    } catch(_) {}
+
+    if (!codigoFinal) {
+        // Sin coincidencia por UID en la base: avisar en vez de inventar un código falso
+        loginErr('No encontramos tu cuenta de revendedor vinculada. Contactá al administrador.');
+        throw new Error('UID sin código de revendedor asociado');
+    }
+
+    currentCode = codigoFinal;
+    currentVendorNombre   = nombre;
+    currentVendorApellido = apellido;
+    configTienda = cfg;
+    currentUid = user.uid;
+    localStorage.setItem('rw_code', currentCode);
+    localStorage.setItem('rw_uid', currentUid);
+    sessionStorage.setItem(S_KEY, JSON.stringify({
+        code: currentCode,
+        config: configTienda,
+        nombre: currentVendorNombre,
+        apellido: currentVendorApellido,
+        email: user.email || '',
+        photo: user.photoURL || '',
+        uid: currentUid
+    }));
+}
+
+// Login con correo + contraseña (si el usuario ya existe en Firebase, entra)
+async function doEmailLogin() {
+    const btn   = document.getElementById('btn-email-login');
+    const email = (document.getElementById('inp-email').value || '').trim();
+    const pass  = document.getElementById('inp-pass').value || '';
+    if (!email || !pass) { loginErr('Ingresá correo y contraseña.'); return; }
+    const orig = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = 'Verificando...';
+    loginErr('');
+    try {
+        const result = await firebase.auth().signInWithEmailAndPassword(email, pass);
+        const user = result.user;
+        if (!user) throw new Error('No se pudo iniciar sesión.');
+        await _resolverCodigoVendedor(user);
+        showThemeSelector();
+    } catch (e) {
+        const code = (e && e.code) || '';
+        let msg = e && e.message ? e.message : 'No se pudo iniciar sesión.';
+        if (code === 'auth/user-not-found')        msg = 'Este correo no está registrado.';
+        else if (code === 'auth/wrong-password')   msg = 'Contraseña incorrecta.';
+        else if (code === 'auth/invalid-email')    msg = 'Correo inválido.';
+        else if (code === 'auth/invalid-credential') msg = 'Correo o contraseña incorrectos.';
+        else if (code === 'auth/too-many-requests')msg = 'Demasiados intentos. Probá más tarde.';
+        if (!document.getElementById('login-err').classList.contains('show')) {
+            loginErr(msg);
+        }
+    } finally {
+        btn.disabled = false; btn.innerHTML = orig;
+    }
+}
+
+// Compatibilidad por si quedó algún listener viejo
+async function doLogin() { return doEmailLogin(); }
+
+function loginErr(m) {
+    const e = document.getElementById('login-err');
+    e.textContent = m;
+    e.classList.toggle('show', !!m);
+}
+function logout() {
+    sessionStorage.removeItem(S_KEY);
+    localStorage.removeItem('rw_code');
+    localStorage.removeItem('rw_uid');
+    currentCode = ''; currentUid = '';
+    try { const u=new URL(location.href); u.searchParams.delete('codigo'); u.searchParams.delete('code'); history.replaceState({}, '', u.toString()); } catch(_) {}
+    try { firebase.auth().signOut(); } catch(_) {}
+    location.reload();
+}
+function showLogin() {
+    document.getElementById('login-wrap').style.display = 'flex';
+    document.getElementById('topbar').style.display = 'none';
+    document.getElementById('main').classList.remove('show');
+}
+function showMain() {
+    document.getElementById('login-wrap').style.display = 'none';
+    document.getElementById('topbar').style.display = 'flex';
+    document.getElementById('main').classList.add('show');
+    document.getElementById('badge-code').textContent = 'Cód: ' + currentCode;
+}
+
+// ─── normaliza cualquier pedido crudo a estructura interna ───
+// Maneja el formato exacto que manda index.html a /api/panel-gestion:
+//   pedidoId, codigoVendedor, cliente (STRING), telefono, items [{nombre,cantidad,precio}]
+// Y también el formato de workerwebcliente /logistica:
+//   id, nombre, apellido, telefono, productos (array strings), cantidades, preciosIndividuales
+function _norm(p, estadoForzado) {
+    const id = p.pedidoId || p.id || p._id;
+    if (!id) return null;
+    if (isLocallyDeleted(id)) return null;
+
+    // Estado
+    let estado = estadoForzado;
+    if (!estado) {
+        const ep = (p.estadoAprobacion || p.estadoPago || p.estado || '').toLowerCase();
+        estado = (ep.includes('aprobad') || ep.includes('pagado') || ep === 'entregado') ? 'pagado'
+               : (ep.includes('rechazad') || ep.includes('no_aprobad') || ep.includes('cancelad')) ? 'cancelado'
+               : 'pendiente';
+    }
+
+    // Cliente — puede ser string (del index) u objeto (del worker logistica)
+    let envObj = {};
+    if (p.cliente && typeof p.cliente === 'object') {
+        envObj = { ...p.cliente };
+    } else {
+        // cliente es string "Nombre Apellido" o viene suelto en campos raíz
+        const nombreStr = (typeof p.cliente === 'string' ? p.cliente : '') ||
+                          [p.nombre, p.apellido].filter(Boolean).join(' ');
+        const partes = nombreStr.trim().split(' ');
+        envObj = {
+            nombre:   partes[0] || '',
+            apellido: partes.slice(1).join(' ') || '',
+            telefono: p.telefono || '',
+            direccion: p.direccion || p.ciudad || '',
+        };
+    }
+    // telefono puede venir suelto en raíz aunque cliente sea objeto
+    if (!envObj.telefono) envObj.telefono = p.telefono || '';
+
+    const clienteNombre = [envObj.nombre, envObj.apellido].filter(Boolean).join(' ') || 'Cliente';
+
+    // Items — dos formatos:
+    // 1. Del index:   items: [{nombre, cantidad, precio}]
+    // 2. Del worker:  productos: ["Nike Dunk (T.42)", ...] + cantidades + preciosIndividuales
+    let items = [];
+    const rawItems = p.items || p.productos || [];
+    if (rawItems.length && typeof rawItems[0] === 'string') {
+        // Formato worker: arrays paralelos
+        const cants  = p.cantidades || [];
+        const prices = p.preciosIndividuales || p.precios || [];
+        items = rawItems.map((nombre, i) => ({
+            nombre,
+            cantidad: Number(cants[i])  || 1,
+            precio:   Number(prices[i]) || 0,
+        }));
+    } else {
+        items = rawItems.map(i => ({
+            nombre:   i.nombre || i.name || '—',
+            cantidad: Number(i.cantidad || i.qty || 1),
+            // precioMayorista = precio de costo original guardado por /api/panel-gestion
+            precio:   Number(i.precioMayorista ?? i.precio ?? i.precioFinal ?? i.unit_price ?? 0),
+        }));
+    }
+
+    // Fecha
+    let fechaSecs = 0;
+    if (p.fechaCreacion?.seconds) {
+        fechaSecs = p.fechaCreacion.seconds;
+    } else if (p.fecha || p.fechaRegistro) {
+        const d = new Date(p.fecha || p.fechaRegistro);
+        fechaSecs = isNaN(d) ? 0 : Math.floor(d.getTime() / 1000);
+    }
+    if (!fechaSecs) fechaSecs = Math.floor(Date.now() / 1000);
+
+    return {
+        id, estado, items,
+        cliente: envObj,
+        envio:   envObj,
+        nicho:   p.nicho || p.categoria || null,
+        codigoVendedor: p.codigoVendedor || currentCode,
+        _vCode:  p.codigoVendedor || currentCode,
+        _clienteName: clienteNombre,
+        fechaCreacion: { seconds: fechaSecs },
+        _raw: p,
+    };
+}
+
+// ═══════════════════════════════════════════════════════════
+// CARGA PEDIDOS PENDIENTES desde workerwebcliente /logistica
+// ═══════════════════════════════════════════════════════════
+async function _cargarPendientes() {
+    if (!currentCode) return [];
+    try {
+        const url = `${WORKER_PENDIENTES}/logistica?codigo=${encodeURIComponent(currentCode)}`;
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 8000);
+        const res = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(t);
+        if (!res.ok) return [];
+        const data = await res.json().catch(() => null);
+        const arr = Array.isArray(data) ? data
+                  : (data && Array.isArray(data.pedidos)) ? data.pedidos
+                  : (data && Array.isArray(data.items))   ? data.items : [];
+        // Filtrar solo los que NO están aprobados aún
+        return arr.filter(p => {
+            const ep = (p.estadoAprobacion || p.estado || '').toLowerCase();
+            return !ep.includes('aprobad') && !ep.includes('pagado') && ep !== 'entregado';
+        });
+    } catch(_) { return []; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CARGA PEDIDOS APROBADOS desde datosderevendedor
+// Endpoint confirmado: GET /api/panel-gestion?codigo=X
+// (el index.html guarda los aprobados con POST /api/panel-gestion)
+// ═══════════════════════════════════════════════════════════
+async function _cargarAprobados() {
+    const codigo = currentCode || '';
+    if (!codigo) return [];
+
+    try {
+        const url = `${WORKER_APROBADOS}/api/panel-gestion?codigo=${encodeURIComponent(codigo)}`;
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 8000);
+        const res = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(t);
+        if (!res.ok) return [];
+
+        const data = await res.json().catch(() => null);
+        if (!data) return [];
+
+        const arr = Array.isArray(data.panelGestion) ? data.panelGestion
+                  : Array.isArray(data.pedidos)       ? data.pedidos
+                  : Array.isArray(data)                ? data
+                  : [];
+        return arr;
+    } catch(_) { return []; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CARGA DE DATOS — fusiona ambas fuentes sin duplicados
+// ═══════════════════════════════════════════════════════════
+async function loadData() {
+    ['perfumes','multishop','calzados'].forEach(k => {
+        document.getElementById('list-'+k).innerHTML =
+            '<div class="loader"><div class="spin"></div><p>Cargando pedidos...</p></div>';
+    });
+
+    try {
+        pedidos = [];
+
+        // Traer ambas fuentes en paralelo
+        const [rawPend, rawApro] = await Promise.all([
+            _cargarPendientes(),
+            _cargarAprobados()
+        ]);
+
+        // Debug visible — aparece en consola Y en un toast para que puedas ver qué trajo
+        console.log('[Panel] Pendientes del worker:', rawPend.length, rawPend);
+        console.log('[Panel] Aprobados del worker:', rawApro.length, rawApro);
+        if (!rawPend.length && !rawApro.length) {
+            toast(`⚠️ Workers sin datos. Código: "${currentCode}". Abrí consola (F12) para detalles.`, 'err');
+        } else {
+            toast(`Cargados: ${rawPend.length} pendientes · ${rawApro.length} aprobados`, true);
+        }
+
+        const seen = new Map();
+
+        rawPend.forEach(p => {
+            const norm = _norm(p, 'pendiente');
+            if (!norm) return;
+            seen.set(norm.id, pedidos.length);
+            pedidos.push(norm);
+        });
+
+        rawApro.forEach(p => {
+            const norm = _norm(p, 'pagado');
+            if (!norm) return;
+            if (seen.has(norm.id)) {
+                pedidos[seen.get(norm.id)].estado = 'pagado';
+            } else {
+                seen.set(norm.id, pedidos.length);
+                pedidos.push(norm);
+            }
+        });
+
+        pedidos.sort((a,b) => (b.fechaCreacion?.seconds||0) - (a.fechaCreacion?.seconds||0));
+
+        const tot  = pedidos.length;
+        const pend = pedidos.filter(p => p.estado === 'pendiente').length;
+        const apro = pedidos.filter(p => p.estado === 'pagado').length;
+
+        document.getElementById('count-lbl').textContent = tot ? `(${tot} pedido${tot!==1?'s':''})` : '';
+        document.getElementById('scnt-pendiente').textContent = pend;
+        document.getElementById('scnt-pagado').textContent    = apro;
+
+        renderAll();
+
+    } catch(e) {
+        console.error('loadData error:', e);
+        toast('Error al cargar: ' + e.message, 'err');
+        ['perfumes','multishop','calzados'].forEach(k => {
+            document.getElementById('list-'+k).innerHTML =
+                `<div class="empty"><div class="empty-icon">⚠️</div><h3>Error al cargar</h3><p>${esc(e.message)}</p></div>`;
+        });
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════
+function renderAll() {
+    const filtered = pedidos.filter(p => p.estado === activeStatus);
+    const cats = { perfumes:[], multishop:[], calzados:[] };
+    filtered.forEach(p => { const c = cat(p); if (cats[c]) cats[c].push(p); });
+
+    ['perfumes','multishop','calzados'].forEach(k => {
+        document.getElementById('pill-'+k).textContent = cats[k].length;
+        renderStats(cats[k], k);
+        renderList(cats[k], k);
+    });
+    refreshActiveView();
+    try { renderLevelBar(); } catch(_) {}
+}
+
+function renderStats(ps, k) {
+    const el = document.getElementById('stats-'+k);
+    if (!ps.length) { el.innerHTML = ''; return; }
+    const totalGain = ps.reduce((s,p) => s + resellerGainOf(p), 0);
+    const units = ps.reduce((s,p) => s + (p.items||[]).reduce((a,i) => a + (i.cantidad||1), 0), 0);
+    const hasConfig = Object.keys(configTienda).length > 0;
+    el.innerHTML = `
+        <div class="stat-card"><div class="stat-lbl">Pedidos</div><div class="stat-val ${activeStatus==='pendiente'?'a':'g'}">${ps.length}</div></div>
+        <div class="stat-card"><div class="stat-lbl">Unidades</div><div class="stat-val">${units}</div></div>
+        ${hasConfig ? `<div class="stat-card"><div class="stat-lbl">Mi ganancia</div><div class="stat-val g">$${Math.round(totalGain).toLocaleString()}</div></div>` : ''}
+    `;
+}
+
+function renderList(ps, k) {
+    const el = document.getElementById('list-'+k);
+    if (!ps.length) {
+        el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><h3>Sin pedidos</h3><p>${activeStatus === 'pendiente' ? 'No hay pedidos pendientes en este nicho.' : 'No hay pedidos aprobados en este nicho.'}</p></div>`;
+        return;
+    }
+    el.innerHTML = ps.map(p => card(p)).join('');
+}
+
+function card(p) {
+    const fRaw = new Date((p.fechaCreacion?.seconds||0) * 1000);
+    const fecha = ba(fRaw);
+    const items = p.items || [];
+    const estado = p.estado || 'pendiente';
+    const nichoKey = cat(p);
+    const totalU = items.reduce((s,i) => s + (i.cantidad||1), 0);
+    const totalInv = totalInversionRevendedor(p);
+    const totalFin = totalFinalRevendedor(p);
+    const ganancia = resellerGainOf(p);
+    const hasConfig = Object.keys(configTienda).length > 0;
+
+    const env = p.envio || p.cliente || {};
+    const envNombre = [env.nombre, env.apellido].filter(Boolean).join(' ');
+    const hasEnvio = envNombre || env.telefono || env.direccion || env.ciudad;
+
+    const envioBlock = hasEnvio ? `
+        <div class="ship-block">
+            ${envNombre ? `<div class="ship-row"><strong>${esc(envNombre)}</strong></div>` : ''}
+            ${env.telefono ? `<div class="ship-row">📞 ${esc(env.telefono)}</div>` : ''}
+            ${env.email ? `<div class="ship-row">✉️ ${esc(env.email)}</div>` : ''}
+            ${(env.direccion||env.ciudad) ? `<div class="ship-row">📍 ${[env.direccion,env.ciudad,env.provincia,env.cp].filter(Boolean).join(', ')}</div>` : ''}
+            ${env.observaciones ? `<div class="ship-row">📋 ${esc(env.observaciones)}</div>` : ''}
+        </div>` : '<span style="font-size:12px;color:var(--text3)">Sin datos de envío</span>';
+
+    const rows = items.map(it => {
+        const pFin = hasConfig ? resellerPriceFinal(it, nichoKey) : null;
+        const gain = hasConfig ? resellerGainForItem(it, nichoKey) : null;
+        return `<tr>
+            <td><div class="prod-name">${esc(it.nombre||'—')}</div></td>
+            <td class="qty-num">${it.cantidad||1}</td>
+            <td class="price-cell">$${Number(it.precio||0).toLocaleString()}</td>
+            ${hasConfig ? `<td class="price-cell">$${(pFin||0).toLocaleString()}</td><td class="gain-cell">+$${Math.round(gain||0).toLocaleString()}</td>` : ''}
+        </tr>`;
+    }).join('');
+
+    const stop = 'event.stopPropagation();';
+
+    return `<div class="ribbon" id="oc-${p.id}">
+        <div class="ribbon-head" onclick="toggleRibbon('${p.id}')">
+            <div class="ribbon-main">
+                <span class="r-name">${esc(p._clienteName || envNombre || 'Cliente')}</span>
+                ${p._vCode ? `<span class="r-code">Cod: ${esc(p._vCode)}</span>` : ''}
+            </div>
+            <div class="ribbon-meta">
+                <span class="status-chip s-${estado}">${estado==='pagado'?'Aprobado':'Pendiente'}</span>
+                <span class="r-date">${fecha}</span>
+                <svg class="r-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+        </div>
+        <div class="ribbon-body">
+            <div class="ribbon-inner">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:12px">
+                    <div>
+                        <div style="font-size:13px;font-weight:700;color:var(--text)">Pedido #${p.id.slice(-8).toUpperCase()}</div>
+                        <div style="font-size:11px;color:var(--text3);margin-top:2px">📅 ${fecha}</div>
+                    </div>
+                    ${envioBlock}
+                </div>
+                <table class="prod-table">
+                    <thead><tr>
+                        <th>Producto</th>
+                        <th style="text-align:center">Cant.</th>
+                        <th style="text-align:right">Precio mayorista</th>
+                        ${hasConfig ? '<th style="text-align:right">Precio cliente</th><th style="text-align:right">Mi ganancia</th>' : ''}
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+                <div class="order-foot">
+                    <div>
+                        <div class="foot-meta"><strong>${items.length}</strong> prod. · <strong>${totalU}</strong> unid. · Inversión: <strong>$${Math.round(totalInv).toLocaleString()}</strong></div>
+                        ${hasConfig && ganancia > 0 ? `<div class="foot-gain">+$${Math.round(ganancia).toLocaleString()} de ganancia</div>` : ''}
+                    </div>
+                    <div class="actions">
+                        <button class="btn-act btn-pdf" onclick="${stop}downloadInvoicePDF('${p.id}')">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+                            Factura PDF
+                        </button>
+                        <button class="btn-act btn-send" onclick="${stop}sendPedido('${p.id}',this)">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                            Enviar
+                        </button>
+                        <button class="btn-act btn-del" onclick="${stop}askDelete('${p.id}')">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                            Eliminar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>`;
+}
+
+function toggleRibbon(id) { document.getElementById('oc-'+id)?.classList.toggle('expanded'); }
+
+// ═══════════════════════════════════════════════════════════
+// ENVIAR PEDIDO A workerpagos
+// ═══════════════════════════════════════════════════════════
+async function sendPedido(id, btn) {
+    const p = pedidos.find(x => x.id === id);
+    if (!p) return;
+
+    const orig = btn ? btn.innerHTML : '';
+    if (btn) { btn.innerHTML = 'Enviando...'; btn.disabled = true; }
+
+    const nichoKey = cat(p);
+    const hasConfig = Object.keys(configTienda).length > 0;
+    const ganancia = resellerGainOf(p);
+    const totalFin = totalFinalRevendedor(p);
+    const totalInv = totalInversionRevendedor(p);
+
+    // Productos a PRECIO DE COSTO (mayorista original del catálogo)
+    const productosCosto = (p.items || []).map(it => ({
+        nombre: it.nombre,
+        cantidad: Number(it.cantidad) || 1,
+        precio: Number(it.precio) || 0    // PRECIO DE COSTO
+    }));
+
+    const cli = p.cliente || p.envio || {};
+    const env = p.envio || p.cliente || {};
+    const direccionFull = [env.direccion, env.ciudad, env.provincia, env.cp]
+        .filter(Boolean).join(', ');
+
+    // Payload: información idéntica al pedido, a precio de COSTO
+    const payload = {
+        action: 'pedidoAprobado',
+        pedidoId: p.id,
+        uid: p.id,
+        codigoVendedor: currentCode,
+        estado: 'APROBADO',
+        estadoPagoRevendedor: 'APROBADO',
+        nicho: nichoKey,
+        // Productos al PRECIO DE COSTO con info idéntica
+        productos: productosCosto,
+        items: productosCosto,
+        total: Math.round(totalInv),                  // total a precio de COSTO
+        totalCosto: Math.round(totalInv),
+        // Info de referencia para el panel de pagos
+        totalGananciaRevendedor: Math.round(ganancia),
+        totalFinalCliente: Math.round(totalFin),
+        cliente: {
+            nombre: (cli.nombre || '') + (cli.apellido ? ' ' + cli.apellido : ''),
+            email: cli.email || env.email || '',
+            telefono: cli.telefono || env.telefono || '',
+            direccion: direccionFull,
+            ciudad: env.ciudad || '',
+            provincia: env.provincia || '',
+            cp: env.cp || ''
+        },
+        envio: p.envio || p.cliente || null,
+        vendedor: {
+            codigo: currentCode,
+            nombre: currentVendorNombre,
+            apellido: currentVendorApellido
+        },
+        configTienda: configTienda,
+        fecha: new Date().toISOString(),
+        _raw: p._raw || null
+    };
+
+    try {
+        const res = await fetch(WORKER_PAGOS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            toastRich(ganancia, totalInv, '¡Pedido enviado! Felicidades');
+            // Marcar localmente como aprobado para que se mueva al tab "aprobados"
+            p.estado = 'pagado';
+            const pend = pedidos.filter(x => x.estado === 'pendiente').length;
+            const apro = pedidos.filter(x => x.estado === 'pagado').length;
+            document.getElementById('scnt-pendiente').textContent = pend;
+            document.getElementById('scnt-pagado').textContent    = apro;
+            renderAll();
+        } else {
+            const txt = await res.text().catch(() => '');
+            console.warn('workerpagos respondió', res.status, txt);
+            toast('Error al enviar: HTTP ' + res.status, 'err');
+        }
+    } catch(e) {
+        console.error('Error envío workerpagos:', e);
+        toast('Error de conexión al enviar', 'err');
+    }
+
+    if (btn) { btn.innerHTML = orig; btn.disabled = false; }
+}
+
+async function sendAllPedidos() {
+    const toSend = pedidos.filter(p => p.estado === 'pendiente');
+    if (!toSend.length) { toast('No hay pedidos pendientes para enviar', 'err'); return; }
+    // Abrir modal de confirmación
+    document.getElementById('send-all-modal').classList.add('show');
+}
+
+async function confirmSendAll() {
+    document.getElementById('send-all-modal').classList.remove('show');
+    const toSend = pedidos.filter(p => p.estado === 'pendiente');
+    if (!toSend.length) return;
+
+    const btn = document.querySelector('.btn-send-all');
+    btn.textContent = `Enviando ${toSend.length}...`; btn.disabled = true;
+
+    let ok = 0, fail = 0;
+    for (const p of toSend) {
+        try { await sendPedido(p.id, null); ok++; } catch(_) { fail++; }
+    }
+
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar todos`;
+    btn.disabled = false;
+    toast(`${ok} pedidos enviados${fail ? ` · ${fail} con error` : ''}`, ok > 0 ? true : 'err');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ELIMINAR PEDIDO
+// ═══════════════════════════════════════════════════════════
+function askDelete(id) {
+    deleteTarget = id;
+    document.getElementById('del-modal').classList.add('show');
+}
+function closeModal() {
+    document.getElementById('del-modal').classList.remove('show');
+    deleteTarget = null;
+}
+async function confirmDelete() {
+    if (!deleteTarget) return;
+    const id = deleteTarget;
+    const btn = document.getElementById('del-confirm-btn');
+    btn.textContent = 'Eliminando...'; btn.disabled = true;
+
+    rememberLocalDelete(id);
+    pedidos = pedidos.filter(p => p.id !== id);
+
+    const pend = pedidos.filter(p => p.estado === 'pendiente').length;
+    const apro = pedidos.filter(p => p.estado === 'pagado').length;
+    document.getElementById('scnt-pendiente').textContent = pend;
+    document.getElementById('scnt-pagado').textContent    = apro;
+    const tot = pedidos.length;
+    document.getElementById('count-lbl').textContent = tot ? `(${tot} pedido${tot!==1?'s':''})` : '';
+
+    closeModal();
+    renderAll();
+    btn.textContent = 'Eliminar'; btn.disabled = false;
+    toast('Pedido eliminado', true);
+}
+
+document.getElementById('send-all-modal').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
+document.getElementById('del-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+document.getElementById('chart-modal').addEventListener('click', function(e) { if (e.target === this) closeChartModal(); });
+
+// ═══════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════
+function switchStatus(s) {
+    activeStatus = s;
+    document.getElementById('stab-pendiente').className = 'stab pend' + (s==='pendiente'?' active':'');
+    document.getElementById('stab-pagado').className    = 'stab apro' + (s==='pagado'   ?' active':'');
+    renderAll();
+}
+function switchTab(k) {
+    activeTab = k;
+    document.querySelectorAll('.tab-pane').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.pill').forEach(e => e.classList.remove('on'));
+    document.getElementById('pane-'+k).classList.add('active');
+    document.getElementById('tbtn-'+k).classList.add('active');
+    document.getElementById('pill-'+k).classList.add('on');
+}
+function switchView(v) {
+    document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
+    document.getElementById('view-'+v)?.classList.add('active');
+    document.querySelectorAll('.menu-btn').forEach(e => e.classList.toggle('active', e.dataset.view === v));
+    if (v === 'stats')        renderStatsView();
+    if (v === 'ganancias')    renderGananciasView();
+    if (v === 'ranking')      renderRankingView();
+}
+function refreshActiveView() {
+    const a = document.querySelector('.menu-btn.active');
+    if (a && a.dataset.view !== 'pedidos') switchView(a.dataset.view);
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS TIEMPO
+// ═══════════════════════════════════════════════════════════
+function inWindow(secs, days) {
+    if (!secs) return false;
+    return secs >= Date.now()/1000 - days*86400;
+}
+function inPrevWindow(secs, days) {
+    if (!secs) return false;
+    const now = Date.now()/1000;
+    return secs >= now - days*2*86400 && secs < now - days*86400;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MINI RIBBON HELPER
+// ═══════════════════════════════════════════════════════════
+function miniRibbon(id, title, value, sub, rows, cls, chartKey) {
+    const chartBtn = chartKey
+        ? `<button class="mini-chart-btn" onclick="event.stopPropagation();openChart('${chartKey}','${title}')">Ver gráfico</button>`
+        : '';
+    return `<div class="mini-ribbon" id="${id}">
+        <div class="mini-head" onclick="toggleMini('${id}')">
+            <div class="mini-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16V9"/><path d="M13 16V6"/><path d="M18 16v-4"/></svg>
+                <div><div>${title}</div>${sub ? `<div class="mini-sub">${sub}</div>` : ''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+                <div class="mini-value ${cls||''}">${value}</div>
+                <svg class="mini-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+        </div>
+        <div class="mini-body"><div class="mini-content">${rows.map(r => `<div class="mini-row"><span>${r[0]}</span><strong>${r[1]}</strong></div>`).join('')}${chartBtn ? `<div style="margin-top:8px">${chartBtn}</div>` : ''}</div></div>
+    </div>`;
+}
+function toggleMini(id) { document.getElementById(id)?.classList.toggle('expanded'); }
+
+// ═══════════════════════════════════════════════════════════
+// DATOS PARA GRÁFICOS (últimas 8 semanas)
+// ═══════════════════════════════════════════════════════════
+function getWeeklyData(metric) {
+    // metric: 'pedidos' | 'ganancia' | 'facturacion'
+    const weeks = [];
+    const now = Date.now() / 1000;
+    for (let i = 7; i >= 0; i--) {
+        const start = now - (i+1)*7*86400;
+        const end   = now - i*7*86400;
+        const ps = pedidos.filter(p => {
+            const s = p.fechaCreacion?.seconds || 0;
+            return s >= start && s < end;
+        });
+        const weekDate = new Date((now - i*7*86400)*1000);
+        const label = weekDate.toLocaleString('es-AR', { month:'short', day:'numeric' });
+        let val = 0;
+        if (metric === 'pedidos') val = ps.length;
+        else if (metric === 'ganancia') val = Math.round(ps.reduce((s,p) => s + resellerGainOf(p), 0));
+        else if (metric === 'facturacion') val = Math.round(ps.reduce((s,p) => s + totalFinalRevendedor(p), 0));
+        weeks.push({ label, val });
+    }
+    return weeks;
+}
+
+function getMonthlyData(metric) {
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const dEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+        const ps = pedidos.filter(p => {
+            const s = (p.fechaCreacion?.seconds || 0) * 1000;
+            return s >= d.getTime() && s < dEnd.getTime();
+        });
+        const label = d.toLocaleString('es-AR', { month:'short', year:'2-digit' });
+        let val = 0;
+        if (metric === 'pedidos') val = ps.length;
+        else if (metric === 'ganancia') val = Math.round(ps.reduce((s,p) => s + resellerGainOf(p), 0));
+        else if (metric === 'facturacion') val = Math.round(ps.reduce((s,p) => s + totalFinalRevendedor(p), 0));
+        months.push({ label, val });
+    }
+    return months;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL GRÁFICO
+// ═══════════════════════════════════════════════════════════
+const CHART_METRICS = {
+    'pedidos-semanas':    { metric:'pedidos',       fn: getWeeklyData,  label:'Pedidos',      color:'rgba(0,102,255,' },
+    'ganancia-semanas':   { metric:'ganancia',      fn: getWeeklyData,  label:'Ganancia ($)', color:'rgba(0,201,110,' },
+    'facturacion-semanas':{ metric:'facturacion',   fn: getWeeklyData,  label:'Facturación ($)', color:'rgba(245,158,11,' },
+    'pedidos-meses':      { metric:'pedidos',       fn: getMonthlyData, label:'Pedidos',      color:'rgba(0,102,255,' },
+    'ganancia-meses':     { metric:'ganancia',      fn: getMonthlyData, label:'Ganancia ($)', color:'rgba(0,201,110,' },
+    'facturacion-meses':  { metric:'facturacion',   fn: getMonthlyData, label:'Facturación ($)', color:'rgba(245,158,11,' },
+};
+
+let _chartKey = '';
+function openChart(key, titleBase) {
+    document.getElementById('chart-modal-title').textContent = `Gráfico: ${titleBase}`;
+    _chartKey = key;
+
+    // Tabs: semanas / meses
+    const base = key.split('-')[0];
+    document.getElementById('chart-modal-tabs').innerHTML = `
+        <button class="chart-tab ${key.includes('semanas')?'active':''}" onclick="switchChartTab('${base}-semanas','${titleBase}')">Por semanas</button>
+        <button class="chart-tab ${key.includes('meses')?'active':''}" onclick="switchChartTab('${base}-meses','${titleBase}')">Por meses</button>
+    `;
+
+    renderChartModal(key);
+    document.getElementById('chart-modal').classList.add('show');
+}
+
+function switchChartTab(key, titleBase) {
+    _chartKey = key;
+    document.querySelectorAll('#chart-modal-tabs .chart-tab').forEach((b,i) => {
+        b.classList.toggle('active', i === (key.includes('semanas') ? 0 : 1));
+    });
+    renderChartModal(key);
+}
+
+function renderChartModal(key) {
+    const cfg = CHART_METRICS[key];
+    if (!cfg) return;
+    const pts = cfg.fn(cfg.metric);
+
+    if (chartModalInst) { chartModalInst.destroy(); chartModalInst = null; }
+
+    const ctx = document.getElementById('chart-modal-canvas').getContext('2d');
+    chartModalInst = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: pts.map(p => p.label),
+            datasets: [{
+                label: cfg.label,
+                data: pts.map(p => p.val),
+                backgroundColor: cfg.color + '0.7)',
+                borderColor: cfg.color + '1)',
+                borderWidth: 2,
+                borderRadius: 6,
+                hoverBackgroundColor: cfg.color + '0.9)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => cfg.metric !== 'pedidos'
+                            ? `$${ctx.parsed.y.toLocaleString()}`
+                            : `${ctx.parsed.y} pedidos`
+                    }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#9aa0b4', font:{ size:11 } }, grid: { color:'rgba(255,255,255,.04)' } },
+                y: { ticks: { color: '#9aa0b4', font:{ size:11 }, callback: v => cfg.metric !== 'pedidos' ? '$'+v.toLocaleString() : v }, grid: { color:'rgba(255,255,255,.04)' }, beginAtZero: true }
+            }
+        }
+    });
+}
+
+function closeChartModal() {
+    if (chartModalInst) { chartModalInst.destroy(); chartModalInst = null; }
+    document.getElementById('chart-modal').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════════
+// VISTA: ESTADÍSTICAS
+// ═══════════════════════════════════════════════════════════
+function renderStatsView() {
+    const el = document.getElementById('stats-content');
+    const hasConfig = Object.keys(configTienda).length > 0;
+    const periods = [
+        { l:'Semana',   d:7   },
+        { l:'Quincena', d:15  },
+        { l:'Mes',      d:30  },
+        { l:'Año',      d:365 }
+    ];
+
+    let html = `<h2 class="section-title">Mis estadísticas</h2>`;
+
+    // KPIs generales
+    const totalPeds = pedidos.length;
+    const aprobados = pedidos.filter(p => p.estado === 'pagado').length;
+    const pendientes = pedidos.filter(p => p.estado === 'pendiente').length;
+    const totalGain = hasConfig ? pedidos.reduce((s,p) => s + resellerGainOf(p), 0) : 0;
+    const totalFac  = pedidos.reduce((s,p) => s + totalFinalRevendedor(p), 0);
+
+    html += `<div class="kpi-grid">
+        <div class="kpi"><div class="kpi-lbl">Total pedidos</div><div class="kpi-val">${totalPeds}</div></div>
+        <div class="kpi"><div class="kpi-lbl">Aprobados</div><div class="kpi-val" style="color:var(--green)">${aprobados}</div></div>
+        <div class="kpi"><div class="kpi-lbl">Pendientes</div><div class="kpi-val" style="color:var(--amber)">${pendientes}</div></div>
+        ${hasConfig ? `<div class="kpi"><div class="kpi-lbl">Ganancia total</div><div class="kpi-val" style="color:var(--green)">$${Math.round(totalGain).toLocaleString()}</div></div>` : ''}
+        <div class="kpi"><div class="kpi-lbl">Facturación cliente</div><div class="kpi-val">$${Math.round(totalFac).toLocaleString()}</div></div>
+    </div>`;
+
+    // Crecimiento de pedidos
+    html += `<div class="section-block"><h2 class="section-title">Crecimiento de pedidos</h2><div class="mini-list">`;
+    periods.forEach((pr, i) => {
+        const cur  = pedidos.filter(p => inWindow(p.fechaCreacion?.seconds, pr.d)).length;
+        const prev = pedidos.filter(p => inPrevWindow(p.fechaCreacion?.seconds, pr.d)).length;
+        const delta = prev ? ((cur-prev)/prev)*100 : (cur ? 100 : 0);
+        const sign = delta >= 0 ? '+' : '';
+        html += miniRibbon(`sg-${i}`, pr.l, cur, `${sign}${delta.toFixed(1)}% vs período anterior`, [
+            ['Pedidos del período', cur],
+            ['Período anterior', prev],
+            ['Variación', `${sign}${delta.toFixed(1)}%`]
+        ], delta >= 0 ? 'green' : 'amber', `pedidos-semanas`);
+    });
+    html += `</div></div>`;
+
+    // Ganancia por período
+    if (hasConfig) {
+        html += `<div class="section-block"><h2 class="section-title">Mi ganancia por período</h2><div class="mini-list">`;
+        periods.forEach((pr, i) => {
+            const cur  = pedidos.filter(p => inWindow(p.fechaCreacion?.seconds, pr.d)).reduce((s,p) => s + resellerGainOf(p), 0);
+            const prev = pedidos.filter(p => inPrevWindow(p.fechaCreacion?.seconds, pr.d)).reduce((s,p) => s + resellerGainOf(p), 0);
+            const delta = prev ? ((cur-prev)/prev)*100 : (cur ? 100 : 0);
+            const sign = delta >= 0 ? '+' : '';
+            html += miniRibbon(`sg-gain-${i}`, `Ganancia ${pr.l.toLowerCase()}`,
+                `$${Math.round(cur).toLocaleString()}`,
+                `${sign}${delta.toFixed(1)}% vs período anterior`,
+                [
+                    ['Ganancia del período', `$${Math.round(cur).toLocaleString()}`],
+                    ['Período anterior', `$${Math.round(prev).toLocaleString()}`],
+                    ['Variación', `${sign}${delta.toFixed(1)}%`]
+                ], delta >= 0 ? 'green' : 'amber', `ganancia-semanas`);
+        });
+        html += `</div></div>`;
+    }
+
+    // Facturación por período
+    html += `<div class="section-block"><h2 class="section-title">Facturación a clientes por período</h2><div class="mini-list">`;
+    periods.forEach((pr, i) => {
+        const cur  = pedidos.filter(p => inWindow(p.fechaCreacion?.seconds, pr.d)).reduce((s,p) => s + totalFinalRevendedor(p), 0);
+        const prev = pedidos.filter(p => inPrevWindow(p.fechaCreacion?.seconds, pr.d)).reduce((s,p) => s + totalFinalRevendedor(p), 0);
+        const delta = prev ? ((cur-prev)/prev)*100 : (cur ? 100 : 0);
+        const sign = delta >= 0 ? '+' : '';
+        html += miniRibbon(`sg-fac-${i}`, `Facturación ${pr.l.toLowerCase()}`,
+            `$${Math.round(cur).toLocaleString()}`,
+            `${sign}${delta.toFixed(1)}% vs período anterior`,
+            [
+                ['Facturación del período', `$${Math.round(cur).toLocaleString()}`],
+                ['Período anterior', `$${Math.round(prev).toLocaleString()}`],
+                ['Variación', `${sign}${delta.toFixed(1)}%`]
+            ], delta >= 0 ? 'blue' : 'amber', `facturacion-semanas`);
+    });
+    html += `</div></div>`;
+
+    // Distribución por nicho
+    const byNicho = { perfumes: 0, multishop: 0, calzados: 0 };
+    pedidos.forEach(p => { const c = cat(p); if (byNicho[c] !== undefined) byNicho[c]++; });
+    html += `<div class="section-block"><h2 class="section-title">Por categoría</h2>
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div class="kpi"><div class="kpi-lbl">Calzados</div><div class="kpi-val">${byNicho.calzados}</div></div>
+            <div class="kpi"><div class="kpi-lbl">Perfumes Árabes</div><div class="kpi-val">${byNicho.perfumes}</div></div>
+            <div class="kpi"><div class="kpi-lbl">Multishop</div><div class="kpi-val">${byNicho.multishop}</div></div>
+        </div>
+    </div>`;
+
+    // Gráfico general de crecimiento (semanal)
+    html += `<div class="section-block"><h2 class="section-title">Gráfico de crecimiento</h2>
+        <div class="chart-card">
+            <div class="chart-tabs">
+                <button class="chart-tab active" id="main-chart-tab-ped" onclick="switchMainChart('pedidos')">Pedidos</button>
+                ${hasConfig ? '<button class="chart-tab" id="main-chart-tab-gan" onclick="switchMainChart(\'ganancia\')">Ganancia</button>' : ''}
+                <button class="chart-tab" id="main-chart-tab-fac" onclick="switchMainChart(\'facturacion\')">Facturación</button>
+                <button class="chart-tab" id="main-chart-tab-p2" onclick="switchMainChartPeriod('semanas')" style="margin-left:10px;border-color:var(--border)">Semanas</button>
+                <button class="chart-tab" id="main-chart-tab-m2" onclick="switchMainChartPeriod('meses')">Meses</button>
+            </div>
+            <div class="chart-wrap"><canvas id="main-chart-canvas"></canvas></div>
+        </div>
+    </div>`;
+
+    el.innerHTML = html;
+
+    // Render main chart
+    setTimeout(() => {
+        window._mainChartMetric = 'pedidos';
+        window._mainChartPeriod = 'semanas';
+        renderMainChart();
+    }, 50);
+}
+
+let mainChartInst = null;
+function renderMainChart() {
+    const metric = window._mainChartMetric || 'pedidos';
+    const period = window._mainChartPeriod || 'semanas';
+    const key = `${metric}-${period}`;
+    const cfg = CHART_METRICS[key];
+    if (!cfg) return;
+    const pts = cfg.fn(cfg.metric);
+
+    if (mainChartInst) { mainChartInst.destroy(); mainChartInst = null; }
+    const canvas = document.getElementById('main-chart-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    mainChartInst = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: pts.map(p => p.label),
+            datasets: [{
+                label: cfg.label,
+                data: pts.map(p => p.val),
+                borderColor: cfg.color + '1)',
+                backgroundColor: cfg.color + '0.12)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: cfg.color + '1)',
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => cfg.metric !== 'pedidos' ? `$${ctx.parsed.y.toLocaleString()}` : `${ctx.parsed.y} pedidos`
+                    }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#9aa0b4', font:{size:11} }, grid: { color:'rgba(255,255,255,.04)' } },
+                y: { ticks: { color: '#9aa0b4', font:{size:11}, callback: v => cfg.metric !== 'pedidos' ? '$'+v.toLocaleString() : v }, grid: { color:'rgba(255,255,255,.04)' }, beginAtZero: true }
+            }
+        }
+    });
+}
+
+function switchMainChart(metric) {
+    window._mainChartMetric = metric;
+    ['ped','gan','fac'].forEach(k => { document.getElementById('main-chart-tab-'+k)?.classList.remove('active'); });
+    const map = { pedidos:'ped', ganancia:'gan', facturacion:'fac' };
+    document.getElementById('main-chart-tab-'+map[metric])?.classList.add('active');
+    renderMainChart();
+}
+function switchMainChartPeriod(period) {
+    window._mainChartPeriod = period;
+    document.getElementById('main-chart-tab-p2')?.classList.toggle('active', period === 'semanas');
+    document.getElementById('main-chart-tab-m2')?.classList.toggle('active', period === 'meses');
+    renderMainChart();
+}
+
+// ═══════════════════════════════════════════════════════════
+// VISTA: GANANCIAS
+// ═══════════════════════════════════════════════════════════
+function renderGananciasView() {
+    const el = document.getElementById('ganancias-content');
+    const hasConfig = Object.keys(configTienda).length > 0;
+
+    if (!hasConfig) {
+        el.innerHTML = `<div class="empty"><div class="empty-icon">⚙️</div><h3>Configurá tu tienda</h3><p>Para ver tus ganancias, debés configurar los porcentajes de tu tienda en el panel principal del revendedor (index).</p></div>`;
+        return;
+    }
+
+    const all = pedidos;
+    const apro = pedidos.filter(p => p.estado === 'pagado');
+    const pend = pedidos.filter(p => p.estado === 'pendiente');
+
+    const totalGainAll  = all.reduce((s,p) => s + resellerGainOf(p), 0);
+    const totalGainApro = apro.reduce((s,p) => s + resellerGainOf(p), 0);
+    const totalGainPend = pend.reduce((s,p) => s + resellerGainOf(p), 0);
+    const totalFacAll   = all.reduce((s,p) => s + totalFinalRevendedor(p), 0);
+    const totalInvAll   = all.reduce((s,p) => s + totalInversionRevendedor(p), 0);
+
+    let html = `<h2 class="section-title">Mis ganancias</h2>
+        <div class="kpi-grid">
+            <div class="kpi"><div class="kpi-lbl">Ganancia total</div><div class="kpi-val" style="color:var(--green)">$${Math.round(totalGainAll).toLocaleString()}</div></div>
+            <div class="kpi"><div class="kpi-lbl">Ganancia aprobada</div><div class="kpi-val" style="color:var(--green)">$${Math.round(totalGainApro).toLocaleString()}</div></div>
+            <div class="kpi"><div class="kpi-lbl">Ganancia pendiente</div><div class="kpi-val" style="color:var(--amber)">$${Math.round(totalGainPend).toLocaleString()}</div></div>
+            <div class="kpi"><div class="kpi-lbl">Inversión total</div><div class="kpi-val">$${Math.round(totalInvAll).toLocaleString()}</div></div>
+            <div class="kpi"><div class="kpi-lbl">Facturación a clientes</div><div class="kpi-val">$${Math.round(totalFacAll).toLocaleString()}</div></div>
+        </div>`;
+
+    // Ganancia por nicho
+    html += `<div class="section-block"><h2 class="section-title">Ganancia por categoría</h2><div class="mini-list">`;
+    const nichos = [
+        { k:'perfumes', l:'Perfumes Árabes' },
+        { k:'multishop', l:'Multishop' },
+        { k:'calzados', l:'Calzados' }
+    ];
+    nichos.forEach((n, i) => {
+        const ps = all.filter(p => cat(p) === n.k);
+        const gain = ps.reduce((s,p) => s + resellerGainOf(p), 0);
+        const fac  = ps.reduce((s,p) => s + totalFinalRevendedor(p), 0);
+        if (!ps.length) return;
+        html += miniRibbon(`gain-nic-${i}`, n.l, `$${Math.round(gain).toLocaleString()}`, `${ps.length} pedido${ps.length!==1?'s':''}`, [
+            ['Pedidos', ps.length],
+            ['Ganancia', `$${Math.round(gain).toLocaleString()}`],
+            ['Facturación al cliente', `$${Math.round(fac).toLocaleString()}`],
+        ], 'green', `ganancia-semanas`);
+    });
+    html += `</div></div>`;
+
+    // Configuración de márgenes activa
+    html += `<div class="section-block"><h2 class="section-title">Mi configuración de márgenes</h2>`;
+    const cats = ['perfumes','multishop','calzados','general'];
+    cats.forEach(c => {
+        const cfg = configTienda[c];
+        if (!cfg || !Array.isArray(cfg.rangos) || !cfg.rangos.length) return;
+        html += `<div class="chart-card" style="margin-bottom:10px">
+            <h4 style="text-transform:capitalize">${c}</h4>
+            ${cfg.rangos.map(r => `<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:4px"><span>De $${Number(r.de||0).toLocaleString()} hasta $${Number(r.hasta).toLocaleString()}</span><strong style="color:var(--green)">+${r.porcentaje}%</strong></div>`).join('')}
+        </div>`;
+    });
+    html += `</div>`;
+
+    el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════
+// VISTA: RANKING DE CLIENTES
+// Basado en cantidad de compras y dinero gastado (promedio ponderado)
+// ═══════════════════════════════════════════════════════════
+function renderRankingView() {
+    const el = document.getElementById('ranking-content');
+    if (!pedidos.length) {
+        el.innerHTML = `<div class="empty"><div class="empty-icon">🏆</div><h3>Sin datos</h3><p>Aún no hay pedidos para construir el ranking.</p></div>`;
+        return;
+    }
+
+    // Agrupar por cliente (nombre + teléfono como clave)
+    const clienteMap = {};
+    pedidos.forEach(p => {
+        const env = p.envio || p.cliente || {};
+        const nombre = fullName(env) || p._clienteName || 'Cliente anónimo';
+        const tel = env.telefono || '';
+        const key = (nombre + '|' + tel).toLowerCase().trim();
+        const ts = (p.fechaCreacion?.seconds || 0) * 1000;
+
+        if (!clienteMap[key]) {
+            clienteMap[key] = {
+                nombre, telefono: tel,
+                email: env.email || '', ciudad: env.ciudad || '',
+                compras: 0, totalGastado: 0, totalFinal: 0,
+                aprobados: 0, pendientes: 0,
+                firstTs: ts || Date.now(), lastTs: ts || 0
+            };
+        }
+        const c = clienteMap[key];
+        c.compras++;
+        c.totalGastado += totalInversionRevendedor(p);
+        c.totalFinal   += totalFinalRevendedor(p);
+        if (p.estado === 'pagado') c.aprobados++; else c.pendientes++;
+        if (ts && ts < c.firstTs) c.firstTs = ts;
+        if (ts && ts > c.lastTs) c.lastTs = ts;
+    });
+
+    // Calcular promedio semanal real de inversión por cliente
+    const nowMs = Date.now();
+    const clientes = Object.values(clienteMap).map(c => {
+        const weeks = Math.max(1, (nowMs - c.firstTs) / (1000 * 60 * 60 * 24 * 7));
+        c.weeklyAvg = c.totalFinal / weeks;          // $ por semana (criterio de orden)
+        c.weeks = weeks;
+        return c;
+    });
+    const totalWeekly = clientes.reduce((s, c) => s + c.weeklyAvg, 0) || 1;
+    clientes.forEach(c => { c.sharePct = (c.weeklyAvg / totalWeekly) * 100; });
+    // Orden por frecuencia real (promedio semanal desc, desempate por recurrencia)
+    clientes.sort((a, b) => (b.weeklyAvg - a.weeklyAvg) || (b.compras - a.compras));
+
+    // ── Cliente del mes (top por frecuencia del mes actual) ──
+    const now = new Date();
+    const mesIni = new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000;
+    const mesPedidos = pedidos.filter(p => (p.fechaCreacion?.seconds || 0) >= mesIni);
+    const mesMap = {};
+    mesPedidos.forEach(p => {
+        const env = p.envio || p.cliente || {};
+        const nombre = fullName(env) || p._clienteName || 'Cliente anónimo';
+        const tel = env.telefono || '';
+        const key = (nombre + '|' + tel).toLowerCase().trim();
+        if (!mesMap[key]) mesMap[key] = { nombre, telefono: tel, compras: 0, totalFinal: 0 };
+        mesMap[key].compras++;
+        mesMap[key].totalFinal += totalFinalRevendedor(p);
+    });
+    const mesClientes = Object.values(mesMap).sort((a,b) => b.compras - a.compras || b.totalFinal - a.totalFinal);
+    const topMes = mesClientes[0];
+    const giftMax = Number(localStorage.getItem(GIFT_KEY) || 0);
+    const mesLabel = now.toLocaleString('es-AR', { month:'long', year:'numeric' });
+
+    let html = '';
+    if (topMes) {
+        html += `<div class="cliente-mes-card">
+            <div class="cliente-mes-medal">🎁</div>
+            <div class="cliente-mes-body">
+                <div class="cliente-mes-title">Cliente del mes · ${mesLabel}</div>
+                <div class="cliente-mes-name">${esc(topMes.nombre)}</div>
+                <div class="cliente-mes-meta">
+                    ${topMes.compras} compra${topMes.compras!==1?'s':''} este mes
+                    ${topMes.telefono ? ` · 📞 ${esc(topMes.telefono)}` : ''}
+                </div>
+            </div>
+            <div class="cliente-mes-gift">
+                <div class="cliente-mes-gift-lbl">Regalo de hasta</div>
+                <div class="cliente-mes-gift-val">${giftMax > 0 ? '$'+giftMax.toLocaleString() : 'Sin configurar'}</div>
+            </div>
+        </div>`;
+    }
+
+    html += `<h2 class="section-title">Ranking de clientes</h2>
+        <div class="mini-sub" style="margin-bottom:16px;color:var(--text3)">Ordenado por <strong>frecuencia real</strong> (promedio semanal de inversión). Filtra revendedores que se autostockean: quien compra más seguido sube, aunque gaste menos por pedido.</div>`;
+
+    if (!clientes.length) {
+        html += `<div class="empty"><div class="empty-icon">👥</div><h3>Sin clientes</h3><p>No hay datos de clientes en los pedidos.</p></div>`;
+        el.innerHTML = html;
+        return;
+    }
+
+    const fmtFecha = ts => ts ? new Date(ts).toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
+
+    html += clientes.map((c, i) => {
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
+        return `<div class="rank-row">
+            <div class="rank-pos">${medal}</div>
+            <div class="rank-body">
+                <div class="rank-name">${esc(c.nombre)}
+                    ${c.ciudad ? `<span style="font-size:11px;font-weight:400;color:var(--text3)">📍 ${esc(c.ciudad)}</span>` : ''}
+                </div>
+                <div class="rank-sub">
+                    ${c.compras} compra${c.compras!==1?'s':''} ·
+                    ${c.aprobados} aprob. · ${c.pendientes} pend.
+                    ${c.telefono ? ` · 📞 ${esc(c.telefono)}` : ''}
+                </div>
+                <div class="rank-sub" style="margin-top:2px;font-size:11px;color:var(--text3)">
+                    📅 Última: ${fmtFecha(c.lastTs)} · Primera: ${fmtFecha(c.firstTs)}
+                </div>
+            </div>
+            <div class="rank-val">
+                <span style="color:var(--green);font-size:16px">${c.sharePct.toFixed(1)}%</span>
+                <span>frecuencia semanal</span>
+            </div>
+        </div>`;
+    }).join('');
+
+    el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════
+// VISTA: REVENDEDORES
+// ═══════════════════════════════════════════════════════════
+let activeRevendedor = null;
+
+async function renderRevendedoresView() {
+    const el = document.getElementById('revendedores-content');
+    el.innerHTML = `<div class="loader"><div class="spin"></div><p>Cargando revendedores...</p></div>`;
+
+    let revendedores = [];
+    try {
+        const res = await fetch(WORKER_APROBADOS);
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.ranking)) revendedores = data.ranking;
+            else if (Array.isArray(data.vendedores)) revendedores = data.vendedores;
+        }
+    } catch(_) {}
+
+    if (!revendedores.length) {
+        el.innerHTML = `<div class="empty"><div class="empty-icon">👥</div><h3>Sin revendedores</h3><p>No se encontraron datos de revendedores.</p></div>`;
+        return;
+    }
+
+    // Si hay un revendedor activo seleccionado, mostrar detalle
+    if (activeRevendedor) {
+        const rv = revendedores.find(r => (r.codigoVendedor||r.codigo||'').toUpperCase() === activeRevendedor);
+        if (rv) {
+            renderRevendedorDetalle(el, rv, revendedores);
+            return;
+        }
+    }
+
+    renderRevendedoresLista(el, revendedores);
+}
+
+function renderRevendedoresLista(el, revendedores) {
+    let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h2 class="section-title" style="margin:0">Revendedores</h2>
+        <span style="font-size:12px;color:var(--text3)">${revendedores.length} en total</span>
+    </div>
+    <div class="rv-list">`;
+
+    revendedores.forEach((rv, i) => {
+        const nombre = [rv.nombre, rv.apellido].filter(Boolean).join(' ') || rv.codigoVendedor || rv.codigo || 'Revendedor';
+        const codigo = rv.codigoVendedor || rv.codigo || '';
+        const pedidosCount = Array.isArray(rv.pedidos) ? rv.pedidos.length :
+                             (rv.totalPedidos || rv.pedidos_count || 0);
+        const aprobados = Array.isArray(rv.pedidos)
+            ? rv.pedidos.filter(p => (p.estadoPago||p.estado||'').toUpperCase().includes('APROBAD') || (p.estadoPago||p.estado||'').toUpperCase().includes('PAGADO')).length
+            : (rv.aprobados || 0);
+        const ganancia = rv.gananciaTotal || rv.ganancia || 0;
+
+        html += `<div class="rv-ribbon" onclick="selectRevendedor('${codigo}')">
+            <div class="rv-avatar">${nombre.charAt(0).toUpperCase()}</div>
+            <div class="rv-info">
+                <div class="rv-name">${esc(nombre)}</div>
+                <div class="rv-meta">
+                    ${codigo ? `<span class="r-code">${esc(codigo)}</span>` : ''}
+                    <span style="font-size:11px;color:var(--text3)">${pedidosCount} pedido${pedidosCount!==1?'s':''}</span>
+                    ${aprobados ? `<span style="font-size:11px;color:var(--green)">✓ ${aprobados} aprobado${aprobados!==1?'s':''}</span>` : ''}
+                </div>
+            </div>
+            <div class="rv-right">
+                ${ganancia ? `<div style="font-size:14px;font-weight:800;color:var(--green)">$${Math.round(ganancia).toLocaleString()}</div>` : ''}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--text3)"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+        </div>`;
+    });
+
+    html += `</div>`;
+    el.innerHTML = html;
+}
+
+function selectRevendedor(codigo) {
+    activeRevendedor = codigo;
+    renderRevendedoresView();
+}
+
+function renderRevendedorDetalle(el, rv, todos) {
+    const nombre = [rv.nombre, rv.apellido].filter(Boolean).join(' ') || rv.codigoVendedor || 'Revendedor';
+    const codigo = rv.codigoVendedor || rv.codigo || '';
+    const peds = Array.isArray(rv.pedidos) ? rv.pedidos : [];
+    const aprobados = peds.filter(p => (p.estadoPago||p.estado||'').toUpperCase().includes('APROBAD') || (p.estadoPago||p.estado||'').toUpperCase().includes('PAGADO')).length;
+    const pendientes = peds.length - aprobados;
+    const ganancia = rv.gananciaTotal || rv.ganancia || 0;
+    const facturacion = rv.facturacionTotal || rv.facturacion || 0;
+
+    let html = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+        <button class="btn-head" style="flex-shrink:0" onclick="activeRevendedor=null;renderRevendedoresView()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+            Volver
+        </button>
+        <div class="rv-avatar rv-avatar-lg">${nombre.charAt(0).toUpperCase()}</div>
+        <div>
+            <div style="font-size:17px;font-weight:700">${esc(nombre)}</div>
+            ${codigo ? `<div style="font-size:12px;color:var(--blue);font-weight:600">Cód: ${esc(codigo)}</div>` : ''}
+        </div>
+    </div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:20px">
+        <div class="kpi"><div class="kpi-lbl">Total pedidos</div><div class="kpi-val">${peds.length}</div></div>
+        <div class="kpi"><div class="kpi-lbl">Aprobados</div><div class="kpi-val" style="color:var(--green)">${aprobados}</div></div>
+        <div class="kpi"><div class="kpi-lbl">Pendientes</div><div class="kpi-val" style="color:var(--amber)">${pendientes}</div></div>
+        ${ganancia ? `<div class="kpi"><div class="kpi-lbl">Ganancia</div><div class="kpi-val" style="color:var(--green)">$${Math.round(ganancia).toLocaleString()}</div></div>` : ''}
+        ${facturacion ? `<div class="kpi"><div class="kpi-lbl">Facturación</div><div class="kpi-val">$${Math.round(facturacion).toLocaleString()}</div></div>` : ''}
+        ${rv.email ? `<div class="kpi"><div class="kpi-lbl">Email</div><div class="kpi-val" style="font-size:12px;word-break:break-all">${esc(rv.email)}</div></div>` : ''}
+    </div>`;
+
+    // Nichos
+    const nichos = { perfumes:0, multishop:0, calzados:0 };
+    peds.forEach(p => { const c = cat(p); if (nichos[c] !== undefined) nichos[c]++; });
+    const totalNicho = peds.length || 1;
+    if (peds.length) {
+        html += `<div class="section-block"><h2 class="section-title">Distribución por categoría</h2>
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div class="kpi"><div class="kpi-lbl">Calzados</div><div class="kpi-val">${nichos.calzados}</div></div>
+            <div class="kpi"><div class="kpi-lbl">Perfumes Árabes</div><div class="kpi-val">${nichos.perfumes}</div></div>
+            <div class="kpi"><div class="kpi-lbl">Multishop</div><div class="kpi-val">${nichos.multishop}</div></div>
+        </div></div>`;
+    }
+
+    el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════
+// FIREBASE + GOOGLE AUTH
+// ═══════════════════════════════════════════════════════════
+const firebaseConfig = {
+    apiKey:            "AIzaSyBRzd3HXbY6xIBIBNkzATo70kredodhKwc",
+    authDomain:        "revende-weys.firebaseapp.com",
+    projectId:         "revende-weys",
+    storageBucket:     "revende-weys.firebasestorage.app",
+    messagingSenderId: "606182275212",
+    appId:             "1:606182275212:web:69089eb56f10b8a02063a9",
+    measurementId:     "G-MBX4GSRCBL"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+// Sesión persistente (queda iniciada hasta logout explícito)
+try { auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch(_) {}
+
+// Auto-login al volver: si Firebase recuerda la sesión, validamos que el UID
+// guardado coincida con el usuario actual antes de confiar en la sesión local.
+auth.onAuthStateChanged(async function(user) {
+    if (!user) {
+        // Sesión de Firebase cerrada/expirada: no dejar una sesión local huérfana
+        if (currentUid && currentUid !== '') {
+            sessionStorage.removeItem(S_KEY);
+            currentCode = ''; currentUid = '';
+            showLogin();
+        }
+        return;
+    }
+    try {
+        const stored = sessionStorage.getItem(S_KEY);
+        if (stored) {
+            const d = JSON.parse(stored);
+            if (d.uid === user.uid && d.code) return; // sesión local ya válida para este usuario
+        }
+        // No hay sesión local válida para este usuario: resolver el código real por UID
+        await _resolverCodigoVendedor(user);
+        const lw = document.getElementById('login-wrap');
+        if (lw && lw.style.display !== 'none') {
+            showMain();
+            loadData();
+        }
+    } catch(e) {
+        console.error('Auto-login: no se pudo resolver el revendedor', e);
+        showLogin();
+    }
+});
+
+
+
+
+// ── GUÍA MODAL ──
+const GUIDE_KEY = 'rw_guide_v1';
+
+function _positionGuide() {
+    const btn = document.getElementById('btn-guide');
+    const box = document.getElementById('guide-box');
+    if (!btn || !box) return;
+    const r = btn.getBoundingClientRect();
+    box.style.left = r.left + 'px';
+    box.style.top  = r.top  + 'px';
+    const avail = window.innerWidth - r.left - 12;
+    box.style.width = Math.min(avail, 480) + 'px';
+    box.style.maxWidth = 'none';
+}
+
+function openGuide() {
+    _positionGuide();
+    document.getElementById('guide-modal').classList.add('show');
+}
+
+function maybeShowGuide() {
+    try {
+        const raw = localStorage.getItem(GUIDE_KEY);
+        const g = raw ? JSON.parse(raw) : { count: 0, lastShown: 0 };
+        const now = Date.now();
+        const hs24 = 24 * 60 * 60 * 1000;
+        if (g.count < 3 && (now - (g.lastShown || 0)) >= hs24) {
+            setTimeout(() => {
+                openGuide();
+                localStorage.setItem(GUIDE_KEY, JSON.stringify({ count: (g.count || 0) + 1, lastShown: now }));
+            }, 1200);
+        }
+    } catch(_) {}
+}
+
+function closeGuide() {
+    document.getElementById('guide-modal').classList.remove('show');
+}
+
+function toggleGuide(el) {
+    document.querySelectorAll('.guide-ribbon.open').forEach(r => { if (r !== el) r.classList.remove('open'); });
+    el.classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL REGALO CLIENTE DEL MES
+// ═══════════════════════════════════════════════════════════
+const GIFT_KEY = 'rw_gift_max_v1';
+
+function openGiftModal() {
+    const val = Number(localStorage.getItem(GIFT_KEY) || 0);
+    document.getElementById('gift-input').value = val > 0 ? val : '';
+    // Preview cliente del mes
+    try {
+        const now = new Date();
+        const mesIni = new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000;
+        const mesMap = {};
+        (pedidos || []).filter(p => (p.fechaCreacion?.seconds || 0) >= mesIni).forEach(p => {
+            const env = p.envio || p.cliente || {};
+            const nombre = fullName(env) || p._clienteName || 'Cliente';
+            const tel = env.telefono || '';
+            const key = (nombre + '|' + tel).toLowerCase().trim();
+            if (!mesMap[key]) mesMap[key] = { nombre, compras: 0, total: 0 };
+            mesMap[key].compras++;
+            mesMap[key].total += totalFinalRevendedor(p);
+        });
+        const top = Object.values(mesMap).sort((a,b) => b.total - a.total)[0];
+        const prev = document.getElementById('gift-preview');
+        if (top) {
+            prev.style.display = 'block';
+            document.getElementById('gift-preview-name').textContent = top.nombre;
+            document.getElementById('gift-preview-meta').textContent =
+                `${top.compras} compra${top.compras!==1?'s':''} · $${Math.round(top.total).toLocaleString()} este mes`;
+        } else {
+            prev.style.display = 'none';
+        }
+    } catch(_) {}
+    document.getElementById('gift-modal').classList.add('show');
+}
+
+function closeGiftModal() {
+    document.getElementById('gift-modal').classList.remove('show');
+}
+
+function saveGift() {
+    const v = Math.max(0, Number(document.getElementById('gift-input').value) || 0);
+    localStorage.setItem(GIFT_KEY, String(v));
+    closeGiftModal();
+    toast(v > 0 ? `Regalo configurado: $${v.toLocaleString()}` : 'Regalo desactivado', true);
+    // Refrescar ranking si está visible
+    const active = document.querySelector('.menu-btn.active');
+    if (active && active.dataset.view === 'ranking') renderRankingView();
+}
+
+document.getElementById('gift-modal').addEventListener('click', function(e) { if (e.target === this) closeGiftModal(); });
+
+// ═══════════════════════════════════════════════════════════
+// SINCRONIZACIÓN EN VIVO CON PANEL DE TIENDA DEL REVENDEDOR
+// ═══════════════════════════════════════════════════════════
+(function() {
+    // ── 1. BroadcastChannel: recibe eventos instantáneos de la tienda ──
+    var rwChannel = null;
+    try {
+        rwChannel = new BroadcastChannel('rw_pedidos');
+        rwChannel.onmessage = function(ev) {
+            var msg = ev.data || {};
+            if (!msg.pedidoId) return;
+
+            if (msg.accion === 'aprobado') {
+                // Buscar si el pedido ya está en el panel
+                var existente = pedidos.find(function(p) { return p.id === msg.pedidoId; });
+                if (existente) {
+                    // Ya existe: actualizar su estado a pagado
+                    existente.estado = 'pagado';
+                    _refreshCounts();
+                    renderAll();
+                } else {
+                    // No existe aún: recargar del worker para traerlo
+                    loadData();
+                }
+            } else if (msg.accion === 'eliminado' || msg.accion === 'no_aprobado') {
+                // Eliminar del panel local sin recargar
+                rememberLocalDelete(msg.pedidoId);
+                pedidos = pedidos.filter(function(p) { return p.id !== msg.pedidoId; });
+                _refreshCounts();
+                renderAll();
+            }
+        };
+    } catch(_) {}
+
+    // ── 2. Polling cada 30 segundos para mantener sincronización ──
+    var _pollingTimer = null;
+    function startPolling() {
+        stopPolling();
+        _pollingTimer = setInterval(function() {
+            // Solo recargar si el panel está activo (tab visible)
+            if (document.visibilityState !== 'hidden' && currentCode) {
+                loadData();
+            }
+        }, 30000);
+    }
+    function stopPolling() {
+        if (_pollingTimer) { clearInterval(_pollingTimer); _pollingTimer = null; }
+    }
+
+    // Pausar polling cuando la pestaña está oculta, reanudar al volver
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') {
+            stopPolling();
+        } else {
+            if (currentCode) { loadData(); startPolling(); }
+        }
+    });
+
+    // Arrancar el polling cuando el panel carga datos por primera vez
+    var _origLoadData = null;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Interceptar loadData para arrancar polling la primera vez que se llama con éxito
+        var _origShowMain = showMain;
+        window.showMain = function() {
+            _origShowMain.apply(this, arguments);
+            if (!_pollingTimer) startPolling();
+        };
+    });
+
+    // Exponer para que la tienda pueda notificar si están en la misma pestaña
+    window._rwBroadcast = function(msg) {
+        try { if (rwChannel) rwChannel.postMessage(msg); } catch(_) {}
+    };
+
+    function _refreshCounts() {
+        var pend = pedidos.filter(function(p) { return p.estado === 'pendiente'; }).length;
+        var apro = pedidos.filter(function(p) { return p.estado === 'pagado'; }).length;
+        var tot  = pedidos.length;
+        var elP = document.getElementById('scnt-pendiente');
+        var elA = document.getElementById('scnt-pagado');
+        var elT = document.getElementById('count-lbl');
+        if (elP) elP.textContent = pend;
+        if (elA) elA.textContent = apro;
+        if (elT) elT.textContent = tot ? '(' + tot + ' pedido' + (tot !== 1 ? 's' : '') + ')' : '';
+    }
+})();
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
