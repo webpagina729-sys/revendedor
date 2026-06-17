@@ -6,7 +6,11 @@
     <title>Revende Ways | Tu Tienda Propia</title>
     <meta name="description" content="Revende con nosotros. Te damos tu tienda lista para comenzar con +250 productos. Precio solo para revendedores.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com">
+    <link rel="dns-prefetch" href="https://www.googleapis.com">
+    <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap&font-display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #0066ff;
@@ -3213,6 +3217,47 @@
             margin-right: 4px;
         }
 
+        /* ===== OPTIMIZACIONES DE RENDIMIENTO ===== */
+        /* GPU layer para tarjetas — evita reflow en hover */
+        .product-card {
+            will-change: transform;
+            transform: translateZ(0);
+            contain: layout style;
+        }
+        /* Limitar transición a propiedades baratas */
+        .product-card { transition: box-shadow .2s, transform .2s; }
+        /* GPU layer para imágenes — evita repaint en scale */
+        .product-image img {
+            will-change: transform;
+            transform: translateZ(0);
+        }
+        /* Contener el grid para no invalidar layout del resto de la página */
+        .products-grid {
+            contain: layout;
+        }
+        /* Header sticky: promover a capa propia para no repintar en scroll */
+        .header-top {
+            will-change: transform;
+            transform: translateZ(0);
+        }
+        /* Modales: preparar GPU layer antes de mostrar */
+        .modal-overlay,
+        .modal-details,
+        .modal-cart,
+        .auth-modal {
+            transform: translateZ(0);
+        }
+        /* Carrusel: capa GPU para transforms suaves */
+        #carrusel-wrapper {
+            will-change: transform;
+            transform: translateZ(0);
+        }
+        /* Evitar backdrop-filter en navegación (caro en móvil) */
+        @media (max-width: 768px) {
+            .modal-overlay { backdrop-filter: none; }
+        }
+        /* ===== FIN OPTIMIZACIONES ===== */
+
     </style>
     <script>
         // Silenciar errores de extensiones del navegador
@@ -4689,7 +4734,7 @@
                     <button type="button" aria-label="Modificar precio" onclick="event.stopPropagation();abrirEditarPrecioProducto('perfumes', ${p.id})" style="position:absolute;top:8px;right:8px;z-index:4;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-light);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s ease;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
                     <div class="product-image" onclick="openZoom('${p.imagen}')">
                         <div class="zoom-icon">🔍</div>
-                        <img src="${BASE_IMAGE_URL}${p.imagen}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${p.imagen}')">
+                        <img src="${BASE_IMAGE_URL}${p.imagen}" alt="${p.nombre}" loading="lazy" decoding="async" onerror="fallbackProductImage(this, '${p.imagen}')">
                     </div>
                     <div class="product-info">
                         <div class="product-name">${p.nombre}</div>
@@ -4703,15 +4748,15 @@
                 </div>`;
             }
             
-            grid.innerHTML = html;
-            
-            // Mostrar u ocultar botón de "Ver más"
-            const paginationSection = document.getElementById('pagination-section');
-            if (window.itemsDisplayed < filtered.length) {
-                paginationSection.style.display = 'flex';
-            } else {
-                paginationSection.style.display = 'none';
-            }
+            // Usar requestAnimationFrame para no bloquear el hilo principal
+            requestAnimationFrame(() => {
+                grid.innerHTML = html;
+                // Mostrar u ocultar botón de "Ver más"
+                const paginationSection = document.getElementById('pagination-section');
+                if (paginationSection) {
+                    paginationSection.style.display = window.itemsDisplayed < filtered.length ? 'flex' : 'none';
+                }
+            });
         }
 
         function renderShoesProducts() {
@@ -4758,7 +4803,7 @@
                     <button type="button" aria-label="Modificar precio" onclick="event.stopPropagation();abrirEditarPrecioProducto('calzados', ${p.id})" style="position:absolute;top:8px;right:8px;z-index:4;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-light);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s ease;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
                     <div class="product-image" onclick="openZoom('${p.imagen}')">
                         <div class="zoom-icon">🔍</div>
-                        <img src="${BASE_IMAGE_URL}${p.imagen}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${p.imagen}')">
+                        <img src="${BASE_IMAGE_URL}${p.imagen}" alt="${p.nombre}" loading="lazy" decoding="async" onerror="fallbackProductImage(this, '${p.imagen}')">
                     </div>
                     <div class="product-info">
                         <div class="product-name">${p.nombre}</div>
@@ -4772,15 +4817,15 @@
                 </div>`;
             }
             
-            grid.innerHTML = html;
-            
-            // Mostrar u ocultar botón de "Ver más"
-            const paginationSection = document.getElementById('pagination-section');
-            if (window.shoesItemsDisplayed < filtered.length) {
-                paginationSection.style.display = 'flex';
-            } else {
-                paginationSection.style.display = 'none';
-            }
+            // Usar requestAnimationFrame para no bloquear el hilo principal
+            requestAnimationFrame(() => {
+                grid.innerHTML = html;
+                // Mostrar u ocultar botón de "Ver más"
+                const paginationSection = document.getElementById('pagination-section');
+                if (paginationSection) {
+                    paginationSection.style.display = window.shoesItemsDisplayed < filtered.length ? 'flex' : 'none';
+                }
+            });
         }
 
         function loadMore() {
@@ -6842,7 +6887,7 @@
             productosCarrusel.forEach((producto, index) => {
                 const slide = document.createElement('div');
                 slide.className = 'carrusel-slide';
-                slide.innerHTML = `<img src="${BASE_IMAGE_URL}${producto.imagen}" alt="${producto.nombre}" onerror="fallbackProductImage(this, '${producto.imagen}')">`;
+                slide.innerHTML = `<img src="${BASE_IMAGE_URL}${producto.imagen}" alt="${producto.nombre}" loading="lazy" decoding="async" onerror="fallbackProductImage(this, '${producto.imagen}')">`;
                 wrapper.appendChild(slide);
 
                 const dot = document.createElement('button');
@@ -7481,7 +7526,7 @@
             productosCarrusel.forEach((producto, index) => {
                 const slide = document.createElement('div');
                 slide.className = 'carrusel-slide';
-                slide.innerHTML = `<img src="${BASE_IMAGE_URL}${producto.imagen}" alt="${producto.nombre}" onerror="fallbackProductImage(this, '${producto.imagen}')">`;
+                slide.innerHTML = `<img src="${BASE_IMAGE_URL}${producto.imagen}" alt="${producto.nombre}" loading="lazy" decoding="async" onerror="fallbackProductImage(this, '${producto.imagen}')">`;
                 wrapper.appendChild(slide);
 
                 // Generar dots
