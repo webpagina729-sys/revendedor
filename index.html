@@ -7206,6 +7206,13 @@
                 const p = (window.pedidosRecibidosCache || []).find(x => x.id === pedidoId);
                 if (p) p.estadoAprobacion = nuevoEstado;
                 renderPedidosRecibidos();
+
+                // ── Notificar al panel de gestión en tiempo real (misma o distinta pestaña) ──
+                try {
+                    const rwMsg = { pedidoId, accion: nuevoEstado === 'aprobado' ? 'aprobado' : 'no_aprobado', codigoVendedor };
+                    new BroadcastChannel('rw_pedidos').postMessage(rwMsg);
+                    if (window._rwBroadcast) window._rwBroadcast(rwMsg);
+                } catch(_) {}
             } catch (err) {
                 console.error('Error actualizando pedido:', err);
                 alert('No se pudo actualizar el pedido');
