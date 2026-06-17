@@ -6946,6 +6946,12 @@
                     precio: Number(p.precio || p.precioFinal || 0), talle: p.talle, catalogo: p.catalogo
                 }));
             }
+            const estadoRaw = String(raw.estadoAprobacion || raw.estado || 'pendiente').toLowerCase();
+            const estadoAprobacion = estadoRaw.includes('aprobad') || estadoRaw.includes('pagad') || estadoRaw === 'entregado'
+                ? 'aprobado'
+                : (estadoRaw.includes('no_aprobad') || estadoRaw.includes('rechazad') || estadoRaw.includes('cancelad'))
+                    ? 'no_aprobado'
+                    : 'pendiente';
             return {
                 id,
                 cliente: raw.cliente || {
@@ -6954,7 +6960,7 @@
                 },
                 items,
                 totalFinal: Number(raw.total || raw.totalFinal || items.reduce((s,i)=>s+i.precio*i.cantidad,0)),
-                estadoAprobacion: raw.estadoAprobacion || raw.estado || 'pendiente',
+                estadoAprobacion,
                 fechaCreacion: raw.fecha ? { toDate: () => new Date(raw.fecha + ' ' + (raw.hora||'')) } : null,
                 _origenWorker: true,
                 _raw: raw
@@ -7046,35 +7052,119 @@
                 return;
             }
             const fmt = n => '$' + (Number(n)||0).toLocaleString('es-AR');
-            lista.innerHTML = items.map(p => {
+
+            // Nombre del revendedor logueado
+            const revNombre = ((window.currentUser && window.currentUser.nombre) || '').trim();
+            const revApellido = ((window.currentUser && window.currentUser.apellido) || '').trim();
+            const revNombreCompleto = [revNombre, revApellido].filter(Boolean).join(' ')
+                || (window.currentUser && window.currentUser.email) || 'Revendedor';
+            const revCodigo = (window.currentUser && window.currentUser.codigoVendedor)
+                || localStorage.getItem('codigoVendedorLocal') || '';
+            const revInicial = revNombreCompleto.charAt(0).toUpperCase();
+
+            // Armar cards de pedidos
+            const pedidoCards = items.map((p, pi) => {
                 const cli = p.cliente || {};
-                const nombre = ((cli.nombre||'') + ' ' + (cli.apellido||'')).trim() || cli.email || 'Cliente';
+                const clienteNombre = ((cli.nombre||'') + ' ' + (cli.apellido||'')).trim() || cli.email || 'Cliente';
                 const fecha = p.fechaCreacion && p.fechaCreacion.toDate ? p.fechaCreacion.toDate().toLocaleString('es-AR') : '';
-                const productos = (p.items || []).map(i => `<li style="margin:2px 0;">${(i.cantidad||1)} × ${i.nombre} — <b>${fmt(i.precio)}</b></li>`).join('');
+                const productos = (p.items || []).map(i => `<li style="margin:2px 0;">${(i.cantidad||1)} × ${i.nombre}${i.talle?' (T.'+i.talle+')':''} — <b>${fmt(i.precio)}</b></li>`).join('');
                 const estado = p.estadoAprobacion || 'pendiente';
                 const badgeColor = estado === 'aprobado' ? '#1B7F3D' : (estado === 'no_aprobado' ? '#c33' : '#b58100');
                 const badgeText = estado === 'aprobado' ? '✓ Aprobado' : (estado === 'no_aprobado' ? '✕ No aprobado' : '⏳ Pendiente');
+                const detailId = 'prd-' + String(p.id).replace(/[^a-zA-Z0-9]/g,'_');
+                const esWorker = !!(p._origenWorker);
                 return `
-                <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;">
-                    <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:6px;">
+                <div style="margin-bottom:6px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                    <button onclick="(function(el){var b=document.getElementById('${detailId}');var open=b.style.display==='block';b.style.display=open?'none':'block';el.querySelector('.pr-chev').style.transform=open?'rotate(0deg)':'rotate(180deg)';})(this)"
+                        style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#fff;border:none;cursor:pointer;text-align:left;">
                         <div style="min-width:0;flex:1;">
-                            <div style="font-weight:700;font-size:14px;color:var(--text);">${nombre}</div>
-                            <div style="font-size:12px;color:var(--text-light);">${cli.telefono||''} ${cli.ciudad?'• '+cli.ciudad:''}</div>
-                            ${fecha ? `<div style="font-size:11px;color:var(--text-light);margin-top:2px;">${fecha}</div>` : ''}
+                            <div style="font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${clienteNombre}</div>
+                            <div style="font-size:11px;color:var(--text-light);">${cli.telefono||''}${cli.ciudad?' · '+cli.ciudad:''}${fecha?' · '+fecha:''}</div>
                         </div>
-                        <span style="background:${badgeColor};color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;white-space:nowrap;">${badgeText}</span>
-                    </div>
-                    <ul style="margin:6px 0 8px 18px;padding:0;font-size:13px;color:var(--text);">${productos}</ul>
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;border-top:1px dashed var(--border);padding-top:8px;">
-                        <span style="font-size:12px;color:var(--text-light);">Total con precios configurados</span>
-                        <span style="font-weight:800;color:var(--text);">${fmt(p.totalFinal)}</span>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                        <button onclick="cambiarEstadoPedido('${p.id}','no_aprobado')" style="padding:9px;border-radius:8px;border:1px solid #c33;background:${estado==='no_aprobado'?'#c33':'#fff'};color:${estado==='no_aprobado'?'#fff':'#c33'};font-weight:700;font-size:13px;cursor:pointer;">No aprobado</button>
-                        <button onclick="cambiarEstadoPedido('${p.id}','aprobado')" style="padding:9px;border-radius:8px;border:1px solid #1B7F3D;background:${estado==='aprobado'?'#1B7F3D':'#fff'};color:${estado==='aprobado'?'#fff':'#1B7F3D'};font-weight:700;font-size:13px;cursor:pointer;">Aprobado</button>
+                        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                            <span style="background:${badgeColor};color:#fff;font-size:10px;font-weight:700;padding:3px 7px;border-radius:5px;white-space:nowrap;">${badgeText}</span>
+                            <span class="pr-chev" style="font-size:16px;color:var(--text-light);transition:transform .2s;display:inline-block;">▾</span>
+                        </div>
+                    </button>
+                    <div id="${detailId}" style="display:none;padding:12px;border-top:1px solid var(--border);background:#fafafa;">
+                        <ul style="margin:0 0 10px 16px;padding:0;font-size:13px;color:var(--text);">${productos}</ul>
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;border-top:1px dashed var(--border);padding-top:8px;">
+                            <span style="font-size:12px;color:var(--text-light);">Total</span>
+                            <span style="font-weight:800;color:var(--text);">${fmt(p.totalFinal)}</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+                            <button onclick="cambiarEstadoPedido('${p.id}','no_aprobado')" style="padding:9px;border-radius:8px;border:1px solid #c33;background:${estado==='no_aprobado'?'#c33':'#fff'};color:${estado==='no_aprobado'?'#fff':'#c33'};font-weight:700;font-size:13px;cursor:pointer;">No aprobado</button>
+                            <button onclick="cambiarEstadoPedido('${p.id}','aprobado')" style="padding:9px;border-radius:8px;border:1px solid #1B7F3D;background:${estado==='aprobado'?'#1B7F3D':'#fff'};color:${estado==='aprobado'?'#fff':'#1B7F3D'};font-weight:700;font-size:13px;cursor:pointer;">Aprobado</button>
+                        </div>
+                        <div style="display:flex;justify-content:flex-end;">
+                            <button onclick="eliminarPedidoDefinitivo('${p.id}',${esWorker})" title="Eliminar pedido definitivamente"
+                                style="background:none;border:none;cursor:pointer;padding:6px 8px;border-radius:6px;display:flex;align-items:center;gap:5px;color:#c33;font-size:12px;font-weight:600;transition:background .15s;"
+                                onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#c33" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                                </svg>
+                                Eliminar
+                            </button>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
+
+            // Cinta del revendedor que agrupa todos los pedidos
+            const grupoId = 'prg-rev-main';
+            lista.innerHTML = `
+            <div style="margin-bottom:10px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+                <button onclick="(function(el){var b=document.getElementById('${grupoId}');var open=b.style.display==='block';b.style.display=open?'none':'block';el.querySelector('.prg-chev').style.transform=open?'rotate(0deg)':'rotate(180deg)';})(this)"
+                    style="width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f0f4ff;border:none;cursor:pointer;text-align:left;">
+                    <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;">${revInicial}</div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:700;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${revNombreCompleto}</div>
+                        <div style="font-size:11px;color:var(--text-light);">${revCodigo ? revCodigo + ' · ' : ''}${items.length} pedido${items.length!==1?'s':''}</div>
+                    </div>
+                    <span class="prg-chev" style="font-size:18px;color:var(--primary);transition:transform .2s;display:inline-block;transform:rotate(180deg);">▾</span>
+                </button>
+                <div id="${grupoId}" style="display:block;padding:8px;">
+                    ${pedidoCards}
+                </div>
+            </div>`;
+        }
+
+        async function eliminarPedidoDefinitivo(pedidoId, esWorker) {
+            if (!confirm('¿Eliminar este pedido definitivamente? Esta acción no se puede deshacer.')) return;
+            const user = firebase.auth().currentUser;
+            if (!user) return;
+            const codigoVendedor = (window.currentUser && window.currentUser.codigoVendedor)
+                || localStorage.getItem('codigoVendedorLocal') || '';
+
+            // 1) Borrar de Firestore si es pedido local
+            if (!esWorker) {
+                try {
+                    await firebase.firestore()
+                        .collection('usuarios').doc(user.uid)
+                        .collection('pedidos').doc(pedidoId)
+                        .delete();
+                } catch(_) {}
+            }
+
+            // 2) Borrar del Worker definitivamente
+            try {
+                await fetch(WORKER_CLIENTE_BASE + '/logistica/borrar', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pedidoId, codigoVendedor, uid: user.uid })
+                });
+            } catch(_) {}
+
+            // 3) Notificar al panel de gestión en tiempo real
+            try {
+                const rwMsg = { pedidoId, accion: 'eliminado', codigoVendedor };
+                new BroadcastChannel('rw_pedidos').postMessage(rwMsg);
+                if (window._rwBroadcast) window._rwBroadcast(rwMsg);
+            } catch(_) {}
+
+            // 4) Quitar del cache local y re-renderizar
+            window.pedidosRecibidosCache = (window.pedidosRecibidosCache || []).filter(p => p.id !== pedidoId);
+            renderPedidosRecibidos();
         }
 
         function agregarPedidoAlCarrito(pedido) {
@@ -7109,6 +7199,77 @@
             try { if (typeof saveCartToFirebase === 'function') saveCartToFirebase(window.cart); } catch(_) {}
         }
 
+        function armarPedidoParaWorkerCliente(pedido, codigoVendedor, nuevoEstado) {
+            const raw = (pedido && pedido._raw && typeof pedido._raw === 'object') ? pedido._raw : {};
+            const cli = pedido.cliente || raw.cliente || {};
+            const items = (pedido.items || []).map(i => ({
+                nombre:   i.nombre || i.name || '',
+                cantidad: Number(i.cantidad || i.qty || 1),
+                precio:   Number(i.precio || i.precioFinal || 0),
+                talle:    i.talle || null,
+                catalogo: i.catalogo || null
+            }));
+            const estadoWorker = nuevoEstado === 'aprobado' ? 'aprobado'
+                : nuevoEstado === 'no_aprobado' ? 'no_aprobado'
+                : nuevoEstado;
+            const total = Number(pedido.totalFinal || raw.total || raw.totalFinal || items.reduce((s, i) => s + i.precio * i.cantidad, 0));
+            const ahora = new Date();
+            return {
+                ...raw,
+                id: pedido.id,
+                pedidoId: pedido.id,
+                codigoVendedor: codigoVendedor || raw.codigoVendedor || '',
+                nombre: cli.nombre || raw.nombre || '',
+                apellido: cli.apellido || raw.apellido || '',
+                telefono: cli.telefono || raw.telefono || '',
+                direccion: cli.direccion || raw.direccion || cli.ciudad || raw.ciudad || '',
+                direccionAlternativa: cli.direccionAlternativa || raw.direccionAlternativa || '',
+                ciudad: cli.ciudad || raw.ciudad || '',
+                provincia: cli.provincia || raw.provincia || '',
+                cp: cli.cp || raw.cp || '',
+                productos: items.map(i => i.nombre + (i.talle ? ` (T.${i.talle})` : '')),
+                cantidades: items.map(i => i.cantidad),
+                preciosIndividuales: items.map(i => i.precio),
+                items,
+                total,
+                totalFinal: total,
+                estado: estadoWorker,
+                estadoAprobacion: estadoWorker,
+                fechaAprobacion: ahora.toISOString(),
+                fecha: raw.fecha || ahora.toLocaleDateString('es-AR'),
+                hora: raw.hora || ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+            };
+        }
+
+        async function fetchWorkerCliente(url, options, timeoutMs = 7000) {
+            const ctrl = new AbortController();
+            const t = setTimeout(() => ctrl.abort(), timeoutMs);
+            try {
+                return await fetch(url, { ...options, signal: ctrl.signal });
+            } finally {
+                clearTimeout(t);
+            }
+        }
+
+        async function enviarEstadoAWorkerCliente(pedido, codigoVendedor, nuevoEstado, uid) {
+            if (!pedido || !codigoVendedor) return;
+            const payload = armarPedidoParaWorkerCliente(pedido, codigoVendedor, nuevoEstado);
+            await fetchWorkerCliente(WORKER_CLIENTE_BASE + '/logistica/estado', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pedidoId: pedido.id,
+                    id: pedido.id,
+                    codigoVendedor,
+                    uid,
+                    estado: payload.estado,
+                    estadoAprobacion: payload.estadoAprobacion,
+                    pedido: payload,
+                    payload
+                })
+            });
+        }
+
         async function cambiarEstadoPedido(pedidoId, nuevoEstado) {
             const user = firebase.auth().currentUser;
             if (!user) return;
@@ -7131,74 +7292,10 @@
                             fechaAprobacion: new Date()
                         });
                 }
-                // Notificar al Worker (best-effort)
-                try {
-                    await fetch(WORKER_URL + '/api/aprobar-pedido', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            uid: user.uid,
-                            pedidoId: pedidoId,
-                            estado: nuevoEstado,
-                            fecha: Date.now()
-                        })
-                    });
-                } catch (_) { /* no bloquear */ }
-
-                // ── Enviar pedido completo al panel de gestión cuando se aprueba ──
-                if (nuevoEstado === 'aprobado' && pedido) {
+                // ── Persistir el pedido completo y su estado en workerwebcliente ──
+                if (pedido && codigoVendedor) {
                     try {
-                        const cli = pedido.cliente || {};
-                        // Normalizar items (pueden venir en distintos formatos)
-                        const items = (pedido.items || []).map(i => ({
-                            nombre:   i.nombre || i.name || '',
-                            cantidad: Number(i.cantidad || i.qty || 1),
-                            precio:   Number(i.precio || i.precioFinal || 0),
-                            talle:    i.talle || null,
-                            catalogo: i.catalogo || null
-                        }));
-                        // Detectar nicho por palabras clave en los nombres de productos
-                        const nombresUp = items.map(i => (i.nombre || '').toUpperCase()).join(' ');
-                        const esCalzado  = /NIKE|ADIDAS|JORDAN|DUNK|SAMBA|CAMPUS|AIR FORCE|NEW BALANCE|ZAPATILLA|BOTITA|FORUM|SUPERSTAR/.test(nombresUp);
-                        const esPerfume  = /PERFUME|ARABE|ÁRABE|LATTAFA|AFNAN|ARMAF|YARA|OUD|ATTAR|CLUB DE NUIT|HAYA|HARAMAIN/.test(nombresUp);
-                        const nicho = esCalzado ? 'calzados' : esPerfume ? 'perfumes' : 'multishop';
-
-                        const panelPayload = {
-                            pedidoId:       pedido.id,
-                            codigoVendedor: codigoVendedor || '',
-                            estadoAprobacion: 'aprobado',
-                            categoria:      nicho,
-                            nicho:          nicho,
-                            cliente:        ((cli.nombre || '') + ' ' + (cli.apellido || '')).trim() || cli.email || '',
-                            telefono:       cli.telefono || '',
-                            direccion:      cli.ciudad   || cli.direccion || '',
-                            fecha:          new Date().toISOString(),
-                            items:          items,
-                            // Para los cálculos del worker (panel-gestion los recalcula por categoría)
-                            precio_venta:   Number(pedido.totalFinal || 0),
-                        };
-
-                        await fetch(WORKER_URL + '/api/panel-gestion', {
-                            method:  'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body:    JSON.stringify(panelPayload)
-                        });
-                    } catch (_) { /* no bloquear el flujo principal */ }
-                }
-                // ── Persistir estado en workerwebcliente (pedidos de tienda.html) ──
-                if (esWorker && codigoVendedor) {
-                    try {
-                        await fetch(WORKER_CLIENTE_BASE + '/logistica/estado', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                pedidoId,
-                                codigoVendedor,
-                                estado: nuevoEstado === 'aprobado' ? 'entregado'
-                                      : nuevoEstado === 'no_aprobado' ? 'pendiente'
-                                      : nuevoEstado
-                            })
-                        });
+                        await enviarEstadoAWorkerCliente(pedido, codigoVendedor, nuevoEstado, user.uid);
                     } catch (_) { /* no bloquear */ }
                 }
                 // ─────────────────────────────────────────────────────────────
