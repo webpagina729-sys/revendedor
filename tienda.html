@@ -426,6 +426,7 @@
         .entrega-opcion .eo-icon { font-size: 32px; margin-bottom: 8px; }
         .entrega-opcion .eo-label { font-size: 14px; font-weight: 700; color: var(--text); }
         .entrega-opcion .eo-desc { font-size: 11px; color: var(--text-light); margin-top: 3px; }
+        .entrega-opcion .eo-costo { font-size: 12px; font-weight: 700; color: var(--primary); margin-top: 6px; }
         .entrega-cancel {
             width: 100%; padding: 10px; background: none;
             border: 1px solid var(--border); border-radius: 8px;
@@ -777,13 +778,15 @@
         <div class="entrega-opciones">
             <div class="entrega-opcion" onclick="elegirEntrega('retiro')">
                 <div class="eo-icon">🏪</div>
-                <div class="eo-label">Pasar a retirar</div>
+                <div class="eo-label">Retirar por sucursal revendedor</div>
                 <div class="eo-desc">Coordinamos el punto de encuentro</div>
+                <div class="eo-costo">+ $1.000</div>
             </div>
             <div class="entrega-opcion" onclick="elegirEntrega('domicilio')">
                 <div class="eo-icon">🚚</div>
                 <div class="eo-label">Recibir a domicilio</div>
                 <div class="eo-desc">Te lo llevamos hasta tu puerta</div>
+                <div class="eo-costo">+ $12.000</div>
             </div>
         </div>
         <button class="entrega-cancel" onclick="cerrarEntrega()">Cancelar</button>
@@ -822,6 +825,17 @@
         <div class="checkout-field">
             <label>Dirección alternativa</label>
             <input type="text" id="co-direccion-alt" placeholder="Referencia o segunda opción">
+        </div>
+
+        <div class="checkout-row">
+            <div class="checkout-field">
+                <label>Ciudad <span class="checkout-required">*</span></label>
+                <input type="text" id="co-ciudad" placeholder="Ej: Buenos Aires">
+            </div>
+            <div class="checkout-field">
+                <label>Código Postal <span class="checkout-required">*</span></label>
+                <input type="text" id="co-cp" placeholder="Ej: 1001">
+            </div>
         </div>
 
         <div class="checkout-status" id="co-status">✓ ¡Pedido enviado correctamente!</div>
@@ -1891,6 +1905,12 @@ window.addEventListener('load', cargarVendedor);
 // ═══════════════════════════════════════════════════════════════
 
 const WORKER_CLIENTE = 'https://workerwebcliente.tuweb.workers.dev/pedido';
+const WORKER_DELIVERY = 'https://workerdelibery.tuweb.workers.dev/';
+const COSTO_RETIRO = 1000;
+const COSTO_DOMICILIO = 12000;
+
+// Variable para guardar el tipo elegido
+window._tipoEntregaElegido = null;
 
 // ── Modal de tipo de entrega ────────────────────────────────────
 // El botón WhatsApp ahora abre primero este modal.
@@ -1921,13 +1941,8 @@ function cerrarEntrega() {
 
 function elegirEntrega(tipo) {
     cerrarEntrega();
-    if (tipo === 'retiro') {
-        // Enviar directamente a WhatsApp indicando retiro, con resumen
-        _enviarWAConTipoEntrega('retiro', null);
-    } else {
-        // Abrir checkout para datos de domicilio
-        abrirCheckout();
-    }
+    window._tipoEntregaElegido = tipo;
+    abrirCheckout();
 }
 
 function abrirCheckout() {
@@ -1935,6 +1950,33 @@ function abrirCheckout() {
     document.getElementById('co-status').style.display = 'none';
     document.getElementById('co-error').style.display  = 'none';
     document.getElementById('co-btn-submit').disabled  = false;
+
+    const tipo = window._tipoEntregaElegido || 'domicilio';
+    const esRetiro = tipo === 'retiro';
+    const costo = esRetiro ? COSTO_RETIRO : COSTO_DOMICILIO;
+    const titulo = esRetiro ? 'Retirar por sucursal revendedor' : 'Datos de envío a domicilio';
+    const costoLabel = esRetiro ? '+ $1.000 (retiro por sucursal)' : '+ $12.000 (envío a domicilio)';
+
+    // Actualizar título del modal
+    const h2 = document.querySelector('#modal-checkout .checkout-box h2');
+    if (h2) h2.textContent = titulo;
+
+    // Mostrar o actualizar etiqueta de costo en el modal
+    let costoEl = document.getElementById('co-costo-envio');
+    if (!costoEl) {
+        costoEl = document.createElement('div');
+        costoEl.id = 'co-costo-envio';
+        costoEl.style.cssText = 'font-size:13px;font-weight:700;color:var(--primary);margin-bottom:12px;padding:8px 12px;background:rgba(0,102,255,.06);border-radius:8px;text-align:center;';
+        const btn = document.getElementById('co-btn-submit');
+        btn.parentNode.insertBefore(costoEl, btn);
+    }
+    costoEl.textContent = '📦 Costo de entrega: ' + costoLabel;
+
+    // Mostrar/ocultar campo dirección según tipo
+    const dirField = document.getElementById('co-direccion') && document.getElementById('co-direccion').closest('.checkout-field');
+    const dirAltField = document.getElementById('co-direccion-alt') && document.getElementById('co-direccion-alt').closest('.checkout-field');
+    const ciudadRow = document.getElementById('co-ciudad') && document.getElementById('co-ciudad').closest('.checkout-row');
+
     document.getElementById('co-btn-submit').textContent = 'Confirmar pedido';
     document.getElementById('modal-checkout').classList.add('active');
 }
@@ -1949,10 +1991,20 @@ async function enviarPedidoConDatos() {
     const telefono  = document.getElementById('co-telefono').value.trim();
     const direccion = document.getElementById('co-direccion').value.trim();
     const dirAlt    = document.getElementById('co-direccion-alt').value.trim();
+    const ciudad    = document.getElementById('co-ciudad') ? document.getElementById('co-ciudad').value.trim() : '';
+    const cp        = document.getElementById('co-cp') ? document.getElementById('co-cp').value.trim() : '';
+
+    const tipo = window._tipoEntregaElegido || 'domicilio';
+    const esRetiro = tipo === 'retiro';
+    const costoEntrega = esRetiro ? COSTO_RETIRO : COSTO_DOMICILIO;
 
     // Validación
     if (!nombre || !apellido || !telefono || !direccion) {
         mostrarErrorCheckout('Completá los campos obligatorios (*).');
+        return;
+    }
+    if (!ciudad || !cp) {
+        mostrarErrorCheckout('Completá ciudad y código postal (*).');
         return;
     }
 
@@ -1966,12 +2018,13 @@ async function enviarPedidoConDatos() {
     const fecha    = now.toLocaleDateString('es-AR');
     const hora     = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
-    const productos          = carrito.map(i => i.producto.nombre + (i.talle ? ` (T.${i.talle})` : ''));
-    const cantidades         = carrito.map(i => i.qty);
+    const productos           = carrito.map(i => i.producto.nombre + (i.talle ? ` (T.${i.talle})` : ''));
+    const cantidades          = carrito.map(i => i.qty);
     const preciosIndividuales = carrito.map(i => i.producto.precioFinal);
-    const total              = carrito.reduce((s, x) => s + x.producto.precioFinal * x.qty, 0);
+    const subtotal            = carrito.reduce((s, x) => s + x.producto.precioFinal * x.qty, 0);
+    const total               = subtotal + costoEntrega;
 
-    const datosEnvio = { nombre, apellido, telefono, direccion, direccionAlternativa: dirAlt };
+    const datosEnvio = { nombre, apellido, telefono, direccion, direccionAlternativa: dirAlt, ciudad, cp, tipoEntrega: tipo, costoEntrega };
 
     const payload = {
         nombre,
@@ -1979,17 +2032,23 @@ async function enviarPedidoConDatos() {
         telefono,
         direccion,
         direccionAlternativa: dirAlt,
-        codigoVendedor:       codigoParam || (vendedor && vendedor.codigoVendedor) || '',
+        ciudad,
+        codigoPostal: cp,
+        codigoVendedor: codigoParam || (vendedor && vendedor.codigoVendedor) || '',
         fecha,
         hora,
         productos,
         cantidades,
         preciosIndividuales,
+        subtotal,
+        costoEntrega,
         total,
+        tipoEntrega: tipo,
         estado: 'pendiente',
     };
 
     try {
+        // Siempre enviar al worker original (registro en base de datos)
         const res = await fetch(WORKER_CLIENTE, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1998,6 +2057,15 @@ async function enviarPedidoConDatos() {
 
         const data = await res.json();
 
+        // Si es domicilio, también enviar al worker de delivery (sin bloquear)
+        if (!esRetiro) {
+            fetch(WORKER_DELIVERY, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(payload),
+            }).catch(() => {});
+        }
+
         if (res.ok && data.ok) {
             document.getElementById('co-status').style.display = 'block';
             btn.textContent = '✓ Pedido registrado';
@@ -2005,7 +2073,7 @@ async function enviarPedidoConDatos() {
             setTimeout(() => {
                 cerrarCheckout();
                 cerrarCarrito();
-                _enviarWAConTipoEntrega('domicilio', datosEnvio);
+                _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, total);
             }, 1800);
         } else {
             mostrarErrorCheckout('No se pudo registrar el pedido. Intentá de nuevo.');
@@ -2014,9 +2082,16 @@ async function enviarPedidoConDatos() {
         }
     } catch (e) {
         // Si el worker falla, igual abrimos WhatsApp para no bloquear la venta
+        if (!esRetiro) {
+            fetch(WORKER_DELIVERY, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(payload),
+            }).catch(() => {});
+        }
         cerrarCheckout();
         cerrarCarrito();
-        _enviarWAConTipoEntrega('domicilio', datosEnvio);
+        _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, total);
     }
 }
 
@@ -2077,6 +2152,66 @@ function _enviarWAConTipoEntrega(tipo, datosEnvio) {
 // Guardamos referencia a la función original de WhatsApp (por compatibilidad con el bloque de promo)
 function _enviarPorWhatsAppOriginal() {
     _enviarWAConTipoEntrega('retiro', null);
+}
+
+// ── Nueva función: como _enviarWAConTipoEntrega pero con costo de envío sumado ──
+function _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, totalConCosto) {
+    const wa = vendedor.whatsappRevendedor || '';
+    if (!wa) return;
+
+    const subtotal = carrito.reduce((s, x) => {
+        if (x.regalo) return s;
+        return s + x.producto.precioFinal * x.qty;
+    }, 0);
+
+    const lineas = carrito.map(item => {
+        if (item.regalo) {
+            return `• *${item.producto.nombre}*${item.talle ? ' (T. ' + item.talle + ')' : ''}\n  Precio: GRATIS 🎁\n  Cantidad: ${item.qty}`;
+        }
+        return `• *${item.producto.nombre}*${item.talle ? ' (T. ' + item.talle + ')' : ''}\n  Precio: ${formatPrice(item.producto.precioFinal)}\n  Cantidad: ${item.qty}`;
+    });
+
+    const esRetiro = tipo === 'retiro';
+    const partes = [
+        '¡Hola! 😊 Quiero hacer el siguiente pedido:',
+        '',
+        ...lineas,
+        '',
+        `Subtotal productos: ${formatPrice(subtotal)}`,
+        `Costo de entrega: ${formatPrice(costoEntrega)}`,
+        `*Total: ${formatPrice(totalConCosto)}*`,
+    ];
+
+    if (window.promoActiva) {
+        partes.push(`\n🎉 Promoción aplicada: ${window.promoActiva.nombre || ''}`);
+    }
+
+    if (!esRetiro && datosEnvio) {
+        partes.push('');
+        partes.push('📦 *Datos de envío:*');
+        partes.push(`Nombre: ${datosEnvio.nombre} ${datosEnvio.apellido}`);
+        partes.push(`Teléfono: ${datosEnvio.telefono}`);
+        partes.push(`Dirección: ${datosEnvio.direccion}`);
+        if (datosEnvio.direccionAlternativa) {
+            partes.push(`Referencia: ${datosEnvio.direccionAlternativa}`);
+        }
+        partes.push(`Ciudad: ${datosEnvio.ciudad}`);
+        partes.push(`Código Postal: ${datosEnvio.cp}`);
+        partes.push('🚚 Entrega: *A domicilio*');
+    } else {
+        partes.push('');
+        if (datosEnvio) {
+            partes.push('📦 *Datos del cliente:*');
+            partes.push(`Nombre: ${datosEnvio.nombre} ${datosEnvio.apellido}`);
+            partes.push(`Teléfono: ${datosEnvio.telefono}`);
+            partes.push(`Ciudad: ${datosEnvio.ciudad}`);
+            partes.push(`Código Postal: ${datosEnvio.cp}`);
+        }
+        partes.push('🏪 Entrega: *Retirar por sucursal revendedor*');
+    }
+
+    const msg = partes.filter(x => x !== undefined).join('\n');
+    window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
 
