@@ -2554,5 +2554,73 @@ enviarPedidoConDatos = async function() {
 </div>
 
 
+<!-- ═══════════════════════════════════════════════════════════════════
+     FIX UNIVERSAL: Garantiza que vendedor.whatsappRevendedor siempre
+     tenga el número del dueño de ESTA tienda, en todos los dispositivos.
+     Safari/iPhone con ITP bloquea localStorage entre dominios, por eso
+     se hace una consulta directa a Firestore usando el codigoParam de
+     la URL. No modifica ningún código existente; solo agrega un parche
+     que se ejecuta una vez que la tienda ya cargó.
+     ═══════════════════════════════════════════════════════════════════ -->
+<script>
+(function patchWhatsappUniversal() {
+    // Esperar a que Firebase y la tienda estén listos
+    function waitAndPatch(intentos) {
+        intentos = intentos || 0;
+        if (intentos > 40) return; // máximo ~8 segundos
+
+        var ok = (
+            typeof db !== 'undefined' &&
+            typeof vendedor !== 'undefined' &&
+            typeof codigoParam !== 'undefined' &&
+            codigoParam
+        );
+        if (!ok) {
+            setTimeout(function() { waitAndPatch(intentos + 1); }, 200);
+            return;
+        }
+
+        // Si ya tiene número, no hacer nada
+        if (vendedor.whatsappRevendedor && vendedor.whatsappRevendedor.length >= 10) return;
+
+        // Consultar Firestore directamente por codigoVendedor de ESTA tienda
+        db.collection('usuarios')
+            .where('codigoVendedor', '==', codigoParam)
+            .limit(1)
+            .get()
+            .then(function(snap) {
+                if (snap.empty) return;
+                var data = snap.docs[0].data();
+
+                // Intentar obtener whatsappRevendedor del documento
+                var wa = (data.whatsappRevendedor || '').replace(/\D/g, '');
+
+                // Si no tiene whatsappRevendedor, construirlo desde telefono (igual que el código existente)
+                if (!wa || wa.length < 10) {
+                    var tel = (data.telefono || '').toString().replace(/\D/g, '');
+                    if (tel.startsWith('549')) tel = tel.slice(3);
+                    else if (tel.startsWith('54')) tel = tel.slice(2);
+                    if (tel.startsWith('0')) tel = tel.replace(/^0+/, '');
+                    if (tel.length >= 4 && tel.charAt(2) === '1' && tel.charAt(3) === '5') {
+                        tel = tel.slice(0, 2) + tel.slice(4);
+                    }
+                    if (tel && tel.length >= 8) wa = '549' + tel;
+                }
+
+                if (wa && wa.length >= 10) {
+                    vendedor.whatsappRevendedor = wa;
+                }
+            })
+            .catch(function() {});
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { waitAndPatch(0); });
+    } else {
+        waitAndPatch(0);
+    }
+})();
+</script>
+
 </body>
 </html>
