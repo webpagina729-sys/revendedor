@@ -1422,6 +1422,7 @@ async function cargarVendedor() {
             if (!vendedor.configTiendaAll && fsData.configTiendaAll) vendedor.configTiendaAll = fsData.configTiendaAll;
             if (!vendedor.preciosManualCat && fsData.preciosManualCat) vendedor.preciosManualCat = fsData.preciosManualCat;
             if (!vendedor.whatsappRevendedor && fsData.whatsappRevendedor) vendedor.whatsappRevendedor = fsData.whatsappRevendedor;
+            if (!vendedor.telefono && fsData.telefono) vendedor.telefono = fsData.telefono;
             // promocionesTienda: siempre usar Firestore como fuente de verdad (ignora objeto vacío del Worker)
             if (fsData.promocionesTienda && typeof fsData.promocionesTienda === 'object'
                 && Object.keys(fsData.promocionesTienda).length > 0) {
