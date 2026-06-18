@@ -1490,11 +1490,23 @@ async function cargarVendedor() {
         }
     } catch(e) {}
 
-    // ── Resolver whatsappRevendedor con todos los fallbacks posibles ──
+    // ── Resolver whatsappRevendedor: SIEMPRE del vendedor de ESTA tienda ──
+    // (nunca del localStorage del visitante, que pertenece a quien mira la
+    // tienda, no al dueño de la tienda).
     if (!vendedor.whatsappRevendedor) {
-        const lsWa = localStorage.getItem('whatsappRevendedor');
-        if (lsWa && lsWa.trim() !== '') {
-            vendedor.whatsappRevendedor = lsWa.trim();
+        // Fallback: usar el teléfono con el que este vendedor se registró
+        // (vendedor.telefono viene de Firestore/Worker, identificado por el
+        // codigoVendedor de ESTA tienda — es el dato correcto y específico
+        // de esta persona, no de quien visita el link).
+        let telReg = (vendedor.telefono || '').toString().replace(/\D/g, '');
+        if (telReg.startsWith('549')) telReg = telReg.slice(3);
+        else if (telReg.startsWith('54')) telReg = telReg.slice(2);
+        if (telReg.startsWith('0')) telReg = telReg.replace(/^0+/, '');
+        if (telReg.length >= 4 && telReg.charAt(2) === '1' && telReg.charAt(3) === '5') {
+            telReg = telReg.slice(0,2) + telReg.slice(4);
+        }
+        if (telReg && telReg.length >= 8) {
+            vendedor.whatsappRevendedor = '549' + telReg;
         }
     }
 
