@@ -2555,36 +2555,35 @@ enviarPedidoConDatos = async function() {
 
 
 <!-- ═══════════════════════════════════════════════════════════════════
-     FIX UNIVERSAL: Garantiza que vendedor.whatsappRevendedor siempre
-     tenga el número del dueño de ESTA tienda, en todos los dispositivos.
-     Safari/iPhone con ITP bloquea localStorage entre dominios, por eso
-     se hace una consulta directa a Firestore usando el codigoParam de
-     la URL. No modifica ningún código existente; solo agrega un parche
-     que se ejecuta una vez que la tienda ya cargó.
+     FIX UNIVERSAL – whatsappRevendedor en todos los dispositivos
+     ---------------------------------------------------------------
+     Problema: Safari/iPhone borra localStorage entre sesiones (ITP).
+     Cuando un visitante abre la tienda del revendedor, el número de
+     WhatsApp debe venir de Firestore (fuente de verdad), NO del
+     localStorage del visitante (que está vacío en iPhones ajenos).
+
+     Este script hace tres cosas, sin tocar nada del código existente:
+
+     1. Lanza una consulta directa a Firestore por codigoParam lo antes
+        posible y guarda el resultado en vendedor.whatsappRevendedor.
+        Expone una Promise (window._waPromise) para saber cuándo terminó.
+
+     2. Envuelve abrirModalEntrega() para que, si vendedor.whatsappRevendedor
+        todavía está vacío al hacer click, espere la Promise antes de
+        decidir si mostrar el alert o abrir el modal.
+
+     3. Hace lo mismo con enviarPorWhatsApp() por si se llama directamente.
      ═══════════════════════════════════════════════════════════════════ -->
 <script>
-(function patchWhatsappUniversal() {
-    // Esperar a que Firebase y la tienda estén listos
-    function waitAndPatch(intentos) {
-        intentos = intentos || 0;
-        if (intentos > 40) return; // máximo ~8 segundos
+(function fixWhatsappUniversal() {
 
-        var ok = (
-            typeof db !== 'undefined' &&
-            typeof vendedor !== 'undefined' &&
-            typeof codigoParam !== 'undefined' &&
-            codigoParam
-        );
-        if (!ok) {
-            setTimeout(function() { waitAndPatch(intentos + 1); }, 200);
-            return;
+    // ── 1. Lanzar fetch de Firestore lo antes posible ─────────────
+    function lanzarFetch() {
+        // Necesitamos db y codigoParam
+        if (typeof db === 'undefined' || typeof codigoParam === 'undefined' || !codigoParam) {
+            return null;
         }
-
-        // Si ya tiene número, no hacer nada
-        if (vendedor.whatsappRevendedor && vendedor.whatsappRevendedor.length >= 10) return;
-
-        // Consultar Firestore directamente por codigoVendedor de ESTA tienda
-        db.collection('usuarios')
+        return db.collection('usuarios')
             .where('codigoVendedor', '==', codigoParam)
             .limit(1)
             .get()
@@ -2592,10 +2591,10 @@ enviarPedidoConDatos = async function() {
                 if (snap.empty) return;
                 var data = snap.docs[0].data();
 
-                // Intentar obtener whatsappRevendedor del documento
+                // Primero intentar whatsappRevendedor directo
                 var wa = (data.whatsappRevendedor || '').replace(/\D/g, '');
 
-                // Si no tiene whatsappRevendedor, construirlo desde telefono (igual que el código existente)
+                // Si no tiene, construirlo desde telefono (misma lógica que el código existente)
                 if (!wa || wa.length < 10) {
                     var tel = (data.telefono || '').toString().replace(/\D/g, '');
                     if (tel.startsWith('549')) tel = tel.slice(3);
@@ -2607,18 +2606,109 @@ enviarPedidoConDatos = async function() {
                     if (tel && tel.length >= 8) wa = '549' + tel;
                 }
 
+                // Asignar solo si vendedor existe y no tiene número
                 if (wa && wa.length >= 10) {
-                    vendedor.whatsappRevendedor = wa;
+                    if (typeof vendedor !== 'undefined' && !vendedor.whatsappRevendedor) {
+                        vendedor.whatsappRevendedor = wa;
+                    }
+                    // Guardar para cuando vendedor aún no esté definido
+                    window._waPending = wa;
                 }
             })
             .catch(function() {});
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() { waitAndPatch(0); });
-    } else {
-        waitAndPatch(0);
+    // Intentar lanzar cuando db y codigoParam estén listos
+    function esperarYLanzar(intentos) {
+        intentos = intentos || 0;
+        if (intentos > 50) return; // ~10s máximo
+        if (typeof db !== 'undefined' && typeof codigoParam !== 'undefined' && codigoParam) {
+            window._waPromise = lanzarFetch();
+        } else {
+            setTimeout(function() { esperarYLanzar(intentos + 1); }, 200);
+            return;
+        }
+        // También vigilar si vendedor se define después del fetch
+        if (!window._waPromise) return;
+        window._waPromise.then(function() {
+            if (window._waPending && typeof vendedor !== 'undefined' && !vendedor.whatsappRevendedor) {
+                vendedor.whatsappRevendedor = window._waPending;
+            }
+        });
     }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { esperarYLanzar(0); });
+    } else {
+        esperarYLanzar(0);
+    }
+
+    // ── 2. Helper: obtener el número con espera si está en vuelo ──
+    function obtenerWA() {
+        // Si ya está disponible, devolver resuelto al instante
+        if (typeof vendedor !== 'undefined' && vendedor.whatsappRevendedor) {
+            return Promise.resolve(vendedor.whatsappRevendedor);
+        }
+        // Si hay un fetch en curso, esperarlo
+        var p = window._waPromise || Promise.resolve();
+        return p.then(function() {
+            // Último intento: _waPending
+            if (typeof vendedor !== 'undefined' && !vendedor.whatsappRevendedor && window._waPending) {
+                vendedor.whatsappRevendedor = window._waPending;
+            }
+            return (typeof vendedor !== 'undefined' && vendedor.whatsappRevendedor) || '';
+        });
+    }
+
+    // ── 3. Parchear abrirModalEntrega para esperar el número ──────
+    function patchFunciones() {
+        // abrirModalEntrega
+        if (typeof window.abrirModalEntrega === 'function') {
+            var _origEntrega = window.abrirModalEntrega;
+            window.abrirModalEntrega = function() {
+                if (typeof carrito !== 'undefined' && carrito.length === 0) return;
+                var wa = (typeof vendedor !== 'undefined' && vendedor.whatsappRevendedor) || '';
+                if (wa) { _origEntrega(); return; }
+                // Esperar fetch y reintentar una vez
+                obtenerWA().then(function(waRes) {
+                    if (waRes) { _origEntrega(); }
+                    else { _origEntrega(); } // dejar que la función original maneje el estado
+                });
+            };
+        }
+
+        // enviarPorWhatsApp
+        if (typeof window.enviarPorWhatsApp === 'function') {
+            var _origWA = window.enviarPorWhatsApp;
+            window.enviarPorWhatsApp = function() {
+                if (typeof carrito !== 'undefined' && carrito.length === 0) return;
+                var wa = (typeof vendedor !== 'undefined' && vendedor.whatsappRevendedor) || '';
+                if (wa) { _origWA(); return; }
+                obtenerWA().then(function(waRes) {
+                    if (waRes) { _origWA(); }
+                    else { _origWA(); }
+                });
+            };
+        }
+    }
+
+    // Parchear cuando las funciones estén disponibles
+    function esperarFunciones(intentos) {
+        intentos = intentos || 0;
+        if (intentos > 50) return;
+        if (typeof window.abrirModalEntrega === 'function' || typeof window.enviarPorWhatsApp === 'function') {
+            patchFunciones();
+        } else {
+            setTimeout(function() { esperarFunciones(intentos + 1); }, 200);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { esperarFunciones(0); });
+    } else {
+        esperarFunciones(0);
+    }
+
 })();
 </script>
 
