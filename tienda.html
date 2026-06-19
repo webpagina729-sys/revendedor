@@ -1421,8 +1421,6 @@ async function cargarVendedor() {
             if (!vendedor.coloresTiendaPorCat && fsData.coloresTiendaPorCat) vendedor.coloresTiendaPorCat = fsData.coloresTiendaPorCat;
             if (!vendedor.configTiendaAll && fsData.configTiendaAll) vendedor.configTiendaAll = fsData.configTiendaAll;
             if (!vendedor.preciosManualCat && fsData.preciosManualCat) vendedor.preciosManualCat = fsData.preciosManualCat;
-            if (!vendedor.whatsappRevendedor && fsData.whatsappRevendedor) vendedor.whatsappRevendedor = fsData.whatsappRevendedor;
-            if (!vendedor.telefono && fsData.telefono) vendedor.telefono = fsData.telefono;
             // promocionesTienda: siempre usar Firestore como fuente de verdad (ignora objeto vacío del Worker)
             if (fsData.promocionesTienda && typeof fsData.promocionesTienda === 'object'
                 && Object.keys(fsData.promocionesTienda).length > 0) {
@@ -2023,6 +2021,7 @@ async function enviarPedidoConDatos() {
     const productos           = carrito.map(i => i.producto.nombre + (i.talle ? ` (T.${i.talle})` : ''));
     const cantidades          = carrito.map(i => i.qty);
     const preciosIndividuales = carrito.map(i => i.producto.precioFinal);
+    const preciosCosto        = carrito.map(i => i.producto.precio);
     const subtotal            = carrito.reduce((s, x) => s + x.producto.precioFinal * x.qty, 0);
     const total               = subtotal + costoEntrega;
 
@@ -2042,6 +2041,7 @@ async function enviarPedidoConDatos() {
         productos,
         cantidades,
         preciosIndividuales,
+        preciosCosto,
         subtotal,
         costoEntrega,
         total,
