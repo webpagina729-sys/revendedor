@@ -3236,8 +3236,8 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 22V12h6v10"/></svg>
                     <svg id="config-gear-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;margin-left:2px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 </button>
-                <button class="cart-btn" id="btn-gestion-header" onclick="window.open('https://gestion.revendeways.shop','_blank')" title="Gestión" aria-label="Gestión" style="padding:6px 10px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <button class="cart-btn" id="btn-gestion-header" onclick="window.open('https://gestion.revendeways.shop','_blank')" title="Gestión" aria-label="Gestión" style="padding:6px 10px;background:#23B8CC;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 </button>
             </div>
         </div>
@@ -6443,15 +6443,7 @@
             localStorage.setItem('selectedProductCategory', category);
             
             // Guardar en Firestore si usuario está autenticado
-            const user = firebase.auth().currentUser;
-            if (user) {
-                firebase.firestore().collection('usuarios').doc(user.uid).update({
-                    categoriaProductos: category,
-                    fechaSeleccion: new Date()
-                }).catch(err => {
-                    // Error guardando categoría
-                });
-            }
+            _guardarEnFirestore({ categoriaProductos: category, fechaSeleccion: new Date() });
             
             // Cerrar modal
             closeProductsModal();
@@ -8110,11 +8102,7 @@
             }
 
             localStorage.setItem('whatsappRevendedor', val);
-            const user = firebase.auth().currentUser;
-            if (user) {
-                firebase.firestore().collection('usuarios').doc(user.uid)
-                    .update({ whatsappRevendedor: val }).catch(() => {});
-            }
+            _guardarEnFirestore({ whatsappRevendedor: val });
             document.getElementById('whatsappConfirmModal').classList.remove('active');
 
             // Toast de confirmación con estética de la web
@@ -8155,11 +8143,7 @@
             const val = '549' + local;
 
             localStorage.setItem('whatsappRevendedor', val);
-            const user = firebase.auth().currentUser;
-            if (user) {
-                firebase.firestore().collection('usuarios').doc(user.uid)
-                    .update({ whatsappRevendedor: val }).catch(() => {});
-            }
+            _guardarEnFirestore({ whatsappRevendedor: val });
 
             // Reflejar el valor normalizado en el propio input
             if (inputEl) inputEl.value = val;
@@ -8258,6 +8242,55 @@
             container.appendChild(row);
         }
 
+        // ─── HELPER: obtiene UID y referencia Firestore sin importar cómo inició sesión ───
+        // Si el usuario entró con email → firebase.auth().currentUser existe.
+        // Si entró con código de revendedor → firebase.auth().currentUser es null
+        // pero window.currentUser.uid sí tiene el UID real de Firestore.
+        function _getUidParaFirestore() {
+            const fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+            if (fbUser && fbUser.uid) return fbUser.uid;
+            if (window.currentUser && window.currentUser.uid) {
+                // Verificar que no sea solo el código de vendedor (que no es un UID de Firestore)
+                const uid = window.currentUser.uid;
+                const codigo = window.currentUser.codigoVendedor || '';
+                // El UID de Firestore tiene ~28 chars alfanuméricos, el código de vendedor es corto
+                if (uid && uid !== codigo && uid.length > 10) return uid;
+            }
+            return null;
+        }
+        function _firestoreUserRef() {
+            const uid = _getUidParaFirestore();
+            if (!uid) return null;
+            return firebase.firestore().collection('usuarios').doc(uid);
+        }
+        // Versión async: si no hay UID en memoria, lo busca por codigoVendedor en Firestore
+        async function _firestoreUserRefAsync() {
+            const ref = _firestoreUserRef();
+            if (ref) return ref;
+            // Intentar buscar por código de vendedor
+            const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                || localStorage.getItem('codigoVendedorLocal')
+                || localStorage.getItem('codigoRevendedorValidado');
+            if (!codigo) return null;
+            try {
+                const snap = await firebase.firestore().collection('usuarios')
+                    .where('codigoVendedor', '==', codigo).limit(1).get();
+                if (snap.empty) return null;
+                const docRef = snap.docs[0].ref;
+                // Cachear el uid real para futuras llamadas
+                if (window.currentUser) window.currentUser.uid = snap.docs[0].id;
+                return docRef;
+            } catch(e) { return null; }
+        }
+        // Helper para guardar en Firestore con fallback async
+        function _guardarEnFirestore(data) {
+            const ref = _firestoreUserRef();
+            if (ref) { ref.update(data).catch(() => {}); return; }
+            // Fallback: buscar por código
+            _firestoreUserRefAsync().then(r => { if (r) r.update(data).catch(() => {}); });
+        }
+        // ─────────────────────────────────────────────────────────────────────────────────
+
         function guardarConfigTienda() {
             const cat = window.currentCatalog || 'general';
             const rangos = [];
@@ -8306,14 +8339,10 @@
             localStorage.setItem('coloresTiendaPorCat', JSON.stringify(coloresByCat));
             localStorage.setItem('colorTienda', colorTienda); // legacy
 
-            // Guardar en Firestore
-            const fbUser = firebase.auth().currentUser;
-            const uid = fbUser ? fbUser.uid : (window.currentUser ? window.currentUser.uid : null);
-            if (uid && fbUser) {
-                const update = { [`configTiendaAll.${cat}`]: config, configTiendaAll: allConfig, colorTienda: colorTienda, [`coloresTiendaPorCat.${cat}`]: colorTienda };
-                if (wa && wa.length >= 10) update.whatsappRevendedor = wa;
-                firebase.firestore().collection('usuarios').doc(uid).update(update).catch(() => {});
-            }
+            // Guardar en Firestore (funciona con login por email O por código de revendedor)
+            const _updateData = { [`configTiendaAll.${cat}`]: config, configTiendaAll: allConfig, colorTienda: colorTienda, [`coloresTiendaPorCat.${cat}`]: colorTienda };
+            if (wa && wa.length >= 10) _updateData.whatsappRevendedor = wa;
+            _guardarEnFirestore(_updateData);
 
             document.getElementById('configTiendaModal').classList.remove('active');
 
@@ -8606,9 +8635,12 @@
                     }
                     if (data.configTiendaAll) {
                         localStorage.setItem('configTiendaAll', JSON.stringify(data.configTiendaAll));
+                        // Re-renderizar productos para aplicar precios actualizados desde Firestore
+                        if (typeof renderProducts === 'function') { try { renderProducts(); } catch(_) {} }
                     }
                     if (data.preciosManualCat) {
                         localStorage.setItem('preciosManualCat', JSON.stringify(data.preciosManualCat));
+                        if (typeof renderProducts === 'function') { try { renderProducts(); } catch(_) {} }
                     }
                     // Si no tiene WhatsApp configurado, mostrar modal a los 7 segundos
                     if (!localStorage.getItem('whatsappRevendedor')) {
@@ -8749,8 +8781,22 @@
                 var fbUser = firebase.auth().currentUser;
                 console.log("[APP] firebase.auth().currentUser:", fbUser);
 
+                // Obtener UID real desde Firestore (por codigoVendedor) si firebase.auth no lo tiene
+                var _uidReal = fbUser ? fbUser.uid : (userData.uid || null);
+                // Si no tenemos uid real todavía, buscarlo en Firestore para futuras escrituras
+                if (!_uidReal) {
+                    firebase.firestore().collection('usuarios')
+                        .where('codigoVendedor', '==', codigo).limit(1).get()
+                        .then(function(sn) {
+                            if (!sn.empty) {
+                                var _uid = sn.docs[0].id;
+                                if (window.currentUser) window.currentUser.uid = _uid;
+                            }
+                        }).catch(function(){});
+                }
+
                 window.currentUser = {
-                    uid:                fbUser ? fbUser.uid : codigo,
+                    uid:                _uidReal || codigo,
                     nombre:             userData.nombre    || '',
                     apellido:           userData.apellido  || '',
                     email:              userData.email     || '',
