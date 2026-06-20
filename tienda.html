@@ -1985,55 +1985,6 @@ function cerrarCheckout() {
     document.getElementById('modal-checkout').classList.remove('active');
 }
 
-// ── Guardar pedido en Firestore para que el panel lo recopile en vivo ──
-async function _guardarPedidoEnFirestore(payload, workerResponse) {
-    try {
-        // Buscar el UID del revendedor por codigoVendedor
-        let revendedorUid = null;
-        try {
-            const snap = await db.collection('usuarios')
-                .where('codigoVendedor', '==', payload.codigoVendedor)
-                .limit(1).get();
-            if (!snap.empty) revendedorUid = snap.docs[0].id;
-        } catch(_) {}
-
-        const pedidoId = (workerResponse && workerResponse.id) || (workerResponse && workerResponse.pedidoId) || null;
-
-        const docData = {
-            ...payload,
-            uid: revendedorUid || '',
-            estado: 'pendiente',
-            estadoAprobacion: 'pendiente',
-            fechaCreacion: firebase.firestore.FieldValue.serverTimestamp(),
-            // items en formato normalizado para el panel
-            items: carrito
-                .filter(x => !x.regalo)
-                .map(x => ({
-                    nombre: x.producto.nombre + (x.talle ? ` (T.${x.talle})` : ''),
-                    cantidad: x.qty,
-                    precio: x.producto.precioFinal,   // precio cliente
-                    precioCosto: x.producto.precio,   // precio mayorista real
-                })),
-            regaloItems: carrito
-                .filter(x => x.regalo)
-                .map(x => ({ nombre: x.producto.nombre, cantidad: x.qty })),
-            fuente: 'tienda',
-        };
-
-        let docRef;
-        if (pedidoId) {
-            // Usar el ID que asignó el worker para que el panel pueda correlacionar
-            docRef = db.collection('pedidos').doc(String(pedidoId));
-            await docRef.set(docData, { merge: true });
-        } else {
-            docRef = await db.collection('pedidos').add(docData);
-        }
-        console.log('[Firestore] Pedido guardado:', docRef.id || pedidoId);
-    } catch(e) {
-        console.warn('[Firestore] No se pudo guardar el pedido:', e);
-    }
-}
-
 async function enviarPedidoConDatos() {
     const nombre    = document.getElementById('co-nombre').value.trim();
     const apellido  = document.getElementById('co-apellido').value.trim();
@@ -2118,9 +2069,6 @@ async function enviarPedidoConDatos() {
         if (res.ok && data.ok) {
             document.getElementById('co-status').style.display = 'block';
             btn.textContent = '✓ Pedido registrado';
-
-            // ── Guardar pedido en Firestore para que el panel lo lea en vivo ──
-            _guardarPedidoEnFirestore(payload, data).catch(() => {});
 
             setTimeout(() => {
                 cerrarCheckout();
