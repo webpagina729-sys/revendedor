@@ -1906,6 +1906,10 @@ window.addEventListener('load', cargarVendedor);
 
 const WORKER_CLIENTE = 'https://workerwebcliente.tuweb.workers.dev/pedido';
 const WORKER_DELIVERY = 'https://workerdelibery.tuweb.workers.dev/';
+// NUEVO: worker de estadísticas — recibe el precio CLIENTE de cada venta
+// para que panelestadisticas pueda cruzarlo con el precio mayorista que
+// llega del lado de workerpagos y calcular la ganancia real del revendedor.
+const WORKER_ESTADISTICAS = 'https://panelestadisticas.tuweb.workers.dev';
 const COSTO_RETIRO = 1000;
 const COSTO_DOMICILIO = 12000;
 
@@ -2024,9 +2028,17 @@ async function enviarPedidoConDatos() {
     const subtotal            = carrito.reduce((s, x) => s + x.producto.precioFinal * x.qty, 0);
     const total               = subtotal + costoEntrega;
 
+    // pedidoId propio, generado acá mismo: es la clave que va a usar
+    // panelestadisticas para cruzar este precio CLIENTE con el precio
+    // MAYORISTA que llegará después desde workerpagos (cuando el
+    // revendedor apruebe/pague el pedido). Se manda dentro del payload
+    // para que workerwebcliente lo persista junto al resto del pedido.
+    const pedidoIdEstadisticas = 'PED-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+
     const datosEnvio = { nombre, apellido, telefono, direccion, direccionAlternativa: dirAlt, ciudad, cp, tipoEntrega: tipo, costoEntrega };
 
     const payload = {
+        pedidoId: pedidoIdEstadisticas,
         nombre,
         apellido,
         telefono,
@@ -2066,6 +2078,28 @@ async function enviarPedidoConDatos() {
             }).catch(() => {});
         }
 
+        // NUEVO: avisar a panelestadisticas con el precio CLIENTE de esta
+        // venta (no bloqueante — si falla, el pedido ya quedó registrado
+        // en workerwebcliente de todas formas, y panelestadisticas puede
+        // recibir el cruce más tarde si se reintenta).
+        fetch(WORKER_ESTADISTICAS + '/api/registrar-venta', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({
+                pedidoId:       pedidoIdEstadisticas,
+                codigoVendedor: payload.codigoVendedor,
+                categoria:      (catalogoActual || ''),
+                cliente:        { nombre: nombre + ' ' + apellido, telefono },
+                items:          carrito.map(i => ({
+                    nombre:   i.producto.nombre + (i.talle ? ` (T.${i.talle})` : ''),
+                    cantidad: i.qty,
+                    precio:   i.producto.precioFinal,
+                })),
+                totalCliente: total,
+                fecha: new Date().toISOString(),
+            }),
+        }).catch(() => {});
+
         if (res.ok && data.ok) {
             document.getElementById('co-status').style.display = 'block';
             btn.textContent = '✓ Pedido registrado';
@@ -2089,6 +2123,25 @@ async function enviarPedidoConDatos() {
                 body:    JSON.stringify(payload),
             }).catch(() => {});
         }
+        // NUEVO: igual avisamos a panelestadisticas aunque workerwebcliente
+        // haya fallado, para no perder el dato del precio cliente.
+        fetch(WORKER_ESTADISTICAS + '/api/registrar-venta', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({
+                pedidoId:       pedidoIdEstadisticas,
+                codigoVendedor: payload.codigoVendedor,
+                categoria:      (catalogoActual || ''),
+                cliente:        { nombre: nombre + ' ' + apellido, telefono },
+                items:          carrito.map(i => ({
+                    nombre:   i.producto.nombre + (i.talle ? ` (T.${i.talle})` : ''),
+                    cantidad: i.qty,
+                    precio:   i.producto.precioFinal,
+                })),
+                totalCliente: total,
+                fecha: new Date().toISOString(),
+            }),
+        }).catch(() => {});
         cerrarCheckout();
         cerrarCarrito();
         _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, total);
