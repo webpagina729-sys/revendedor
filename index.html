@@ -6940,18 +6940,29 @@
             const productos = raw.productos || raw.items || [];
             const cantidades = raw.cantidades || [];
             const preciosIndividuales = raw.preciosIndividuales || raw.precios || [];
+            // Costo/ganancia reales tal cual los guardó workerwebcliente al crear el
+            // pedido — NUNCA se recalculan, se conservan para usarlos también cuando
+            // el pedido pase a aprobado (ver cambiarEstadoPedido).
+            const costoIndividuales  = raw.costoIndividuales  || [];
+            const gananciaIndividual = raw.gananciaIndividual || [];
             let items = [];
             if (Array.isArray(productos) && productos.length && typeof productos[0] === 'string') {
                 items = productos.map((nombre, i) => ({
-                    nombre, cantidad: Number(cantidades[i]) || 1, precio: Number(preciosIndividuales[i]) || 0
+                    nombre,
+                    cantidad: Number(cantidades[i]) || 1,
+                    precio: Number(preciosIndividuales[i]) || 0,
+                    precioCosto: Number(costoIndividuales[i]) || 0,
+                    ganancia: Number(gananciaIndividual[i]) || 0
                 }));
             } else if (Array.isArray(productos)) {
-                items = productos.map(p => ({
+                items = productos.map((p, i) => ({
                     id: p.id, nombre: p.nombre || p.name, cantidad: Number(p.cantidad || p.qty || 1),
-                    precio: Number(p.precio || p.precioFinal || 0), talle: p.talle, catalogo: p.catalogo
+                    precio: Number(p.precio || p.precioFinal || 0), talle: p.talle, catalogo: p.catalogo,
+                    precioCosto: Number(p.precioCosto || costoIndividuales[i] || 0),
+                    ganancia: Number(p.ganancia || gananciaIndividual[i] || 0)
                 }));
             }
-            return {
+            const pedidoNormalizado = {
                 id,
                 cliente: raw.cliente || {
                     nombre: raw.nombre, apellido: raw.apellido,
@@ -6959,11 +6970,26 @@
                 },
                 items,
                 totalFinal: Number(raw.total || raw.totalFinal || items.reduce((s,i)=>s+i.precio*i.cantidad,0)),
+                // Totales de costo/ganancia reales — se conservan tal cual vienen del
+                // worker, no se recalculan en ningún punto del flujo.
+                costoTotal:    Number(raw.costoTotal || 0),
+                gananciaTotal: Number(raw.gananciaTotal || 0),
                 estadoAprobacion: raw.estadoAprobacion || raw.estado || 'pendiente',
                 fechaCreacion: raw.fecha ? { toDate: () => new Date(raw.fecha + ' ' + (raw.hora||'')) } : null,
                 _origenWorker: true,
                 _raw: raw
             };
+
+            // Log de verificación: pedido tal cual entra como pendiente.
+            console.log('[PEDIDO][pendiente]', pedidoNormalizado.id, {
+                costoIndividuales:   raw.costoIndividuales,
+                costoTotal:          pedidoNormalizado.costoTotal,
+                gananciaTotal:       pedidoNormalizado.gananciaTotal,
+                preciosIndividuales: raw.preciosIndividuales,
+                total:               pedidoNormalizado.totalFinal
+            });
+
+            return pedidoNormalizado;
         }
 
         async function cargarPedidosRecibidos() {
@@ -6976,48 +7002,6 @@
             if (!user && !codigo) {
                 lista.innerHTML = '<div style="text-align:center;padding:40px 12px;color:var(--text-light);">No se encontró tu sesión de revendedor</div>';
                 return;
-            }
-
-            // Cargar precio mayorista desde workerpagos en paralelo
-            const WORKER_PAGOS_URL = 'https://workerpagos.tuweb.workers.dev';
-            let mayoristaPorPedido = new Map();
-            if (codigo) {
-                try {
-                    const ctrl = new AbortController();
-                    const t = setTimeout(() => ctrl.abort(), 6000);
-                    const res = await fetch(`${WORKER_PAGOS_URL}/api/panel-gestion?codigo=${encodeURIComponent(codigo)}`, { signal: ctrl.signal });
-                    clearTimeout(t);
-                    if (res.ok) {
-                        const data = await res.json().catch(() => null);
-                        const arr = Array.isArray(data && data.panelGestion) ? data.panelGestion
-                                  : Array.isArray(data) ? data : [];
-                        arr.forEach(reg => {
-                            const pid = reg.pedidoId || reg.id;
-                            if (!pid) return;
-                            mayoristaPorPedido.set(pid, (reg.items || []).map(it => ({
-                                nombre: (it.nombre || '').toUpperCase().trim(),
-                                costo:  Number(it.costoMayoristaUnitario || it.precioCosto || 0)
-                            })));
-                        });
-                    }
-                } catch (_) {}
-            }
-
-            // Inyecta precioCosto en los items de un pedido usando el mapa de workerpagos
-            function _inyectarMayorista(pedido) {
-                const wpItems = mayoristaPorPedido.get(pedido.id) || [];
-                if (!wpItems.length) return pedido;
-                pedido.items = (pedido.items || []).map((it, i) => {
-                    const nombreUp = (it.nombre || '').toUpperCase().trim();
-                    const match = (wpItems[i] && wpItems[i].nombre === nombreUp)
-                        ? wpItems[i]
-                        : wpItems.find(w => w.nombre === nombreUp);
-                    if (match && match.costo > 0) {
-                        return { ...it, precioCosto: match.costo };
-                    }
-                    return it;
-                });
-                return pedido;
             }
 
             // 1) Intentar Worker (rápido, sin bloquear)
@@ -7037,7 +7021,7 @@
                         const arr = Array.isArray(data) ? data
                                     : (data && Array.isArray(data.pedidos)) ? data.pedidos
                                     : (data && Array.isArray(data.items)) ? data.items : null;
-                        if (arr) { workerItems = arr.map(normalizarPedidoWorker).map(_inyectarMayorista); break; }
+                        if (arr) { workerItems = arr.map(normalizarPedidoWorker); break; }
                     } catch (_) {}
                 }
             }
@@ -7197,13 +7181,20 @@
                 if (nuevoEstado === 'aprobado' && pedido) {
                     try {
                         const cli = pedido.cliente || {};
-                        // Normalizar items (pueden venir en distintos formatos)
+                        // Normalizar items (pueden venir en distintos formatos).
+                        // IMPORTANTE: precioCosto/ganancia se conservan tal cual ya
+                        // venían en "pedido" (cargados en normalizarPedidoWorker desde
+                        // costoIndividuales/gananciaIndividual de workerwebcliente).
+                        // NUNCA se recalculan acá ni se dejan vacíos para que los
+                        // recalcule workerpagos.
                         const items = (pedido.items || []).map(i => ({
-                            nombre:   i.nombre || i.name || '',
-                            cantidad: Number(i.cantidad || i.qty || 1),
-                            precio:   Number(i.precio || i.precioFinal || 0),
-                            talle:    i.talle || null,
-                            catalogo: i.catalogo || null
+                            nombre:      i.nombre || i.name || '',
+                            cantidad:    Number(i.cantidad || i.qty || 1),
+                            precio:      Number(i.precio || i.precioFinal || 0),
+                            precioCosto: Number(i.precioCosto || 0),
+                            ganancia:    Number(i.ganancia || 0),
+                            talle:       i.talle || null,
+                            catalogo:    i.catalogo || null
                         }));
                         // Detectar nicho por palabras clave en los nombres de productos
                         const nombresUp = items.map(i => (i.nombre || '').toUpperCase()).join(' ');
@@ -7222,9 +7213,23 @@
                             direccion:      cli.ciudad   || cli.direccion || '',
                             fecha:          new Date().toISOString(),
                             items:          items,
-                            // Para los cálculos del worker (panel-gestion los recalcula por categoría)
                             precio_venta:   Number(pedido.totalFinal || 0),
+                            // Costo/ganancia reales del pedido — el mismo dato que ya
+                            // estaba correcto cuando el pedido estaba pendiente.
+                            // workerpagos debe usarlos directo y NO recalcularlos por
+                            // catálogo cuando estos campos vienen presentes.
+                            costoTotal:     Number(pedido.costoTotal || 0),
+                            gananciaTotal:  Number(pedido.gananciaTotal || 0),
                         };
+
+                        // Log de verificación: payload exacto que se manda al aprobar.
+                        console.log('[PEDIDO][aprobando]', pedido.id, {
+                            costoIndividuales:   items.map(i => i.precioCosto),
+                            costoTotal:          panelPayload.costoTotal,
+                            gananciaTotal:       panelPayload.gananciaTotal,
+                            preciosIndividuales: items.map(i => i.precio),
+                            total:               panelPayload.precio_venta
+                        });
 
                         await fetch(WORKER_URL + '/api/panel-gestion', {
                             method:  'POST',
