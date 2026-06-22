@@ -6978,6 +6978,48 @@
                 return;
             }
 
+            // Cargar precio mayorista desde workerpagos en paralelo
+            const WORKER_PAGOS_URL = 'https://workerpagos.tuweb.workers.dev';
+            let mayoristaPorPedido = new Map();
+            if (codigo) {
+                try {
+                    const ctrl = new AbortController();
+                    const t = setTimeout(() => ctrl.abort(), 6000);
+                    const res = await fetch(`${WORKER_PAGOS_URL}/api/panel-gestion?codigo=${encodeURIComponent(codigo)}`, { signal: ctrl.signal });
+                    clearTimeout(t);
+                    if (res.ok) {
+                        const data = await res.json().catch(() => null);
+                        const arr = Array.isArray(data && data.panelGestion) ? data.panelGestion
+                                  : Array.isArray(data) ? data : [];
+                        arr.forEach(reg => {
+                            const pid = reg.pedidoId || reg.id;
+                            if (!pid) return;
+                            mayoristaPorPedido.set(pid, (reg.items || []).map(it => ({
+                                nombre: (it.nombre || '').toUpperCase().trim(),
+                                costo:  Number(it.costoMayoristaUnitario || it.precioCosto || 0)
+                            })));
+                        });
+                    }
+                } catch (_) {}
+            }
+
+            // Inyecta precioCosto en los items de un pedido usando el mapa de workerpagos
+            function _inyectarMayorista(pedido) {
+                const wpItems = mayoristaPorPedido.get(pedido.id) || [];
+                if (!wpItems.length) return pedido;
+                pedido.items = (pedido.items || []).map((it, i) => {
+                    const nombreUp = (it.nombre || '').toUpperCase().trim();
+                    const match = (wpItems[i] && wpItems[i].nombre === nombreUp)
+                        ? wpItems[i]
+                        : wpItems.find(w => w.nombre === nombreUp);
+                    if (match && match.costo > 0) {
+                        return { ...it, precioCosto: match.costo };
+                    }
+                    return it;
+                });
+                return pedido;
+            }
+
             // 1) Intentar Worker (rápido, sin bloquear)
             let workerItems = [];
             if (codigo) {
@@ -6995,7 +7037,7 @@
                         const arr = Array.isArray(data) ? data
                                     : (data && Array.isArray(data.pedidos)) ? data.pedidos
                                     : (data && Array.isArray(data.items)) ? data.items : null;
-                        if (arr) { workerItems = arr.map(normalizarPedidoWorker); break; }
+                        if (arr) { workerItems = arr.map(normalizarPedidoWorker).map(_inyectarMayorista); break; }
                     } catch (_) {}
                 }
             }
@@ -7156,20 +7198,13 @@
                     try {
                         const cli = pedido.cliente || {};
                         // Normalizar items (pueden venir en distintos formatos)
-                        const items = (pedido.items || []).map(i => {
-                            const pCliente   = Number(i.precio || i.precioFinal || 0);
-                            const pCosto     = Number(i.precioCosto || i.precioBase || i.precioMayorista || i.costoMayoristaUnitario || 0);
-                            return {
-                                nombre:               i.nombre || i.name || '',
-                                cantidad:             Number(i.cantidad || i.qty || 1),
-                                precio:               pCliente,
-                                precioCosto:          pCosto,
-                                precioBase:           pCosto,
-                                costoMayoristaUnitario: pCosto,
-                                talle:                i.talle || null,
-                                catalogo:             i.catalogo || null
-                            };
-                        });
+                        const items = (pedido.items || []).map(i => ({
+                            nombre:   i.nombre || i.name || '',
+                            cantidad: Number(i.cantidad || i.qty || 1),
+                            precio:   Number(i.precio || i.precioFinal || 0),
+                            talle:    i.talle || null,
+                            catalogo: i.catalogo || null
+                        }));
                         // Detectar nicho por palabras clave en los nombres de productos
                         const nombresUp = items.map(i => (i.nombre || '').toUpperCase()).join(' ');
                         const esCalzado  = /NIKE|ADIDAS|JORDAN|DUNK|SAMBA|CAMPUS|AIR FORCE|NEW BALANCE|ZAPATILLA|BOTITA|FORUM|SUPERSTAR/.test(nombresUp);
