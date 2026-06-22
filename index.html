@@ -7157,22 +7157,17 @@
                         const cli = pedido.cliente || {};
                         // Normalizar items (pueden venir en distintos formatos)
                         const items = (pedido.items || []).map(i => {
-                            const cat = i.catalogo || (i.talle ? 'calzados' : 'perfumes');
-                            // Buscar precio mayorista (costo) en el catálogo local, igual que agregarPedidoAlCarrito
-                            let precioCosto = Number(i.precioCosto || i.precioBase || 0);
-                            if (!precioCosto && i.id) {
-                                const lista = cat === 'calzados' ? (window.shoes || []) : (window.products || []);
-                                const producto = lista.find(p => p.id === i.id);
-                                if (producto) precioCosto = Number(producto.precio) || 0;
-                            }
+                            const pCliente   = Number(i.precio || i.precioFinal || 0);
+                            const pCosto     = Number(i.precioCosto || i.precioBase || i.precioMayorista || i.costoMayoristaUnitario || 0);
                             return {
-                                nombre:       i.nombre || i.name || '',
-                                cantidad:     Number(i.cantidad || i.qty || 1),
-                                precio:       Number(i.precio || i.precioFinal || 0),
-                                precioCosto:  precioCosto,
-                                precioBase:   precioCosto,
-                                talle:        i.talle || null,
-                                catalogo:     cat
+                                nombre:               i.nombre || i.name || '',
+                                cantidad:             Number(i.cantidad || i.qty || 1),
+                                precio:               pCliente,
+                                precioCosto:          pCosto,
+                                precioBase:           pCosto,
+                                costoMayoristaUnitario: pCosto,
+                                talle:                i.talle || null,
+                                catalogo:             i.catalogo || null
                             };
                         });
                         // Detectar nicho por palabras clave en los nombres de productos
