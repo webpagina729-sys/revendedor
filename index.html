@@ -7156,13 +7156,25 @@
                     try {
                         const cli = pedido.cliente || {};
                         // Normalizar items (pueden venir en distintos formatos)
-                        const items = (pedido.items || []).map(i => ({
-                            nombre:   i.nombre || i.name || '',
-                            cantidad: Number(i.cantidad || i.qty || 1),
-                            precio:   Number(i.precio || i.precioFinal || 0),
-                            talle:    i.talle || null,
-                            catalogo: i.catalogo || null
-                        }));
+                        const items = (pedido.items || []).map(i => {
+                            const cat = i.catalogo || (i.talle ? 'calzados' : 'perfumes');
+                            // Buscar precio mayorista (costo) en el catálogo local, igual que agregarPedidoAlCarrito
+                            let precioCosto = Number(i.precioCosto || i.precioBase || 0);
+                            if (!precioCosto && i.id) {
+                                const lista = cat === 'calzados' ? (window.shoes || []) : (window.products || []);
+                                const producto = lista.find(p => p.id === i.id);
+                                if (producto) precioCosto = Number(producto.precio) || 0;
+                            }
+                            return {
+                                nombre:       i.nombre || i.name || '',
+                                cantidad:     Number(i.cantidad || i.qty || 1),
+                                precio:       Number(i.precio || i.precioFinal || 0),
+                                precioCosto:  precioCosto,
+                                precioBase:   precioCosto,
+                                talle:        i.talle || null,
+                                catalogo:     cat
+                            };
+                        });
                         // Detectar nicho por palabras clave en los nombres de productos
                         const nombresUp = items.map(i => (i.nombre || '').toUpperCase()).join(' ');
                         const esCalzado  = /NIKE|ADIDAS|JORDAN|DUNK|SAMBA|CAMPUS|AIR FORCE|NEW BALANCE|ZAPATILLA|BOTITA|FORUM|SUPERSTAR/.test(nombresUp);
