@@ -3515,35 +3515,39 @@
         </div>
     </div>
 
-    <!-- MODAL CARRITO -->
+    <!-- MODAL CARRITO - LISTA DE PEDIDOS ENVIADOS AL PANEL DE VENTAS -->
     <div class="modal-cart" id="modal-cart" onclick="closeCartIfClickBackground(event)">
         <div class="modal-cart-content">
+            <button class="modal-cart-close" onclick="closeCart()">✕</button>
             <div class="modal-cart-header">
                 <h2>Tu Pedido por Encargo</h2>
-                <p class="cart-info">Mínimo de encargue: $150.000</p>
+                <p class="cart-info">Perfumes: mínimo $150.000 · Calzados: mínimo 12 productos</p>
             </div>
             
             <div class="modal-cart-items" id="modal-cart-items">
                 <!-- Items se generan dinámicamente aquí -->
             </div>
             
-            <div class="modal-cart-summary">
+            <!-- Estadísticas del pedido -->
+            <div class="modal-cart-summary" id="modal-cart-stats" style="display:none;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);margin-bottom:12px;">Estadísticas del pedido</div>
                 <div class="summary-row">
-                    <span>Subtotal:</span>
-                    <span class="summary-value" id="cart-subtotal">$0</span>
+                    <span>Precio mayorista (costo):</span>
+                    <span class="summary-value" id="stat-costo">$0</span>
+                </div>
+                <div class="summary-row">
+                    <span>Precio cliente (venta):</span>
+                    <span class="summary-value" id="stat-venta">$0</span>
                 </div>
                 <div class="summary-row summary-total">
-                    <span>Total:</span>
-                    <span class="summary-value" id="cart-total">$0</span>
-                </div>
-                <div class="summary-warning" id="cart-warning">
-                    ⚠️ Falta: <span id="cart-falta">$150.000</span> para completar el pedido mínimo
+                    <span>Tu ganancia:</span>
+                    <span class="summary-value" style="color:#00a650;" id="stat-ganancia">$0</span>
                 </div>
             </div>
             
             <div class="modal-cart-actions">
-                <button class="btn-continue-shopping" onclick="closeCart()">Seguir Comprando</button>
-                <button class="btn-pay" id="btn-pay" onclick="proceedToPayment()" disabled>Ir a Pagar</button>
+                <button class="btn-continue-shopping" onclick="closeCart()">Cerrar</button>
+                <button class="btn-pay" id="btn-gestion-carrito" onclick="window.open('https://gestion.revendeways.shop','_blank')" style="background:#23B8CC;">Ir al panel de gestión</button>
             </div>
         </div>
     </div>
@@ -3798,62 +3802,73 @@
         </div>
     </div>
 
-    <!-- MODAL CONFIRMACIÓN DE EMAIL -->
+    <!-- MODAL CONFIRMACIÓN DE EMAIL → REEMPLAZADO POR GUÍA RÁPIDA (al ingresar a Mi Tienda) -->
     <div class="modal-overlay" id="emailConfirmationModal" onclick="closeEmailConfirmationModal(event)">
         <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h2 class="modal-title">Importante</h2>
-                
+            <div class="modal-header" style="background:#1a1a1a;border-radius:12px 12px 0 0;margin:-32px -32px 20px;padding:20px 24px;">
+                <h2 class="modal-title" style="color:#fff;">Guía Rápida</h2>
             </div>
 
-            <div style="text-align: center; padding: 20px 0;">
-                <div style="font-size: 48px; color: #22a34a; margin-bottom: 20px;">✓</div>
-                <h3 style="color: var(--text); font-size: 18px; margin-bottom: 10px; font-weight: 600;">Confirma tu correo electrónico</h3>
-                <p style="color: #666; font-size: 14px; line-height: 1.5; margin-bottom: 20px;">
-                    Para completar tu registro y acceder a todas las funcionalidades, necesitamos que confirmes tu correo electrónico.
-                </p>
+            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">1</span>
+                <span class="guide-text" style="color:#fff;">Te damos tu tienda lista para comenzar a revender. Elegí tu tienda ideal con los productos que más te veas vendiendo y completá el mínimo de encargue.</span>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%;">
-                <button type="button" class="confirmation-button confirmation-button-primary" onclick="confirmEmailPrompt()">Confirmar correo electrónico</button>
-                <button type="button" class="confirmation-button" style="background: #f5f5f5; color: var(--text);" onclick="closeEmailConfirmationModal()">Más tarde</button>
+            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">2</span>
+                <span class="guide-text" style="color:#fff;">Completa los mínimos requeridos de cada categoría de productos y entrega a tus clientes a domicilio. Coordina una fecha de entrega con tus clientes, vendé con una seña que te permita completar el total de tu encargo y le llegamos a su casa, realiza el pedido y luego entregá los productos obteniendo tu ganancia.</span>
             </div>
+
+            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">3</span>
+                <span class="guide-text" style="color:#fff;">Revisá tus correos electrónicos. Si no encontrás nuestros mensajes en bandeja principal, revisá spam o promociones. Todas las semanas enviaremos ideas y estrategias para ayudarte a vender más.</span>
+            </div>
+
+            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">4</span>
+                <span class="guide-text" style="color:#fff;">Resolvé todas tus dudas en nuestra comunidad. <a href="https://chat.whatsapp.com/KxzwYYIhFHqKe2zCoPRhmj?s=cl&p=a&ilr=2&amv=3" target="_blank" rel="noopener" style="color:#adf;font-weight:700;text-transform:uppercase;text-decoration:underline;">IR A LA COMUNIDAD</a></span>
+            </div>
+
+            <div class="modal-cta-text">
+                <button class="modal-cta-link" onclick="closeEmailConfirmationModal(); mostrarInicio();" style="color:#1a1a1a;">Ver más opciones de reventa →</button>
+            </div>
+
+            <button type="button" class="confirmation-button" style="width:100%;margin-top:20px;background:#1a1a1a;color:#fff;border:none;" onclick="closeEmailConfirmationModal()">Cerrar</button>
         </div>
     </div>
 
     <!-- MODAL GUÍA RÁPIDA -->
     <div class="modal-overlay" id="guideModal" onclick="closeGuideModal(event)">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Guía Rápida</h2>
-                
+            <div class="modal-header" style="background:#1a1a1a;border-radius:12px 12px 0 0;margin:-32px -32px 20px;padding:20px 24px;">
+                <h2 class="modal-title" style="color:#fff;">Guía Rápida</h2>
             </div>
 
-            <div class="guide-item">
-                <span class="guide-number">1</span>
-                <span class="guide-text">Te damos tu tienda lista para comenzar a revender. Elegí tu tienda ideal con los productos que más te veas vendiendo y completá el mínimo de encargue.</span>
+            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">1</span>
+                <span class="guide-text" style="color:#fff;">Te damos tu tienda lista para comenzar a revender. Elegí tu tienda ideal con los productos que más te veas vendiendo y completá el mínimo de encargue.</span>
             </div>
 
-            <div class="guide-item">
-                <span class="guide-number">2</span>
-                <span class="guide-text">Completa los mínimos requeridos de cada categoría de productos y entrega a tus clientes a domicilio. Coordina una fecha de entrega con tus clientes, vendé con una seña que te permita completar el total de tu encargo y le llegamos a su casa, realiza el pedido y luego entregá los productos obteniendo tu ganancia.</span>
+            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">2</span>
+                <span class="guide-text" style="color:#fff;">Completa los mínimos requeridos de cada categoría de productos y entrega a tus clientes a domicilio. Coordina una fecha de entrega con tus clientes, vendé con una seña que te permita completar el total de tu encargo y le llegamos a su casa, realiza el pedido y luego entregá los productos obteniendo tu ganancia.</span>
             </div>
 
-            <div class="guide-item">
-                <span class="guide-number">3</span>
-                <span class="guide-text">Revisá tus correos electrónicos. Si no encontrás nuestros mensajes en bandeja principal, revisá spam o promociones. Todas las semanas enviaremos ideas y estrategias para ayudarte a vender más.</span>
+            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">3</span>
+                <span class="guide-text" style="color:#fff;">Revisá tus correos electrónicos. Si no encontrás nuestros mensajes en bandeja principal, revisá spam o promociones. Todas las semanas enviaremos ideas y estrategias para ayudarte a vender más.</span>
             </div>
 
-            <div class="guide-item">
-                <span class="guide-number">4</span>
-                <span class="guide-text">Resolvé todas tus dudas en nuestra comunidad. <a href="https://chat.whatsapp.com/KxzwYYIhFHqKe2zCoPRhmj?s=cl&p=a&ilr=2&amv=3" target="_blank" rel="noopener" style="color:#1B7F3D;font-weight:700;text-transform:uppercase;text-decoration:underline;">IR A LA COMUNIDAD</a></span>
+            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">4</span>
+                <span class="guide-text" style="color:#fff;">Resolvé todas tus dudas en nuestra comunidad. <a href="https://chat.whatsapp.com/KxzwYYIhFHqKe2zCoPRhmj?s=cl&p=a&ilr=2&amv=3" target="_blank" rel="noopener" style="color:#adf;font-weight:700;text-transform:uppercase;text-decoration:underline;">IR A LA COMUNIDAD</a></span>
             </div>
 
             <div class="modal-cta-text">
-                <button class="modal-cta-link" onclick="closeGuideModal(); mostrarInicio();">Ver más opciones de reventa →</button>
+                <button class="modal-cta-link" onclick="closeGuideModal(); mostrarInicio();" style="color:#1a1a1a;">Ver más opciones de reventa →</button>
             </div>
 
-            <button type="button" class="confirmation-button confirmation-button-primary" style="width: 100%; margin-top: 20px;" onclick="closeGuideModal()">Cerrar</button>
+            <button type="button" class="confirmation-button" style="width:100%;margin-top:20px;background:#1a1a1a;color:#fff;border:none;" onclick="closeGuideModal()">Cerrar</button>
         </div>
     </div>
 
@@ -5353,61 +5368,53 @@
 
         function updateCartDisplay() {
             const modalCartItems = document.getElementById('modal-cart-items');
-            const payButton = document.getElementById('btn-pay');
-            const warningElement = document.getElementById('cart-warning');
-            const cartInfo = document.querySelector('.cart-info');
-            if (cartInfo) cartInfo.textContent = 'Perfumes: mínimo $150.000 · Calzados: mínimo 12 productos';
+            const statsPanel = document.getElementById('modal-cart-stats');
 
             if (window.cart.length === 0) {
                 if (modalCartItems) modalCartItems.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 20px;">El carrito está vacío</p>';
-                if (warningElement) warningElement.classList.add('hidden');
-                if (payButton) payButton.disabled = true;
+                if (statsPanel) statsPanel.style.display = 'none';
                 return;
             }
 
             let html = '';
+            let totalCosto = 0;
+            let totalVenta = 0;
+
             window.cart.forEach((item, index) => {
-                const talleText = item.talle ? ` - Talle ${item.talle}` : '';
-                const catalogText = getItemCatalog(item) === 'calzados' ? 'Calzados' : 'Perfumes';
+                const talleText = item.talle ? ` · Talle ${item.talle}` : '';
+                const precioBase = item.precioBase || item.precio || 0;
+                const precioVenta = item.precio || 0;
+                const precioCosto = precioBase;
+                const costoItem = precioCosto * item.cantidad;
+                const ventaItem = precioVenta * item.cantidad;
+                totalCosto += costoItem;
+                totalVenta += ventaItem;
+
                 html += `
-                <div class="cart-item">
+                <div class="cart-item" style="position:relative;">
                     <div class="cart-item-image">
                         <img src="${BASE_IMAGE_URL}${item.imagen}" alt="${item.nombre}" onerror="fallbackProductImage(this, '${item.imagen}')">
                     </div>
                     <div class="cart-item-details">
                         <div class="cart-item-name">${item.nombre}${talleText}</div>
-                        <div class="cart-item-price">${catalogText} · $${item.precio.toLocaleString()}</div>
-                        <div class="cart-item-qty-control">
-                            <button class="cart-item-qty-btn" onclick="changeItemQty(${index}, -1)">−</button>
-                            <span class="cart-item-qty-display">${item.cantidad}</span>
-                            <button class="cart-item-qty-btn" onclick="changeItemQty(${index}, 1)">+</button>
-                            <button class="cart-item-delete" onclick="removeItemFromCart(${index})">Eliminar</button>
-                        </div>
+                        <div style="font-size:12px;color:var(--text-light);margin:2px 0;">Cantidad: <b style="color:var(--text);">${item.cantidad}</b></div>
+                        <div style="font-size:12px;color:var(--text-light);margin:1px 0;">Precio de costo: <b style="color:var(--primary);">$${precioCosto.toLocaleString('es-AR')}</b></div>
+                        <div style="font-size:12px;color:var(--text-light);margin:1px 0;">Precio venta: <b style="color:var(--text);">$${precioVenta.toLocaleString('es-AR')}</b></div>
+                        <div style="font-size:12px;margin-top:3px;">Ganancia: <b style="color:#00a650;">$${(ventaItem - costoItem).toLocaleString('es-AR')}</b></div>
                     </div>
                 </div>`;
             });
 
             if (modalCartItems) modalCartItems.innerHTML = html;
-            
-            const totalPrice = window.cart.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
-            const subtotal = totalPrice;
-            const total = subtotal;
-            
-            const cartSubtotalEl = document.getElementById('cart-subtotal');
-            const cartTotalEl = document.getElementById('cart-total');
-            if (cartSubtotalEl) cartSubtotalEl.textContent = `$${subtotal.toLocaleString()}`;
-            if (cartTotalEl) cartTotalEl.textContent = `$${total.toLocaleString()}`;
-            
-            const status = getCartMinimumStatus(window.cart);
-            const cartFaltaEl = document.getElementById('cart-falta');
-            if (status.missing.length > 0) {
-                if (cartFaltaEl) cartFaltaEl.textContent = status.missing.join(' · ');
-                if (warningElement) warningElement.classList.remove('hidden');
-                if (payButton) payButton.disabled = true;
-            } else {
-                if (warningElement) warningElement.classList.add('hidden');
-                if (payButton) payButton.disabled = false;
-            }
+
+            const gananciaTotal = totalVenta - totalCosto;
+            const statCosto = document.getElementById('stat-costo');
+            const statVenta = document.getElementById('stat-venta');
+            const statGanancia = document.getElementById('stat-ganancia');
+            if (statCosto) statCosto.textContent = '$' + totalCosto.toLocaleString('es-AR');
+            if (statVenta) statVenta.textContent = '$' + totalVenta.toLocaleString('es-AR');
+            if (statGanancia) statGanancia.textContent = '$' + gananciaTotal.toLocaleString('es-AR');
+            if (statsPanel) statsPanel.style.display = 'block';
         }
 
         function changeItemQty(index, change) {
@@ -6226,7 +6233,7 @@
         }
         
         function closeEmailConfirmationModal(e) {
-            if (e && e.target.id !== 'emailConfirmationModal') return;
+            if (e && e.target && e.target.id !== 'emailConfirmationModal') return;
             const modal = document.getElementById('emailConfirmationModal');
             if (modal) {
                 modal.classList.remove('active');
@@ -6601,14 +6608,15 @@
             // Actualizar interfaz
             updateUIForAuthentication(true);
             
-            // Mostrar modal de confirmación de email después de 5 segundos (solo si no está confirmado)
+            // Mostrar guía rápida en los primeros 3 inicios de sesión/recargas
             setTimeout(() => {
-                const emailConfirmado = localStorage.getItem('emailConfirmado');
-                if (firebase.auth().currentUser && !emailConfirmado) {
+                const vecesVista = parseInt(localStorage.getItem('guiaRapidaVeces') || '0');
+                if (vecesVista < 3) {
                     const modal = document.getElementById('emailConfirmationModal');
                     if (modal && !modal.classList.contains('active')) {
                         modal.classList.add('active');
                         preventBodyScroll(true);
+                        localStorage.setItem('guiaRapidaVeces', String(vecesVista + 1));
                     }
                 }
             }, 5000);
@@ -7063,6 +7071,7 @@
         function renderPedidosRecibidos() {
             const lista = document.getElementById('pr-lista');
             const filtro = window.pedidosRecibidosFiltro;
+
             // Actualizar estado visual de filtros
             ['pendiente','aprobado','no_aprobado'].forEach(e => {
                 const id = e === 'no_aprobado' ? 'pr-filter-noaprobado' : 'pr-filter-' + e;
@@ -7073,43 +7082,135 @@
                 btn.style.color = active ? '#fff' : 'var(--text)';
                 btn.style.borderColor = active ? '#1B7F3D' : 'var(--border)';
             });
-            const items = (window.pedidosRecibidosCache || []).filter(p => (p.estadoAprobacion || 'pendiente') === filtro);
+
+            // Ordenar por nombre y apellido
+            const items = (window.pedidosRecibidosCache || [])
+                .filter(p => (p.estadoAprobacion || 'pendiente') === filtro)
+                .sort((a, b) => {
+                    const na = (((a.cliente||{}).nombre||'') + ' ' + ((a.cliente||{}).apellido||'')).trim().toLowerCase();
+                    const nb = (((b.cliente||{}).nombre||'') + ' ' + ((b.cliente||{}).apellido||'')).trim().toLowerCase();
+                    return na.localeCompare(nb, 'es');
+                });
+
             const btnTodos = document.getElementById('pr-aprobar-todos');
             if (btnTodos) btnTodos.style.display = (filtro === 'pendiente') ? 'block' : 'none';
+
             if (items.length === 0) {
                 lista.innerHTML = '<div style="text-align:center;padding:40px 12px;color:var(--text-light);font-size:14px;">No hay pedidos ' + (filtro === 'no_aprobado' ? 'no aprobados' : filtro + 's') + '</div>';
                 return;
             }
+
             const fmt = n => '$' + (Number(n)||0).toLocaleString('es-AR');
-            lista.innerHTML = items.map(p => {
+            const estado_colors = { aprobado: '#1B7F3D', no_aprobado: '#c33', pendiente: '#b58100' };
+            const estado_labels = { aprobado: '✓ Aprobado', no_aprobado: '✕ No aprobado', pendiente: '⏳ Pendiente' };
+
+            lista.innerHTML = items.map((p, idx) => {
                 const cli = p.cliente || {};
                 const nombre = ((cli.nombre||'') + ' ' + (cli.apellido||'')).trim() || cli.email || 'Cliente';
-                const fecha = p.fechaCreacion && p.fechaCreacion.toDate ? p.fechaCreacion.toDate().toLocaleString('es-AR') : '';
-                const productos = (p.items || []).map(i => `<li style="margin:2px 0;">${(i.cantidad||1)} × ${i.nombre} — <b>${fmt(i.precio)}</b></li>`).join('');
+                const fecha = p.fechaCreacion && p.fechaCreacion.toDate
+                    ? p.fechaCreacion.toDate().toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'})
+                    : '';
+                const hora = p.fechaCreacion && p.fechaCreacion.toDate
+                    ? p.fechaCreacion.toDate().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'})
+                    : '';
                 const estado = p.estadoAprobacion || 'pendiente';
-                const badgeColor = estado === 'aprobado' ? '#1B7F3D' : (estado === 'no_aprobado' ? '#c33' : '#b58100');
-                const badgeText = estado === 'aprobado' ? '✓ Aprobado' : (estado === 'no_aprobado' ? '✕ No aprobado' : '⏳ Pendiente');
+                const badgeColor = estado_colors[estado] || '#b58100';
+                const badgeText = estado_labels[estado] || estado;
+                const totalFinal = fmt(p.totalFinal);
+                const costoTotal = fmt(p.costoTotal);
+                const gananciaTotal = fmt(p.gananciaTotal);
+                const productos = (p.items || []).map(i =>
+                    `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid #f0f0f0;">
+                        <span style="font-size:13px;color:var(--text);flex:1;min-width:0;padding-right:8px;">${(i.cantidad||1)} × ${i.nombre}${i.talle ? ' (T. '+i.talle+')' : ''}</span>
+                        <span style="font-size:13px;font-weight:700;color:var(--primary);white-space:nowrap;">${fmt(i.precio)}</span>
+                    </div>`
+                ).join('');
+
+                const botonesAprobacion = estado === 'aprobado'
+                    ? `<button onclick="cambiarEstadoPedido('${p.id}','no_aprobado')" style="flex:1;padding:10px;border-radius:8px;border:1px solid #c33;background:#fff;color:#c33;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;">No aprobado</button>
+                       <button disabled style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1B7F3D,#2BA84F);color:#fff;font-weight:700;font-size:13px;cursor:default;opacity:.7;">✓ Aprobado</button>`
+                    : estado === 'no_aprobado'
+                    ? `<button disabled style="flex:1;padding:10px;border-radius:8px;border:none;background:#c33;color:#fff;font-weight:700;font-size:13px;cursor:default;opacity:.7;">✕ No aprobado</button>
+                       <button onclick="cambiarEstadoPedido('${p.id}','aprobado')" style="flex:1;padding:10px;border-radius:8px;border:1px solid #1B7F3D;background:#fff;color:#1B7F3D;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;">Aprobar</button>`
+                    : `<button onclick="cambiarEstadoPedido('${p.id}','no_aprobado')" style="flex:1;padding:10px;border-radius:8px;border:1px solid #c33;background:#fff;color:#c33;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;">No aprobado</button>
+                       <button onclick="cambiarEstadoPedido('${p.id}','aprobado')" style="flex:1;padding:10px;border-radius:8px;border:1px solid #1B7F3D;background:#fff;color:#1B7F3D;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;">Aprobar</button>`;
+
                 return `
-                <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;">
-                    <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:6px;">
+                <div style="background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+
+                    <!-- CINTA: nombre + badge, siempre visible, toca para expandir -->
+                    <div onclick="(function(btn){var card=btn.parentElement;var body=card.querySelector('.pr-body');var arrow=btn.querySelector('.pr-arrow');var open=body.style.display!=='none';body.style.display=open?'none':'block';arrow.style.transform=open?'':'rotate(180deg)';btn.style.borderBottom=open?'1px solid transparent':'1px solid var(--border)';})(this)"
+                         style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;user-select:none;gap:10px;background:#fafafa;border-bottom:1px solid transparent;transition:background .15s;"
+                         onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background='#fafafa'">
                         <div style="min-width:0;flex:1;">
-                            <div style="font-weight:700;font-size:14px;color:var(--text);">${nombre}</div>
-                            <div style="font-size:12px;color:var(--text-light);">${cli.telefono||''} ${cli.ciudad?'• '+cli.ciudad:''}</div>
-                            ${fecha ? `<div style="font-size:11px;color:var(--text-light);margin-top:2px;">${fecha}</div>` : ''}
+                            <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:2px;">${nombre}</div>
+                            ${fecha ? `<div style="font-size:11px;color:var(--text-light);">${fecha}${hora ? ' · ' + hora : ''}</div>` : ''}
                         </div>
-                        <span style="background:${badgeColor};color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;white-space:nowrap;">${badgeText}</span>
+                        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                            <span style="background:${badgeColor};color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;">${badgeText}</span>
+                            <svg class="pr-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
+                        </div>
                     </div>
-                    <ul style="margin:6px 0 8px 18px;padding:0;font-size:13px;color:var(--text);">${productos}</ul>
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;border-top:1px dashed var(--border);padding-top:8px;">
-                        <span style="font-size:12px;color:var(--text-light);">Total con precios configurados</span>
-                        <span style="font-weight:800;color:var(--text);">${fmt(p.totalFinal)}</span>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                        <button onclick="cambiarEstadoPedido('${p.id}','no_aprobado')" style="padding:9px;border-radius:8px;border:1px solid #c33;background:${estado==='no_aprobado'?'#c33':'#fff'};color:${estado==='no_aprobado'?'#fff':'#c33'};font-weight:700;font-size:13px;cursor:pointer;">No aprobado</button>
-                        <button onclick="cambiarEstadoPedido('${p.id}','aprobado')" style="padding:9px;border-radius:8px;border:1px solid #1B7F3D;background:${estado==='aprobado'?'#1B7F3D':'#fff'};color:${estado==='aprobado'?'#fff':'#1B7F3D'};font-weight:700;font-size:13px;cursor:pointer;">Aprobado</button>
+
+                    <!-- CUERPO EXPANDIBLE -->
+                    <div class="pr-body" style="display:none;padding:16px;">
+
+                        <!-- Datos del cliente -->
+                        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;">
+                            <div style="background:#f8f9fa;padding:8px 12px;border-bottom:1px solid var(--border);">
+                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);">Datos del cliente</span>
+                            </div>
+                            ${cli.telefono ? `<div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);">
+                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);min-width:80px;">Teléfono</span>
+                                <span style="font-size:13px;color:var(--text);font-weight:500;">${cli.telefono}</span>
+                            </div>` : ''}
+                            ${cli.email ? `<div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);">
+                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);min-width:80px;">Email</span>
+                                <span style="font-size:13px;color:var(--text);font-weight:500;word-break:break-all;">${cli.email}</span>
+                            </div>` : ''}
+                            ${(cli.ciudad || cli.direccion) ? `<div style="display:flex;align-items:center;padding:10px 12px;">
+                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);min-width:80px;">Ciudad</span>
+                                <span style="font-size:13px;color:var(--text);font-weight:500;">${cli.ciudad || cli.direccion}</span>
+                            </div>` : ''}
+                        </div>
+
+                        <!-- Productos -->
+                        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;">
+                            <div style="background:#f8f9fa;padding:8px 12px;border-bottom:1px solid var(--border);">
+                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);">Productos del pedido</span>
+                            </div>
+                            <div style="padding:4px 12px 8px;">
+                                ${productos || '<div style="padding:8px 0;font-size:13px;color:var(--text-light);">Sin productos</div>'}
+                            </div>
+                        </div>
+
+                        <!-- Estadísticas -->
+                        <div style="background:linear-gradient(135deg,var(--primary) 0%,#0052cc 100%);border-radius:10px;padding:16px;margin-bottom:16px;color:#fff;">
+                            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;opacity:.85;margin-bottom:12px;">Estadísticas del pedido</div>
+                            <div style="display:flex;flex-direction:column;gap:8px;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="font-size:13px;opacity:.9;">Precio mayorista (costo)</span>
+                                    <span style="font-size:14px;font-weight:700;">${costoTotal}</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="font-size:13px;opacity:.9;">Precio cliente (venta)</span>
+                                    <span style="font-size:14px;font-weight:700;">${totalFinal}</span>
+                                </div>
+                                <div style="border-top:1px solid rgba(255,255,255,.25);padding-top:8px;margin-top:2px;display:flex;justify-content:space-between;align-items:center;">
+                                    <span style="font-size:14px;font-weight:600;">Tu ganancia</span>
+                                    <span style="font-size:17px;font-weight:800;">${gananciaTotal}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div style="display:flex;gap:10px;">
+                            ${botonesAprobacion}
+                        </div>
                     </div>
                 </div>`;
             }).join('');
+
         }
 
         function agregarPedidoAlCarrito(pedido) {
@@ -9038,6 +9139,19 @@
                     console.error("[LOGIN] ERROR bvAplicarDatos", err);
                 }
                 bvOcultar();
+
+                // Mostrar guía rápida en los primeros 3 inicios/recargas
+                setTimeout(function() {
+                    var vecesVista = parseInt(localStorage.getItem('guiaRapidaVeces') || '0');
+                    if (vecesVista < 3) {
+                        var guideModal = document.getElementById('emailConfirmationModal');
+                        if (guideModal && !guideModal.classList.contains('active')) {
+                            guideModal.classList.add('active');
+                            if (typeof preventBodyScroll === 'function') preventBodyScroll(true);
+                            localStorage.setItem('guiaRapidaVeces', String(vecesVista + 1));
+                        }
+                    }
+                }, 5000);
 
                 // 4. Modal de WhatsApp si no está configurado
                 var waGuardado = localStorage.getItem('whatsappRevendedor') || userData.whatsappRevendedor || '';
