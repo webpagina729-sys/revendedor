@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Revende Ways | Tu Tienda Propia</title>
     <meta name="description" content="Revende con nosotros. Te damos tu tienda lista para comenzar con +250 productos. Precio solo para revendedores.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -7100,117 +7100,131 @@
                 return;
             }
 
-            const fmt = n => '$' + (Number(n)||0).toLocaleString('es-AR');
+            const fmt = n => '$' + Math.round(Number(n)||0).toLocaleString('es-AR');
             const estado_colors = { aprobado: '#1B7F3D', no_aprobado: '#c33', pendiente: '#b58100' };
             const estado_labels = { aprobado: '✓ Aprobado', no_aprobado: '✕ No aprobado', pendiente: '⏳ Pendiente' };
 
-            lista.innerHTML = items.map((p, idx) => {
+            // Función robusta para parsear fechaCreacion (Firestore Timestamp, {seconds:X}, o Date)
+            function parseFecha(fc) {
+                if (!fc) return null;
+                if (typeof fc.toDate === 'function') return fc.toDate();
+                if (fc.seconds) return new Date(fc.seconds * 1000);
+                if (fc instanceof Date) return fc;
+                return null;
+            }
+
+            lista.innerHTML = items.map((p) => {
                 const cli = p.cliente || {};
                 const nombre = ((cli.nombre||'') + ' ' + (cli.apellido||'')).trim() || cli.email || 'Cliente';
-                const fecha = p.fechaCreacion && p.fechaCreacion.toDate
-                    ? p.fechaCreacion.toDate().toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'})
+
+                const fechaObj = parseFecha(p.fechaCreacion);
+                const fechaStr = fechaObj
+                    ? fechaObj.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'2-digit'})
+                      + ' ' + fechaObj.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'})
                     : '';
-                const hora = p.fechaCreacion && p.fechaCreacion.toDate
-                    ? p.fechaCreacion.toDate().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'})
-                    : '';
+
                 const estado = p.estadoAprobacion || 'pendiente';
                 const badgeColor = estado_colors[estado] || '#b58100';
                 const badgeText = estado_labels[estado] || estado;
-                const totalFinal = fmt(p.totalFinal);
-                const costoTotal = fmt(p.costoTotal);
-                const gananciaTotal = fmt(p.gananciaTotal);
-                const productos = (p.items || []).map(i =>
-                    `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid #f0f0f0;">
-                        <span style="font-size:13px;color:var(--text);flex:1;min-width:0;padding-right:8px;">${(i.cantidad||1)} × ${i.nombre}${i.talle ? ' (T. '+i.talle+')' : ''}</span>
-                        <span style="font-size:13px;font-weight:700;color:var(--primary);white-space:nowrap;">${fmt(i.precio)}</span>
-                    </div>`
-                ).join('');
+
+                // Calcular totales desde los items (misma lógica que el panel de ventas)
+                const pedidoItems = p.items || [];
+                const calcCosto   = pedidoItems.reduce((s, i) => s + (Number(i.precioCosto || i.precioMayorista || 0) * Number(i.cantidad||1)), 0);
+                const calcVenta   = pedidoItems.reduce((s, i) => s + (Number(i.precio || i.precioFinal || i.precioCliente || 0) * Number(i.cantidad||1)), 0);
+                // Usar los valores guardados si los calculados son 0 (pedidos viejos sin precioCosto)
+                const totalCostoN  = calcCosto  > 0 ? calcCosto  : Number(p.costoTotal || 0);
+                const totalVentaN  = calcVenta  > 0 ? calcVenta  : Number(p.totalFinal || 0);
+                const gananciaCalc = totalVentaN - totalCostoN;
+
+                const productos = pedidoItems.map(i => {
+                    const pUnit = Number(i.precio || i.precioFinal || i.precioCliente || 0);
+                    return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid #f0f0f0;">
+                        <span style="font-size:13px;color:var(--text);flex:1;min-width:0;padding-right:10px;line-height:1.3;">${Number(i.cantidad||1)} × ${i.nombre||''}${i.talle ? ' · T.'+i.talle : ''}</span>
+                        <span style="font-size:13px;font-weight:700;color:var(--primary);white-space:nowrap;">${fmt(pUnit)}</span>
+                    </div>`;
+                }).join('');
 
                 const botonesAprobacion = estado === 'aprobado'
-                    ? `<button onclick="cambiarEstadoPedido('${p.id}','no_aprobado')" style="flex:1;padding:10px;border-radius:8px;border:1px solid #c33;background:#fff;color:#c33;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;">No aprobado</button>
-                       <button disabled style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1B7F3D,#2BA84F);color:#fff;font-weight:700;font-size:13px;cursor:default;opacity:.7;">✓ Aprobado</button>`
+                    ? `<button onclick="cambiarEstadoPedido('${p.id}','no_aprobado')" style="flex:1;padding:11px 8px;border-radius:8px;border:1px solid #c33;background:#fff;color:#c33;font-weight:700;font-size:13px;cursor:pointer;">No aprobado</button>
+                       <button disabled style="flex:1;padding:11px 8px;border-radius:8px;border:none;background:linear-gradient(135deg,#1B7F3D,#2BA84F);color:#fff;font-weight:700;font-size:13px;opacity:.7;">✓ Aprobado</button>`
                     : estado === 'no_aprobado'
-                    ? `<button disabled style="flex:1;padding:10px;border-radius:8px;border:none;background:#c33;color:#fff;font-weight:700;font-size:13px;cursor:default;opacity:.7;">✕ No aprobado</button>
-                       <button onclick="cambiarEstadoPedido('${p.id}','aprobado')" style="flex:1;padding:10px;border-radius:8px;border:1px solid #1B7F3D;background:#fff;color:#1B7F3D;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;">Aprobar</button>`
-                    : `<button onclick="cambiarEstadoPedido('${p.id}','no_aprobado')" style="flex:1;padding:10px;border-radius:8px;border:1px solid #c33;background:#fff;color:#c33;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;">No aprobado</button>
-                       <button onclick="cambiarEstadoPedido('${p.id}','aprobado')" style="flex:1;padding:10px;border-radius:8px;border:1px solid #1B7F3D;background:#fff;color:#1B7F3D;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;">Aprobar</button>`;
+                    ? `<button disabled style="flex:1;padding:11px 8px;border-radius:8px;border:none;background:#c33;color:#fff;font-weight:700;font-size:13px;opacity:.7;">✕ No aprobado</button>
+                       <button onclick="cambiarEstadoPedido('${p.id}','aprobado')" style="flex:1;padding:11px 8px;border-radius:8px;border:1px solid #1B7F3D;background:#fff;color:#1B7F3D;font-weight:700;font-size:13px;cursor:pointer;">Aprobar</button>`
+                    : `<button onclick="cambiarEstadoPedido('${p.id}','no_aprobado')" style="flex:1;padding:11px 8px;border-radius:8px;border:1px solid #c33;background:#fff;color:#c33;font-weight:700;font-size:13px;cursor:pointer;">No aprobado</button>
+                       <button onclick="cambiarEstadoPedido('${p.id}','aprobado')" style="flex:1;padding:11px 8px;border-radius:8px;border:1px solid #1B7F3D;background:#fff;color:#1B7F3D;font-weight:700;font-size:13px;cursor:pointer;">Aprobar</button>`;
 
                 return `
-                <div style="background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+                <div style="background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);">
 
-                    <!-- CINTA: nombre + badge, siempre visible, toca para expandir -->
+                    <!-- CINTA COLAPSABLE -->
                     <div onclick="(function(btn){var card=btn.parentElement;var body=card.querySelector('.pr-body');var arrow=btn.querySelector('.pr-arrow');var open=body.style.display!=='none';body.style.display=open?'none':'block';arrow.style.transform=open?'':'rotate(180deg)';btn.style.borderBottom=open?'1px solid transparent':'1px solid var(--border)';})(this)"
-                         style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;user-select:none;gap:10px;background:#fafafa;border-bottom:1px solid transparent;transition:background .15s;"
-                         onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background='#fafafa'">
-                        <div style="min-width:0;flex:1;">
-                            <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:2px;">${nombre}</div>
-                            ${fecha ? `<div style="font-size:11px;color:var(--text-light);">${fecha}${hora ? ' · ' + hora : ''}</div>` : ''}
+                         style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;user-select:none;gap:8px;background:#fafafa;border-bottom:1px solid transparent;">
+                        <div style="min-width:0;flex:1;overflow:hidden;">
+                            <div style="font-weight:700;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nombre}</div>
+                            ${fechaStr ? `<div style="font-size:11px;color:var(--text-light);margin-top:1px;">${fechaStr}</div>` : ''}
                         </div>
-                        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-                            <span style="background:${badgeColor};color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;">${badgeText}</span>
-                            <svg class="pr-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
+                        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                            <span style="background:${badgeColor};color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;">${badgeText}</span>
+                            <svg class="pr-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
                         </div>
                     </div>
 
                     <!-- CUERPO EXPANDIBLE -->
-                    <div class="pr-body" style="display:none;padding:16px;">
+                    <div class="pr-body" style="display:none;padding:14px;">
 
                         <!-- Datos del cliente -->
-                        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;">
-                            <div style="background:#f8f9fa;padding:8px 12px;border-bottom:1px solid var(--border);">
-                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);">Datos del cliente</span>
+                        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px;">
+                            <div style="background:#f8f9fa;padding:7px 12px;border-bottom:1px solid var(--border);">
+                                <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);">Datos del cliente</span>
                             </div>
-                            ${cli.telefono ? `<div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);">
-                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);min-width:80px;">Teléfono</span>
+                            ${cli.telefono ? `<div style="display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);gap:10px;">
+                                <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);min-width:68px;flex-shrink:0;">Teléfono</span>
                                 <span style="font-size:13px;color:var(--text);font-weight:500;">${cli.telefono}</span>
                             </div>` : ''}
-                            ${cli.email ? `<div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);">
-                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);min-width:80px;">Email</span>
-                                <span style="font-size:13px;color:var(--text);font-weight:500;word-break:break-all;">${cli.email}</span>
+                            ${cli.email ? `<div style="display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);gap:10px;">
+                                <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);min-width:68px;flex-shrink:0;">Email</span>
+                                <span style="font-size:13px;color:var(--text);font-weight:500;word-break:break-all;min-width:0;">${cli.email}</span>
                             </div>` : ''}
-                            ${(cli.ciudad || cli.direccion) ? `<div style="display:flex;align-items:center;padding:10px 12px;">
-                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);min-width:80px;">Ciudad</span>
+                            ${(cli.ciudad || cli.direccion) ? `<div style="display:flex;align-items:center;padding:9px 12px;gap:10px;">
+                                <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);min-width:68px;flex-shrink:0;">Ciudad</span>
                                 <span style="font-size:13px;color:var(--text);font-weight:500;">${cli.ciudad || cli.direccion}</span>
-                            </div>` : ''}
+                            </div>` : (!cli.telefono && !cli.email ? `<div style="padding:9px 12px;font-size:13px;color:var(--text-light);">Sin datos de contacto</div>` : '')}
                         </div>
 
                         <!-- Productos -->
-                        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;">
-                            <div style="background:#f8f9fa;padding:8px 12px;border-bottom:1px solid var(--border);">
-                                <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);">Productos del pedido</span>
+                        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px;">
+                            <div style="background:#f8f9fa;padding:7px 12px;border-bottom:1px solid var(--border);">
+                                <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);">Productos del pedido</span>
                             </div>
-                            <div style="padding:4px 12px 8px;">
+                            <div style="padding:4px 12px 6px;">
                                 ${productos || '<div style="padding:8px 0;font-size:13px;color:var(--text-light);">Sin productos</div>'}
                             </div>
                         </div>
 
-                        <!-- Estadísticas -->
-                        <div style="background:linear-gradient(135deg,var(--primary) 0%,#0052cc 100%);border-radius:10px;padding:16px;margin-bottom:16px;color:#fff;">
-                            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;opacity:.85;margin-bottom:12px;">Estadísticas del pedido</div>
-                            <div style="display:flex;flex-direction:column;gap:8px;">
-                                <div style="display:flex;justify-content:space-between;align-items:center;">
-                                    <span style="font-size:13px;opacity:.9;">Precio mayorista (costo)</span>
-                                    <span style="font-size:14px;font-weight:700;">${costoTotal}</span>
-                                </div>
-                                <div style="display:flex;justify-content:space-between;align-items:center;">
-                                    <span style="font-size:13px;opacity:.9;">Precio cliente (venta)</span>
-                                    <span style="font-size:14px;font-weight:700;">${totalFinal}</span>
-                                </div>
-                                <div style="border-top:1px solid rgba(255,255,255,.25);padding-top:8px;margin-top:2px;display:flex;justify-content:space-between;align-items:center;">
-                                    <span style="font-size:14px;font-weight:600;">Tu ganancia</span>
-                                    <span style="font-size:17px;font-weight:800;">${gananciaTotal}</span>
-                                </div>
+                        <!-- Estadísticas del pedido -->
+                        <div style="background:linear-gradient(135deg,#1a6fd4 0%,#0a52b0 100%);border-radius:10px;padding:14px 16px;margin-bottom:12px;color:#fff;">
+                            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;opacity:.8;margin-bottom:10px;">Estadísticas del pedido</div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
+                                <span style="font-size:12px;opacity:.85;">Precio mayorista (costo)</span>
+                                <span style="font-size:13px;font-weight:700;">${fmt(totalCostoN)}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                                <span style="font-size:12px;opacity:.85;">Precio cliente (venta)</span>
+                                <span style="font-size:13px;font-weight:700;">${fmt(totalVentaN)}</span>
+                            </div>
+                            <div style="border-top:1px solid rgba(255,255,255,.22);padding-top:10px;display:flex;justify-content:space-between;align-items:center;">
+                                <span style="font-size:13px;font-weight:600;">Tu ganancia</span>
+                                <span style="font-size:16px;font-weight:800;">${fmt(gananciaCalc)}</span>
                             </div>
                         </div>
 
                         <!-- Botones de acción -->
-                        <div style="display:flex;gap:10px;">
+                        <div style="display:flex;gap:8px;">
                             ${botonesAprobacion}
                         </div>
                     </div>
                 </div>`;
             }).join('');
-
         }
 
         function agregarPedidoAlCarrito(pedido) {
