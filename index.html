@@ -4017,6 +4017,70 @@
                 <div style="font-size:11px;color:var(--text-light);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Se aplicará al header, botones y precios de tu tienda</div>
             </div>
 
+            <!-- ESTÉTICA AVANZADA: colores secundarios -->
+            <div style="background:var(--gray-light);border-radius:var(--radius);padding:12px;margin-bottom:16px;">
+                <button type="button" onclick="(function(btn){var panel=document.getElementById('estetica-extra-panel');var open=panel.style.display!=='none';panel.style.display=open?'none':'block';btn.querySelector('.estetica-arrow').style.transform=open?'':'rotate(180deg)';})(this)"
+                    style="width:100%;display:flex;align-items:center;justify-content:space-between;background:none;border:none;cursor:pointer;padding:0;font-size:13px;font-weight:600;color:var(--text);">
+                    <span>🎨 Estética avanzada</span>
+                    <svg class="estetica-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+
+                <div id="estetica-extra-panel" style="display:none;margin-top:12px;">
+                    <p style="font-size:11px;color:var(--text-light);margin-bottom:12px;">Personalizá el aspecto de los productos en tu tienda compartida.</p>
+
+                    <!-- Color 2: Fondo -->
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Color de fondo</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div id="preview-fondo" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:#f9fafb;flex-shrink:0;"></div>
+                            <input type="range" id="cp-fondo-hue" min="0" max="360" value="0" oninput="actualizarColorExtra('fondo',this.value)" style="flex:1;height:4px;border-radius:2px;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,hsl(0,30%,95%),hsl(60,30%,95%),hsl(120,30%,95%),hsl(180,30%,95%),hsl(240,30%,95%),hsl(300,30%,95%),hsl(360,30%,95%));cursor:pointer;outline:none;" class="cp-range-slim">
+                            <input type="text" id="cp-fondo-hex" value="#F9FAFB" maxlength="7" oninput="aplicarHexExtra('fondo',this.value)" style="width:76px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font-body);text-transform:uppercase;">
+                        </div>
+                        <div style="font-size:10px;color:var(--text-light);margin-top:3px;">Cambia el tono del fondo de la tienda</div>
+                    </div>
+
+                    <!-- Color 3: Contorno productos -->
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Contorno de productos</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div id="preview-contorno" style="width:24px;height:24px;border-radius:50%;border:2px solid #e5e5e5;background:#fff;flex-shrink:0;"></div>
+                            <input type="range" id="cp-contorno-hue" min="0" max="360" value="220" oninput="actualizarColorExtra('contorno',this.value)" style="flex:1;height:4px;border-radius:2px;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,hsl(0,60%,70%),hsl(60,60%,70%),hsl(120,60%,70%),hsl(180,60%,70%),hsl(240,60%,70%),hsl(300,60%,70%),hsl(360,60%,70%));cursor:pointer;outline:none;" class="cp-range-slim">
+                            <input type="text" id="cp-contorno-hex" value="#E5E5E5" maxlength="7" oninput="aplicarHexExtra('contorno',this.value)" style="width:76px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font-body);text-transform:uppercase;">
+                        </div>
+                        <div style="font-size:10px;color:var(--text-light);margin-top:3px;">Línea fina y elegante alrededor de cada producto</div>
+                    </div>
+
+                    <!-- Color 4: Nombre productos -->
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Color del nombre de productos</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div id="preview-nombre" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:#1a1a1a;flex-shrink:0;"></div>
+                            <input type="range" id="cp-nombre-hue" min="0" max="360" value="0" oninput="actualizarColorExtra('nombre',this.value)" style="flex:1;height:4px;border-radius:2px;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,hsl(0,70%,30%),hsl(60,70%,30%),hsl(120,70%,30%),hsl(180,70%,30%),hsl(240,70%,30%),hsl(300,70%,30%),hsl(360,70%,30%));cursor:pointer;outline:none;" class="cp-range-slim">
+                            <input type="text" id="cp-nombre-hex" value="#1A1A1A" maxlength="7" oninput="aplicarHexExtra('nombre',this.value)" style="width:76px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font-body);text-transform:uppercase;">
+                        </div>
+                        <div style="font-size:10px;color:var(--text-light);margin-top:3px;">Cambia el color del texto del nombre de los productos</div>
+                    </div>
+
+                    <!-- Color 5: Precio productos -->
+                    <div style="margin-bottom:4px;">
+                        <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Color de los precios</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div id="preview-precio" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:#0066ff;flex-shrink:0;"></div>
+                            <input type="range" id="cp-precio-hue" min="0" max="360" value="220" oninput="actualizarColorExtra('precio',this.value)" style="flex:1;height:4px;border-radius:2px;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,hsl(0,80%,50%),hsl(60,80%,50%),hsl(120,80%,50%),hsl(180,80%,50%),hsl(240,80%,50%),hsl(300,80%,50%),hsl(360,80%,50%));cursor:pointer;outline:none;" class="cp-range-slim">
+                            <input type="text" id="cp-precio-hex" value="#0066FF" maxlength="7" oninput="aplicarHexExtra('precio',this.value)" style="width:76px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font-body);text-transform:uppercase;">
+                        </div>
+                        <div style="font-size:10px;color:var(--text-light);margin-top:3px;">Cambia el color de los precios mostrados en tu tienda</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estilos para sliders finos -->
+            <style>
+                .cp-range-slim { accent-color: var(--primary); }
+                .cp-range-slim::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#fff; border:2px solid var(--primary); box-shadow:0 1px 4px rgba(0,0,0,.18); cursor:pointer; }
+                .cp-range-slim::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:#fff; border:2px solid var(--primary); cursor:pointer; }
+            </style>
+
 
             <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:10px;" onclick="guardarConfigTienda()">Guardar configuración</button>
             <button type="button" class="confirmation-button" style="width:100%;background:#fee2e2;color:#b91c1c;margin-bottom:10px;font-weight:700;" onclick="eliminarConfigTienda()">Eliminar configuración</button>
@@ -7060,12 +7124,46 @@
                 lista.innerHTML = '<div style="text-align:center;padding:40px 12px;color:var(--text-light);font-size:14px;">No hay pedidos por el momento</div>';
                 return;
             }
+            // Prefetch precios de workers para estadísticas correctas
+            if (codigo) {
+                window._preciosMayoristaCache = null;
+                window._preciosClienteCache   = null;
+                await prefetchPreciosWorkers(codigo);
+            }
             renderPedidosRecibidos();
         }
 
         function filtrarPedidosRecibidos(estado) {
             window.pedidosRecibidosFiltro = estado;
             renderPedidosRecibidos();
+        }
+
+        // Cache de precios de workers para estadísticas de pedidos recibidos
+        window._preciosMayoristaCache = null;
+        window._preciosClienteCache   = null;
+
+        async function prefetchPreciosWorkers(codigo) {
+            if (window._preciosMayoristaCache && window._preciosClienteCache) return;
+            try {
+                const [rPagos, rCliente] = await Promise.allSettled([
+                    fetch('https://workerpagos.tuweb.workers.dev/?codigoVendedor=' + encodeURIComponent(codigo), {signal: AbortSignal.timeout(5000)}).then(r=>r.ok?r.json():null),
+                    fetch('https://workerwebcliente.tuweb.workers.dev/?codigoVendedor=' + encodeURIComponent(codigo), {signal: AbortSignal.timeout(5000)}).then(r=>r.ok?r.json():null)
+                ]);
+                // Mapear por id de producto
+                const pagosData   = rPagos.status === 'fulfilled' && rPagos.value ? rPagos.value : null;
+                const clienteData = rCliente.status === 'fulfilled' && rCliente.value ? rCliente.value : null;
+                const toMap = (data) => {
+                    const m = {};
+                    const arr = Array.isArray(data) ? data : (data && Array.isArray(data.productos)) ? data.productos : [];
+                    arr.forEach(p => { if (p.id !== undefined) m[String(p.id)] = p; });
+                    return m;
+                };
+                window._preciosMayoristaCache = toMap(pagosData);
+                window._preciosClienteCache   = toMap(clienteData);
+            } catch(_) {
+                window._preciosMayoristaCache = {};
+                window._preciosClienteCache   = {};
+            }
         }
 
         function renderPedidosRecibidos() {
@@ -7083,8 +7181,8 @@
                 btn.style.borderColor = active ? '#1B7F3D' : 'var(--border)';
             });
 
-            // Ordenar por nombre y apellido
-            const items = (window.pedidosRecibidosCache || [])
+            const allPedidos = (window.pedidosRecibidosCache || []);
+            const items = allPedidos
                 .filter(p => (p.estadoAprobacion || 'pendiente') === filtro)
                 .sort((a, b) => {
                     const na = (((a.cliente||{}).nombre||'') + ' ' + ((a.cliente||{}).apellido||'')).trim().toLowerCase();
@@ -7104,12 +7202,15 @@
             const estado_colors = { aprobado: '#1B7F3D', no_aprobado: '#c33', pendiente: '#b58100' };
             const estado_labels = { aprobado: '✓ Aprobado', no_aprobado: '✕ No aprobado', pendiente: '⏳ Pendiente' };
 
-            // Función robusta para parsear fechaCreacion (Firestore Timestamp, {seconds:X}, o Date)
+            // Parsear fecha robustamente — nunca devuelve Invalid Date
             function parseFecha(fc) {
                 if (!fc) return null;
-                if (typeof fc.toDate === 'function') return fc.toDate();
-                if (fc.seconds) return new Date(fc.seconds * 1000);
-                if (fc instanceof Date) return fc;
+                try {
+                    if (typeof fc.toDate === 'function') { const d = fc.toDate(); return isNaN(d) ? null : d; }
+                    if (fc.seconds)  { const d = new Date(Number(fc.seconds) * 1000); return isNaN(d) ? null : d; }
+                    if (typeof fc === 'string' || typeof fc === 'number') { const d = new Date(fc); return isNaN(d) ? null : d; }
+                    if (fc instanceof Date) return isNaN(fc) ? null : fc;
+                } catch(_) {}
                 return null;
             }
 
@@ -7127,17 +7228,37 @@
                 const badgeColor = estado_colors[estado] || '#b58100';
                 const badgeText = estado_labels[estado] || estado;
 
-                // Calcular totales desde los items (misma lógica que el panel de ventas)
+                // Calcular estadísticas:
+                // Precio mayorista → workerpagos (p.precio original del producto)
+                // Precio cliente → workerwebcliente (p.precioFinal que pagó el cliente)
+                // Si los workers no tienen datos o el pedido es viejo, usar los guardados en los items
                 const pedidoItems = p.items || [];
-                const calcCosto   = pedidoItems.reduce((s, i) => s + (Number(i.precioCosto || i.precioMayorista || 0) * Number(i.cantidad||1)), 0);
-                const calcVenta   = pedidoItems.reduce((s, i) => s + (Number(i.precio || i.precioFinal || i.precioCliente || 0) * Number(i.cantidad||1)), 0);
-                // Usar los valores guardados si los calculados son 0 (pedidos viejos sin precioCosto)
-                const totalCostoN  = calcCosto  > 0 ? calcCosto  : Number(p.costoTotal || 0);
-                const totalVentaN  = calcVenta  > 0 ? calcVenta  : Number(p.totalFinal || 0);
+                const mapaM = window._preciosMayoristaCache || {};
+                const mapaC = window._preciosClienteCache   || {};
+
+                let totalCostoN = 0, totalVentaN = 0;
+                pedidoItems.forEach(i => {
+                    const key = String(i.id || '');
+                    const cant = Number(i.cantidad || 1);
+                    // Precio mayorista: del worker pagos → fallback a precioCosto guardado → fallback a precio del item
+                    const precioMay = (key && mapaM[key] && mapaM[key].precio)
+                        ? Number(mapaM[key].precio)
+                        : (Number(i.precioCosto || i.precioMayorista || 0));
+                    // Precio cliente: del worker cliente → fallback a precio guardado en el item
+                    const precioCli = (key && mapaC[key] && (mapaC[key].precioFinal || mapaC[key].precio))
+                        ? Number(mapaC[key].precioFinal || mapaC[key].precio)
+                        : Number(i.precio || i.precioFinal || 0);
+                    totalCostoN += precioMay * cant;
+                    totalVentaN += precioCli * cant;
+                });
+
+                // Si los items no tienen IDs o los caches están vacíos, usar los totales guardados del pedido
+                if (totalCostoN === 0 && Number(p.costoTotal || 0) > 0) totalCostoN = Number(p.costoTotal);
+                if (totalVentaN === 0 && Number(p.totalFinal  || 0) > 0) totalVentaN = Number(p.totalFinal);
                 const gananciaCalc = totalVentaN - totalCostoN;
 
                 const productos = pedidoItems.map(i => {
-                    const pUnit = Number(i.precio || i.precioFinal || i.precioCliente || 0);
+                    const pUnit = Number(i.precio || i.precioFinal || 0);
                     return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid #f0f0f0;">
                         <span style="font-size:13px;color:var(--text);flex:1;min-width:0;padding-right:10px;line-height:1.3;">${Number(i.cantidad||1)} × ${i.nombre||''}${i.talle ? ' · T.'+i.talle : ''}</span>
                         <span style="font-size:13px;font-weight:700;color:var(--primary);white-space:nowrap;">${fmt(pUnit)}</span>
@@ -7155,8 +7276,6 @@
 
                 return `
                 <div style="background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);">
-
-                    <!-- CINTA COLAPSABLE -->
                     <div onclick="(function(btn){var card=btn.parentElement;var body=card.querySelector('.pr-body');var arrow=btn.querySelector('.pr-arrow');var open=body.style.display!=='none';body.style.display=open?'none':'block';arrow.style.transform=open?'':'rotate(180deg)';btn.style.borderBottom=open?'1px solid transparent':'1px solid var(--border)';})(this)"
                          style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;user-select:none;gap:8px;background:#fafafa;border-bottom:1px solid transparent;">
                         <div style="min-width:0;flex:1;overflow:hidden;">
@@ -7168,11 +7287,7 @@
                             <svg class="pr-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform .2s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
                         </div>
                     </div>
-
-                    <!-- CUERPO EXPANDIBLE -->
                     <div class="pr-body" style="display:none;padding:14px;">
-
-                        <!-- Datos del cliente -->
                         <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px;">
                             <div style="background:#f8f9fa;padding:7px 12px;border-bottom:1px solid var(--border);">
                                 <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);">Datos del cliente</span>
@@ -7190,8 +7305,6 @@
                                 <span style="font-size:13px;color:var(--text);font-weight:500;">${cli.ciudad || cli.direccion}</span>
                             </div>` : (!cli.telefono && !cli.email ? `<div style="padding:9px 12px;font-size:13px;color:var(--text-light);">Sin datos de contacto</div>` : '')}
                         </div>
-
-                        <!-- Productos -->
                         <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px;">
                             <div style="background:#f8f9fa;padding:7px 12px;border-bottom:1px solid var(--border);">
                                 <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);">Productos del pedido</span>
@@ -7200,8 +7313,6 @@
                                 ${productos || '<div style="padding:8px 0;font-size:13px;color:var(--text-light);">Sin productos</div>'}
                             </div>
                         </div>
-
-                        <!-- Estadísticas del pedido -->
                         <div style="background:linear-gradient(135deg,#1a6fd4 0%,#0a52b0 100%);border-radius:10px;padding:14px 16px;margin-bottom:12px;color:#fff;">
                             <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;opacity:.8;margin-bottom:10px;">Estadísticas del pedido</div>
                             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
@@ -7217,11 +7328,7 @@
                                 <span style="font-size:16px;font-weight:800;">${fmt(gananciaCalc)}</span>
                             </div>
                         </div>
-
-                        <!-- Botones de acción -->
-                        <div style="display:flex;gap:8px;">
-                            ${botonesAprobacion}
-                        </div>
+                        <div style="display:flex;gap:8px;">${botonesAprobacion}</div>
                     </div>
                 </div>`;
             }).join('');
@@ -8501,8 +8608,14 @@
             localStorage.setItem('coloresTiendaPorCat', JSON.stringify(coloresByCat));
             localStorage.setItem('colorTienda', colorTienda); // legacy
 
+            // Guardar colores extra (fondo, contorno, nombre, precio)
+            const coloresExtra = typeof window.getColoresExtraParaGuardar === 'function' ? window.getColoresExtraParaGuardar() : {};
+            const coloresExtraAll = JSON.parse(localStorage.getItem('coloresExtraTienda') || '{}');
+            coloresExtraAll[cat] = coloresExtra;
+            localStorage.setItem('coloresExtraTienda', JSON.stringify(coloresExtraAll));
+
             // Guardar en Firestore (funciona con login por email O por código de revendedor)
-            const _updateData = { [`configTiendaAll.${cat}`]: config, configTiendaAll: allConfig, colorTienda: colorTienda, [`coloresTiendaPorCat.${cat}`]: colorTienda };
+            const _updateData = { [`configTiendaAll.${cat}`]: config, configTiendaAll: allConfig, colorTienda: colorTienda, [`coloresTiendaPorCat.${cat}`]: colorTienda, [`coloresExtraTienda.${cat}`]: coloresExtra };
             if (wa && wa.length >= 10) _updateData.whatsappRevendedor = wa;
             _guardarEnFirestore(_updateData);
 
@@ -10671,5 +10784,106 @@ function mostrarToastOk(msg) {
 })();
 </script>
 
-</body>
-</html>
+<script>
+// ══════════════════════════════════════════════════════════
+// ESTÉTICA AVANZADA — 4 colores extras de tienda
+// ══════════════════════════════════════════════════════════
+(function(){
+    // Defaults
+    const DEFAULTS = {
+        fondo:    '#F9FAFB',
+        contorno: '#E5E5E5',
+        nombre:   '#1A1A1A',
+        precio:   '#0066FF'
+    };
+
+    // Convierte hex a hue (0-360)
+    function hexToHue(hex) {
+        hex = hex.replace('#','');
+        const r = parseInt(hex.slice(0,2),16)/255;
+        const g = parseInt(hex.slice(2,4),16)/255;
+        const b = parseInt(hex.slice(4,6),16)/255;
+        const max = Math.max(r,g,b), min = Math.min(r,g,b);
+        if (max === min) return 0;
+        const d = max - min;
+        let h = 0;
+        if (max === r)      h = ((g-b)/d + (g<b?6:0)) * 60;
+        else if (max === g) h = ((b-r)/d + 2) * 60;
+        else                h = ((r-g)/d + 4) * 60;
+        return Math.round(h);
+    }
+
+    // Hue → hex (medium saturation/lightness based on key)
+    function hueToHex(key, hue) {
+        const h = Number(hue);
+        let s, l;
+        if (key === 'fondo')    { s = 18; l = 96; }
+        else if (key === 'contorno') { s = 40; l = 75; }
+        else if (key === 'nombre')   { s = 55; l = 25; }
+        else                          { s = 90; l = 50; }
+        // HSL to hex
+        const hslToHex = (h,s,l) => {
+            s/=100; l/=100;
+            const a = s*Math.min(l,1-l);
+            const f = n => { const k=(n+h/30)%12; const c=l-a*Math.max(Math.min(k-3,9-k,1),-1); return Math.round(255*c).toString(16).padStart(2,'0'); };
+            return '#'+f(0)+f(8)+f(4);
+        };
+        return hslToHex(h,s,l).toUpperCase();
+    }
+
+    window.actualizarColorExtra = function(key, hueVal) {
+        const hex = hueToHex(key, hueVal);
+        const hexInput = document.getElementById('cp-'+key+'-hex');
+        const preview  = document.getElementById('preview-'+key);
+        if (hexInput) hexInput.value = hex;
+        if (preview)  preview.style.background = hex;
+    };
+
+    window.aplicarHexExtra = function(key, rawHex) {
+        const v = (rawHex || '').toUpperCase().replace(/[^#0-9A-F]/g,'');
+        const hex = v.startsWith('#') ? v : '#'+v;
+        const preview = document.getElementById('preview-'+key);
+        if (preview && /^#[0-9A-F]{6}$/.test(hex)) {
+            preview.style.background = hex;
+            const slider = document.getElementById('cp-'+key+'-hue');
+            if (slider) slider.value = hexToHue(hex);
+        }
+    };
+
+    // Cargar valores guardados al abrir el modal de config
+    function cargarColoresExtra() {
+        const cat = window.currentCatalog || 'general';
+        const extras = JSON.parse(localStorage.getItem('coloresExtraTienda') || '{}');
+        const vals = (extras[cat] || extras) || {};
+        const keys = ['fondo','contorno','nombre','precio'];
+        keys.forEach(k => {
+            const saved = vals['color'+k.charAt(0).toUpperCase()+k.slice(1)] || vals[k] || DEFAULTS[k];
+            const hexInp = document.getElementById('cp-'+k+'-hex');
+            const preview = document.getElementById('preview-'+k);
+            const slider  = document.getElementById('cp-'+k+'-hue');
+            if (hexInp) hexInp.value = saved.toUpperCase();
+            if (preview) preview.style.background = saved;
+            if (slider) slider.value = hexToHue(saved);
+        });
+    }
+
+    // Obtener valores actuales del panel para guardar
+    window.getColoresExtraParaGuardar = function() {
+        return {
+            colorFondo:    (document.getElementById('cp-fondo-hex')    && document.getElementById('cp-fondo-hex').value)    || DEFAULTS.fondo,
+            colorContorno: (document.getElementById('cp-contorno-hex') && document.getElementById('cp-contorno-hex').value) || DEFAULTS.contorno,
+            colorNombre:   (document.getElementById('cp-nombre-hex')   && document.getElementById('cp-nombre-hex').value)   || DEFAULTS.nombre,
+            colorPrecio:   (document.getElementById('cp-precio-hex')   && document.getElementById('cp-precio-hex').value)   || DEFAULTS.precio
+        };
+    };
+
+    // Observar apertura del modal
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('configTiendaModal');
+        if (!modal) return;
+        new MutationObserver(function() {
+            if (modal.classList.contains('active')) cargarColoresExtra();
+        }).observe(modal, {attributes: true, attributeFilter: ['class']});
+    });
+})();
+</script>
