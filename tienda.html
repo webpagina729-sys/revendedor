@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tienda</title>
     <meta name="description" content="Catálogo de productos con precios personalizados.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,11 +22,16 @@
             --font: 'DM Sans', sans-serif;
             --shadow: 0 1px 3px rgba(0,0,0,.08);
             --shadow-lg: 0 4px 12px rgba(0,0,0,.12);
+            /* Colores configurables por el revendedor */
+            --color-fondo: #f9fafb;
+            --color-contorno: transparent;
+            --color-nombre: #1a1a1a;
+            --color-precio: #0066ff;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
         body {
-            background: var(--bg);
+            background: var(--color-fondo, var(--bg));
             color: var(--text);
             font-family: var(--font);
             font-size: 15px;
@@ -182,6 +187,7 @@
         .product-card {
             background: var(--surface); border-radius: 10px;
             overflow: hidden; box-shadow: var(--shadow);
+            border: 1px solid var(--color-contorno, transparent);
             cursor: pointer; transition: transform .18s, box-shadow .18s;
         }
         .product-card:hover {
@@ -197,13 +203,13 @@
         .product-card:hover .product-img-wrap img { transform: scale(1.04); }
         .product-info { padding: 10px; }
         .product-name {
-            font-size: 12px; font-weight: 600; color: var(--text);
+            font-size: 12px; font-weight: 600; color: var(--color-nombre, var(--text));
             display: -webkit-box; -webkit-line-clamp: 2;
             -webkit-box-orient: vertical; overflow: hidden;
             margin-bottom: 6px; line-height: 1.4;
         }
         .product-price {
-            font-size: 15px; font-weight: 700; color: var(--primary);
+            font-size: 15px; font-weight: 700; color: var(--color-precio, var(--primary));
         }
         .product-category {
             font-size: 10px; color: var(--text-light);
@@ -1318,19 +1324,32 @@ const CALZADOS_DATA = [
 // ═══════════════════════════════════════════════════════════════
 // APLICAR COLOR PERSONALIZADO (deriva claro/oscuro automáticamente)
 // ═══════════════════════════════════════════════════════════════
-function aplicarColorTienda(colorHex) {
-    if (!colorHex || !/^#[0-9A-Fa-f]{6}$/.test(colorHex)) return;
-    const hex = colorHex.replace('#', '');
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-    // primary-light = 15% más oscuro para hover
-    const darken = (c) => Math.max(0, Math.round(c * 0.82));
-    const toHex = (c) => c.toString(16).padStart(2, '0');
-    const dark = '#' + toHex(darken(r)) + toHex(darken(g)) + toHex(darken(b));
+function aplicarColorTienda(colorHex, colorFondo, colorContorno, colorNombre, colorPrecio) {
     const root = document.documentElement;
-    root.style.setProperty('--primary', colorHex);
-    root.style.setProperty('--primary-light', dark);
+    if (colorHex && /^#[0-9A-Fa-f]{6}$/.test(colorHex)) {
+        const hex = colorHex.replace('#', '');
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        const darken = (c) => Math.max(0, Math.round(c * 0.82));
+        const toHex = (c) => c.toString(16).padStart(2, '0');
+        const dark = '#' + toHex(darken(r)) + toHex(darken(g)) + toHex(darken(b));
+        root.style.setProperty('--primary', colorHex);
+        root.style.setProperty('--primary-light', dark);
+    }
+    if (colorFondo && /^#[0-9A-Fa-f]{6}$/.test(colorFondo)) {
+        root.style.setProperty('--color-fondo', colorFondo);
+        document.body.style.background = colorFondo;
+    }
+    if (colorContorno && /^#[0-9A-Fa-f]{6}$/.test(colorContorno)) {
+        root.style.setProperty('--color-contorno', colorContorno);
+    }
+    if (colorNombre && /^#[0-9A-Fa-f]{6}$/.test(colorNombre)) {
+        root.style.setProperty('--color-nombre', colorNombre);
+    }
+    if (colorPrecio && /^#[0-9A-Fa-f]{6}$/.test(colorPrecio)) {
+        root.style.setProperty('--color-precio', colorPrecio);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1553,14 +1572,23 @@ function iniciarTienda() {
 
     // ── Aplicar color personalizado del vendedor (por categoría) ──
     let colorElegido = vendedor.colorTienda;
+    let colorFondo, colorContorno, colorNombre, colorPrecio;
     try {
         const cfgCat = configTienda && configTienda[catalogoActual];
         if (cfgCat && cfgCat.colorTienda) colorElegido = cfgCat.colorTienda;
         else if (vendedor.coloresTiendaPorCat && vendedor.coloresTiendaPorCat[catalogoActual]) {
             colorElegido = vendedor.coloresTiendaPorCat[catalogoActual];
         }
+        // Colores adicionales
+        const extraColores = (vendedor.coloresExtraTienda && vendedor.coloresExtraTienda[catalogoActual])
+            || vendedor.coloresExtraTienda
+            || {};
+        colorFondo    = extraColores.colorFondo    || null;
+        colorContorno = extraColores.colorContorno || null;
+        colorNombre   = extraColores.colorNombre   || null;
+        colorPrecio   = extraColores.colorPrecio   || null;
     } catch(_) {}
-    aplicarColorTienda(colorElegido);
+    aplicarColorTienda(colorElegido, colorFondo, colorContorno, colorNombre, colorPrecio);
 
     // Header
     const nombre = vendedor.nombre ? (vendedor.nombre + ' ' + (vendedor.apellido || '')).trim() : 'Tienda';
@@ -2021,11 +2049,6 @@ async function enviarPedidoConDatos() {
     const productos           = carrito.map(i => i.producto.nombre + (i.talle ? ` (T.${i.talle})` : ''));
     const cantidades          = carrito.map(i => i.qty);
     const preciosIndividuales = carrito.map(i => i.producto.precioFinal);
-    // productosIds: ID real del catálogo (1, 2, 3...) — la MISMA clave que usa
-    // workerpagos para sus 411 productos mayoristas (perfume_<id> / calzado_<id>).
-    // Sin esto, todo lo que viene después (panel, workerpagos) tiene que adivinar
-    // el producto por el nombre, lo cual falla si el nombre no matchea exacto.
-    const productosIds        = carrito.map(i => i.producto.id);
     const subtotal            = carrito.reduce((s, x) => s + x.producto.precioFinal * x.qty, 0);
     const total               = subtotal + costoEntrega;
 
@@ -2045,9 +2068,6 @@ async function enviarPedidoConDatos() {
         productos,
         cantidades,
         preciosIndividuales,
-        productosIds,
-        categoria: catalogoActual,
-        nicho: catalogoActual,
         subtotal,
         costoEntrega,
         total,
