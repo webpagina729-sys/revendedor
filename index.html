@@ -6669,6 +6669,43 @@
                 }
             });
 
+            // ✅ Sincronizar configuración de tiendas (por categoría) desde Firestore → localStorage.
+            // Es un MERGE (no overwrite): completa categorías que existan en Firestore pero no
+            // localmente (ej. configuradas desde otro dispositivo), sin pisar cambios locales
+            // más recientes de la misma categoría.
+            firebase.firestore().collection('usuarios').doc(authUser.uid).get().then(doc => {
+                if (!doc.exists) return;
+                const fd = doc.data();
+                try {
+                    if (fd.configTiendaAll && typeof fd.configTiendaAll === 'object') {
+                        const localAll = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                        Object.keys(fd.configTiendaAll).forEach(cat => {
+                            if (!localAll[cat]) localAll[cat] = fd.configTiendaAll[cat];
+                        });
+                        localStorage.setItem('configTiendaAll', JSON.stringify(localAll));
+                    }
+                } catch(e) {}
+                try {
+                    if (fd.coloresTiendaPorCat && typeof fd.coloresTiendaPorCat === 'object') {
+                        const localColores = JSON.parse(localStorage.getItem('coloresTiendaPorCat') || '{}');
+                        Object.keys(fd.coloresTiendaPorCat).forEach(cat => {
+                            if (!localColores[cat]) localColores[cat] = fd.coloresTiendaPorCat[cat];
+                        });
+                        localStorage.setItem('coloresTiendaPorCat', JSON.stringify(localColores));
+                    }
+                } catch(e) {}
+                try {
+                    if (fd.coloresExtraTienda && typeof fd.coloresExtraTienda === 'object') {
+                        const localExtra = JSON.parse(localStorage.getItem('coloresExtraTienda') || '{}');
+                        Object.keys(fd.coloresExtraTienda).forEach(cat => {
+                            if (!localExtra[cat]) localExtra[cat] = fd.coloresExtraTienda[cat];
+                        });
+                        localStorage.setItem('coloresExtraTienda', JSON.stringify(localExtra));
+                    }
+                } catch(e) {}
+                if (typeof window.refrescarMisTiendasFab === 'function') window.refrescarMisTiendasFab();
+            }).catch(() => {});
+
             // Actualizar interfaz
             updateUIForAuthentication(true);
             
@@ -8615,7 +8652,9 @@
             localStorage.setItem('coloresExtraTienda', JSON.stringify(coloresExtraAll));
 
             // Guardar en Firestore (funciona con login por email O por código de revendedor)
-            const _updateData = { [`configTiendaAll.${cat}`]: config, configTiendaAll: allConfig, colorTienda: colorTienda, [`coloresTiendaPorCat.${cat}`]: colorTienda, [`coloresExtraTienda.${cat}`]: coloresExtra };
+            // Solo se envía el campo por categoría (dot-path) para no pisar otras categorías
+            // que pudieran haberse guardado desde otro dispositivo/pestaña.
+            const _updateData = { [`configTiendaAll.${cat}`]: config, colorTienda: colorTienda, [`coloresTiendaPorCat.${cat}`]: colorTienda, [`coloresExtraTienda.${cat}`]: coloresExtra };
             if (wa && wa.length >= 10) _updateData.whatsappRevendedor = wa;
             _guardarEnFirestore(_updateData);
 
