@@ -889,6 +889,8 @@ const BASE_IMAGE_URL = window.location.origin + '/';
 let vendedor       = null;   // datos del vendedor
 let configTienda   = {};     // configTiendaAll del vendedor
 let catalogoActual = null;   // 'perfumes' | 'calzados'
+let cfgUrlColorTienda  = null; // color principal embebido en ?cfg= del enlace (prioridad máxima)
+let cfgUrlColoresExtra = null; // colores extra (fondo/contorno/nombre/precio) embebidos en ?cfg=
 let todosProductos = [];     // array original con precio ajustado
 let productosFilt  = [];     // array filtrado/ordenado
 let carrito        = [];     // [{producto, qty, talle?}]
@@ -1536,14 +1538,21 @@ async function cargarVendedor() {
     // 🔧 FIX: si el enlace trae ?cfg= (config embebida desde index.html),
     // tiene prioridad. Garantiza que el % de aumento se aplique siempre,
     // aunque el Worker / Firestore no devuelvan configTiendaAll.
+    // El color de tienda y los colores extra se aplican SIEMPRE que vengan
+    // en el cfg, sin depender de que los rangos sean válidos (categorías
+    // distintas pueden no tener rangos pero sí tener estética configurada).
     try {
         const cfgUrl = urlParams.get('cfg');
         if (cfgUrl) {
             const parsed = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(cfgUrl)))));
-            if (parsed && Array.isArray(parsed.rangos)) {
-                const catKey = (catParam === 'calzados') ? 'calzados' : 'perfumes';
-                configTienda[catKey] = parsed;
-                configTienda['general'] = parsed;
+            if (parsed && typeof parsed === 'object') {
+                if (parsed.colorTienda) cfgUrlColorTienda = parsed.colorTienda;
+                if (parsed._coloresExtra) cfgUrlColoresExtra = parsed._coloresExtra;
+                if (Array.isArray(parsed.rangos)) {
+                    const catKey = (catParam === 'calzados') ? 'calzados' : 'perfumes';
+                    configTienda[catKey] = parsed;
+                    configTienda['general'] = parsed;
+                }
             }
         }
     } catch(e) {}
@@ -1617,6 +1626,20 @@ function iniciarTienda() {
         colorContorno = extraColores.colorContorno || null;
         colorNombre   = extraColores.colorNombre   || null;
         colorPrecio   = extraColores.colorPrecio   || null;
+
+        // 🔧 PRIORIDAD MÁXIMA: si el enlace compartido trae ?cfg= con color
+        // embebido, ese es el que el revendedor eligió justo antes de copiar
+        // el enlace — pisa cualquier otra fuente (Worker/Firestore/localStorage)
+        // que pudiera estar desactualizada.
+        if (typeof cfgUrlColorTienda !== 'undefined' && cfgUrlColorTienda) {
+            colorElegido = cfgUrlColorTienda;
+        }
+        if (typeof cfgUrlColoresExtra !== 'undefined' && cfgUrlColoresExtra && typeof cfgUrlColoresExtra === 'object') {
+            colorFondo    = cfgUrlColoresExtra.colorFondo    || colorFondo;
+            colorContorno = cfgUrlColoresExtra.colorContorno || colorContorno;
+            colorNombre   = cfgUrlColoresExtra.colorNombre   || colorNombre;
+            colorPrecio   = cfgUrlColoresExtra.colorPrecio   || colorPrecio;
+        }
     } catch(_) {}
     aplicarColorTienda(colorElegido, colorFondo, colorContorno, colorNombre, colorPrecio);
 
