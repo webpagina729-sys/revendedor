@@ -1438,6 +1438,7 @@ async function cargarVendedor() {
             const fsData = snapFs.docs[0].data();
             if (!vendedor.colorTienda && fsData.colorTienda) vendedor.colorTienda = fsData.colorTienda;
             if (!vendedor.coloresTiendaPorCat && fsData.coloresTiendaPorCat) vendedor.coloresTiendaPorCat = fsData.coloresTiendaPorCat;
+            if (!vendedor.coloresExtraTienda && fsData.coloresExtraTienda) vendedor.coloresExtraTienda = fsData.coloresExtraTienda;
             if (!vendedor.configTiendaAll && fsData.configTiendaAll) vendedor.configTiendaAll = fsData.configTiendaAll;
             if (!vendedor.preciosManualCat && fsData.preciosManualCat) vendedor.preciosManualCat = fsData.preciosManualCat;
             // promocionesTienda: siempre usar Firestore como fuente de verdad (ignora objeto vacío del Worker)
@@ -1501,6 +1502,30 @@ async function cargarVendedor() {
                 const parsed = JSON.parse(lsOne);
                 if (parsed && typeof parsed === 'object') {
                     cfgAll = { perfumes: parsed, calzados: parsed, general: parsed };
+                }
+            }
+        } catch(e) {}
+    }
+
+    // Fallback adicional: colores extra y color por categoría desde localStorage (mismo navegador)
+    if (!vendedor.coloresExtraTienda) {
+        try {
+            const lsExtra = localStorage.getItem('coloresExtraTienda');
+            if (lsExtra) {
+                const parsedExtra = JSON.parse(lsExtra);
+                if (parsedExtra && typeof parsedExtra === 'object' && Object.keys(parsedExtra).length > 0) {
+                    vendedor.coloresExtraTienda = parsedExtra;
+                }
+            }
+        } catch(e) {}
+    }
+    if (!vendedor.coloresTiendaPorCat) {
+        try {
+            const lsColores = localStorage.getItem('coloresTiendaPorCat');
+            if (lsColores) {
+                const parsedColores = JSON.parse(lsColores);
+                if (parsedColores && typeof parsedColores === 'object' && Object.keys(parsedColores).length > 0) {
+                    vendedor.coloresTiendaPorCat = parsedColores;
                 }
             }
         } catch(e) {}
@@ -1579,10 +1604,15 @@ function iniciarTienda() {
         else if (vendedor.coloresTiendaPorCat && vendedor.coloresTiendaPorCat[catalogoActual]) {
             colorElegido = vendedor.coloresTiendaPorCat[catalogoActual];
         }
-        // Colores adicionales
-        const extraColores = (vendedor.coloresExtraTienda && vendedor.coloresExtraTienda[catalogoActual])
-            || vendedor.coloresExtraTienda
-            || {};
+        // Colores adicionales (guardados por categoría: { perfumes: {...}, calzados: {...} })
+        const coloresExtraTodos = vendedor.coloresExtraTienda || {};
+        let extraColores = {};
+        if (coloresExtraTodos[catalogoActual] && typeof coloresExtraTodos[catalogoActual] === 'object') {
+            extraColores = coloresExtraTodos[catalogoActual];
+        } else if (coloresExtraTodos.colorFondo || coloresExtraTodos.colorContorno || coloresExtraTodos.colorNombre || coloresExtraTodos.colorPrecio) {
+            // Forma antigua: objeto plano sin separar por categoría
+            extraColores = coloresExtraTodos;
+        }
         colorFondo    = extraColores.colorFondo    || null;
         colorContorno = extraColores.colorContorno || null;
         colorNombre   = extraColores.colorNombre   || null;
