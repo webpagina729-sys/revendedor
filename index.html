@@ -6672,7 +6672,8 @@
             // ✅ Sincronizar configuración de tiendas (por categoría) desde Firestore → localStorage.
             // Es un MERGE (no overwrite): completa categorías que existan en Firestore pero no
             // localmente (ej. configuradas desde otro dispositivo), sin pisar cambios locales
-            // más recientes de la misma categoría.
+            // más recientes de la misma categoría. Esto incluye color principal, colores extra
+            // y rangos de precio — todo lo que el revendedor configuró para su tienda.
             firebase.firestore().collection('usuarios').doc(authUser.uid).get().then(doc => {
                 if (!doc.exists) return;
                 const fd = doc.data();
@@ -7161,10 +7162,10 @@
                 lista.innerHTML = '<div style="text-align:center;padding:40px 12px;color:var(--text-light);font-size:14px;">No hay pedidos por el momento</div>';
                 return;
             }
-            // Prefetch precios de workers para estadísticas correctas
+            // Prefetch del catálogo mayorista real (workerpagos) para usar como
+            // respaldo si algún pedido viejo no trae precioCosto guardado.
             if (codigo) {
                 window._preciosMayoristaCache = null;
-                window._preciosClienteCache   = null;
                 await prefetchPreciosWorkers(codigo);
             }
             renderPedidosRecibidos();
@@ -7175,32 +7176,58 @@
             renderPedidosRecibidos();
         }
 
-        // Cache de precios de workers para estadísticas de pedidos recibidos
+        // Cache del catálogo mayorista real (workerpagos), usado solo como
+        // respaldo cuando un pedido no trae el precioCosto ya congelado.
         window._preciosMayoristaCache = null;
-        window._preciosClienteCache   = null;
 
         async function prefetchPreciosWorkers(codigo) {
-            if (window._preciosMayoristaCache && window._preciosClienteCache) return;
+            // 🔧 FIX: el endpoint real de workerpagos para consultar precios
+            // mayoristas es GET /api/precios-mayoristas (devuelve { precios:[...] },
+            // cada item con id tipo "perfume_N" / "calzado_N" y el campo
+            // "precioMayorista" como costo real). No existe una ruta raíz "?codigoVendedor=".
+            // Esto solo se usa como ÚLTIMO fallback — la fuente principal del costo
+            // de cada pedido es el precioCosto que ya viene congelado en sus items
+            // (costoIndividuales), guardado al momento de crear el pedido.
+            if (window._preciosMayoristaCache) return;
             try {
-                const [rPagos, rCliente] = await Promise.allSettled([
-                    fetch('https://workerpagos.tuweb.workers.dev/?codigoVendedor=' + encodeURIComponent(codigo), {signal: AbortSignal.timeout(5000)}).then(r=>r.ok?r.json():null),
-                    fetch('https://workerwebcliente.tuweb.workers.dev/?codigoVendedor=' + encodeURIComponent(codigo), {signal: AbortSignal.timeout(5000)}).then(r=>r.ok?r.json():null)
+                const [rPerfumes, rCalzados] = await Promise.allSettled([
+                    fetch('https://workerpagos.tuweb.workers.dev/api/precios-mayoristas?categoria=perfumes', {signal: AbortSignal.timeout(6000)}).then(r=>r.ok?r.json():null),
+                    fetch('https://workerpagos.tuweb.workers.dev/api/precios-mayoristas?categoria=calzados', {signal: AbortSignal.timeout(6000)}).then(r=>r.ok?r.json():null)
                 ]);
-                // Mapear por id de producto
-                const pagosData   = rPagos.status === 'fulfilled' && rPagos.value ? rPagos.value : null;
-                const clienteData = rCliente.status === 'fulfilled' && rCliente.value ? rCliente.value : null;
-                const toMap = (data) => {
-                    const m = {};
-                    const arr = Array.isArray(data) ? data : (data && Array.isArray(data.productos)) ? data.productos : [];
-                    arr.forEach(p => { if (p.id !== undefined) m[String(p.id)] = p; });
-                    return m;
+                const mapa = {};
+                const agregar = (resultado) => {
+                    if (resultado.status !== 'fulfilled' || !resultado.value) return;
+                    const lista = Array.isArray(resultado.value.precios) ? resultado.value.precios : [];
+                    lista.forEach(p => {
+                        if (p.id !== undefined) mapa[String(p.id)] = p;
+                        // También indexar por productoId plano, por si el pedido
+                        // guardó el id numérico sin el prefijo de categoría.
+                        if (p.productoId !== undefined) mapa['__byProductoId__' + p.productoId] = p;
+                    });
                 };
-                window._preciosMayoristaCache = toMap(pagosData);
-                window._preciosClienteCache   = toMap(clienteData);
+                agregar(rPerfumes);
+                agregar(rCalzados);
+                window._preciosMayoristaCache = mapa;
             } catch(_) {
                 window._preciosMayoristaCache = {};
-                window._preciosClienteCache   = {};
             }
+        }
+
+        // Busca el precio mayorista real de un item del pedido en el catálogo
+        // ya cacheado, probando primero por id completo ("perfume_12"/"calzado_67")
+        // y luego por productoId plano como respaldo.
+        function buscarPrecioMayoristaCatalogo(item) {
+            const mapa = window._preciosMayoristaCache || {};
+            const idDirecto = String(item.id || '');
+            if (idDirecto && mapa[idDirecto] && typeof mapa[idDirecto].precioMayorista === 'number') {
+                return mapa[idDirecto].precioMayorista;
+            }
+            const idProducto = item.productoId !== undefined ? item.productoId : item.id;
+            const porProductoId = mapa['__byProductoId__' + idProducto];
+            if (porProductoId && typeof porProductoId.precioMayorista === 'number') {
+                return porProductoId.precioMayorista;
+            }
+            return null;
         }
 
         function renderPedidosRecibidos() {
@@ -7265,34 +7292,44 @@
                 const badgeColor = estado_colors[estado] || '#b58100';
                 const badgeText = estado_labels[estado] || estado;
 
-                // Calcular estadísticas:
-                // Precio mayorista → workerpagos (p.precio original del producto)
-                // Precio cliente → workerwebcliente (p.precioFinal que pagó el cliente)
-                // Si los workers no tienen datos o el pedido es viejo, usar los guardados en los items
+                // Calcular estadísticas del pedido:
+                // Precio mayorista (costo) → SIEMPRE el precioCosto ya congelado en el item
+                // del pedido (viene de costoIndividuales, guardado al crear el pedido).
+                // Solo si un item viejo no trae ese dato, se busca como respaldo en el
+                // catálogo real de workerpagos (GET /api/precios-mayoristas).
+                // Precio cliente (venta) → el precio que efectivamente pagó el cliente,
+                // ya guardado en el item (i.precio). Nunca se recalcula ni se confunde
+                // con el total del pedido.
                 const pedidoItems = p.items || [];
-                const mapaM = window._preciosMayoristaCache || {};
-                const mapaC = window._preciosClienteCache   || {};
 
                 let totalCostoN = 0, totalVentaN = 0;
                 pedidoItems.forEach(i => {
-                    const key = String(i.id || '');
                     const cant = Number(i.cantidad || 1);
-                    // Precio mayorista: del worker pagos → fallback a precioCosto guardado → fallback a precio del item
-                    const precioMay = (key && mapaM[key] && mapaM[key].precio)
-                        ? Number(mapaM[key].precio)
-                        : (Number(i.precioCosto || i.precioMayorista || 0));
-                    // Precio cliente: del worker cliente → fallback a precio guardado en el item
-                    const precioCli = (key && mapaC[key] && (mapaC[key].precioFinal || mapaC[key].precio))
-                        ? Number(mapaC[key].precioFinal || mapaC[key].precio)
-                        : Number(i.precio || i.precioFinal || 0);
+
+                    // Precio cliente (venta): el que pagó el cliente por ese ítem.
+                    const precioCli = Number(i.precio || i.precioFinal || 0);
+
+                    // Precio mayorista (costo): prioridad al valor ya congelado en el pedido.
+                    let precioMay = Number(i.precioCosto || i.precioMayorista || 0);
+                    if (!precioMay) {
+                        const desdeCatalogo = buscarPrecioMayoristaCatalogo(i);
+                        if (desdeCatalogo !== null) precioMay = Number(desdeCatalogo);
+                    }
+
                     totalCostoN += precioMay * cant;
                     totalVentaN += precioCli * cant;
                 });
 
-                // Si los items no tienen IDs o los caches están vacíos, usar los totales guardados del pedido
+                // Si los items no traen nada utilizable, usar los totales agregados
+                // que ya vienen congelados en el propio pedido (costoTotal/gananciaTotal),
+                // NUNCA el total de venta como si fuera la ganancia.
                 if (totalCostoN === 0 && Number(p.costoTotal || 0) > 0) totalCostoN = Number(p.costoTotal);
                 if (totalVentaN === 0 && Number(p.totalFinal  || 0) > 0) totalVentaN = Number(p.totalFinal);
-                const gananciaCalc = totalVentaN - totalCostoN;
+
+                const gananciaGuardada = Number(p.gananciaTotal || 0);
+                const gananciaCalc = (totalVentaN > 0 || totalCostoN > 0)
+                    ? (totalVentaN - totalCostoN)
+                    : gananciaGuardada;
 
                 const productos = pedidoItems.map(i => {
                     const pUnit = Number(i.precio || i.precioFinal || 0);
@@ -8697,13 +8734,26 @@
             // Generar enlace
             const base = window.location.origin + '/tienda.html';
             const catParam = cat ? `&cat=${cat}` : '';
-            // 🔧 FIX: embebemos la config de aumento en el propio enlace
-            // para que la tienda generada SIEMPRE aplique los porcentajes,
-            // sin depender de que el Worker/Firestore devuelvan configTiendaAll.
+            // 🔧 FIX: embebemos la config de aumento (y el color de tienda) en el propio
+            // enlace para que la tienda generada SIEMPRE aplique los porcentajes y la
+            // estética elegida, sin depender de que el Worker/Firestore devuelvan
+            // configTiendaAll a tiempo.
             let cfgParam = '';
             try {
-                const cfgForLink = cat ? (allConfig[cat] || null) : null;
+                let cfgForLink = cat ? (allConfig[cat] ? { ...allConfig[cat] } : null) : null;
                 if (cfgForLink) {
+                    if (!cfgForLink.colorTienda) {
+                        try {
+                            const coloresByCat = JSON.parse(localStorage.getItem('coloresTiendaPorCat') || '{}');
+                            if (coloresByCat[cat]) cfgForLink.colorTienda = coloresByCat[cat];
+                        } catch(e) {}
+                    }
+                    if (!cfgForLink._coloresExtra) {
+                        try {
+                            const extraAll = JSON.parse(localStorage.getItem('coloresExtraTienda') || '{}');
+                            if (extraAll[cat]) cfgForLink._coloresExtra = extraAll[cat];
+                        } catch(e) {}
+                    }
                     cfgParam = '&cfg=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(cfgForLink)))));
                 }
             } catch(e) {}
@@ -9742,7 +9792,26 @@
             if (!codigo) return base;
             let cfgParam = '';
             try {
-                if (cfg) cfgParam = '&cfg=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(cfg)))));
+                // 🔧 FIX: garantizar que el color principal y los colores extra
+                // SIEMPRE viajen en el enlace, sin depender de que ya estuvieran
+                // guardados dentro de cfg.colorTienda. Si cfg no lo trae, se
+                // completa acá desde las claves dedicadas (fuente de verdad).
+                let cfgFinal = cfg ? { ...cfg } : null;
+                if (cfgFinal) {
+                    if (!cfgFinal.colorTienda) {
+                        try {
+                            const coloresByCat = JSON.parse(localStorage.getItem('coloresTiendaPorCat') || '{}');
+                            if (coloresByCat[cat]) cfgFinal.colorTienda = coloresByCat[cat];
+                        } catch(e) {}
+                    }
+                    if (!cfgFinal._coloresExtra) {
+                        try {
+                            const extraAll = JSON.parse(localStorage.getItem('coloresExtraTienda') || '{}');
+                            if (extraAll[cat]) cfgFinal._coloresExtra = extraAll[cat];
+                        } catch(e) {}
+                    }
+                }
+                if (cfgFinal) cfgParam = '&cfg=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(cfgFinal)))));
             } catch(e) {}
             let promoParam = '';
             try {
