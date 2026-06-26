@@ -899,6 +899,35 @@ let talleSelec     = null;
 
 // ── Leer URL params ──────────────────────────────────────────
 const urlParams  = new URLSearchParams(window.location.search);
+
+// ── Resolución de enlace corto (?s=nombre-apellido-XXXXXXX) ──
+// Si viene el param ?s= se resuelve contra el Worker y se
+// reinicia la página con los params reales. No modifica nada más.
+(function() {
+    const slugParam = urlParams.get('s');
+    if (!slugParam) return;
+    const WORKER_SLUG = 'https://workerwebcliente.tuweb.workers.dev/slug/' + encodeURIComponent(slugParam);
+    fetch(WORKER_SLUG).then(r => r.ok ? r.json() : null).then(data => {
+        if (!data || !data.codigoVendedor) return; // fallback: no redireccionar, mostrar tienda vacía
+        const params = new URLSearchParams();
+        params.set('tienda', data.codigoVendedor);
+        if (data.cat) params.set('cat', data.cat);
+        if (data.cfg && Object.keys(data.cfg).length > 0) {
+            try {
+                params.set('cfg', encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(data.cfg))))));
+            } catch(_) {}
+        }
+        if (data.promo && (Array.isArray(data.promo.rangos) || data.promo.gift)) {
+            try {
+                params.set('promo', encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(data.promo))))));
+            } catch(_) {}
+        }
+        // Reemplazar la URL en el historial (sin recargar) y reinicializar
+        window.history.replaceState({}, '', '?' + params.toString());
+        window.location.reload();
+    }).catch(() => {}); // si falla el Worker, la tienda sigue con params vacíos
+})();
+
 const codigoParam = urlParams.get('tienda') || '';
 const catParam    = urlParams.get('cat') || 'perfumes';
 
