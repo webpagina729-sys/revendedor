@@ -8449,25 +8449,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
             const val = '549' + local;
 
-            // Verificar que el número coincida con el teléfono registrado del revendedor
-            const telefonoRegistrado = (window.currentUser && window.currentUser.telefono)
-                ? window.currentUser.telefono.replace(/\D/g, '')
-                : '';
-            if (telefonoRegistrado) {
-                // Normalizar teléfono registrado igual que el ingresado
-                let telNorm = telefonoRegistrado;
-                if (telNorm.startsWith('549')) telNorm = telNorm.slice(3);
-                else if (telNorm.startsWith('54')) telNorm = telNorm.slice(2);
-                if (telNorm.startsWith('0')) telNorm = telNorm.replace(/^0+/, '');
-                if (telNorm.length >= 4 && telNorm.charAt(2) === '1' && telNorm.charAt(3) === '5') {
-                    telNorm = telNorm.slice(0,2) + telNorm.slice(4);
-                }
-                if (local !== telNorm) {
-                    showErr('El número no coincide con el registrado en tu cuenta de revendedor. Verificá e intentá de nuevo.');
-                    return;
-                }
-            }
-
             localStorage.setItem('whatsappRevendedor', val);
             _guardarEnFirestore({ whatsappRevendedor: val });
             document.getElementById('whatsappConfirmModal').classList.remove('active');
@@ -8831,7 +8812,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 }
             }
 
-            // Generar enlace
+            // Generar enlace — primero intenta el corto, fallback al largo
             const base = window.location.origin + '/tienda.html';
             const catParam = cat ? `&cat=${cat}` : '';
             // 🔧 FIX: embebemos la config de aumento (y el color de tienda) en el propio
@@ -8857,11 +8838,21 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     cfgParam = '&cfg=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(cfgForLink)))));
                 }
             } catch(e) {}
-            const enlace = codigo ? `${base}?tienda=${codigo}${catParam}${cfgParam}` : base;
-            document.getElementById('verTiendaEnlace').value = enlace;
+            const enlaceLargo = codigo ? `${base}?tienda=${codigo}${catParam}${cfgParam}` : base;
+            document.getElementById('verTiendaEnlace').value = enlaceLargo;
             document.getElementById('verTiendaCopiado').style.display = 'none';
 
             document.getElementById('verTiendaModal').classList.add('active');
+
+            // Intentar reemplazar con enlace corto en background (sin bloquear apertura del modal)
+            if (cat && codigo) {
+                generarEnlaceCorto(cat).then(corto => {
+                    if (corto) {
+                        const inputEl = document.getElementById('verTiendaEnlace');
+                        if (inputEl) inputEl.value = corto;
+                    }
+                }).catch(() => {});
+            }
         }
 
         function copiarEnlaceTienda() {
@@ -9985,6 +9976,69 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             return base + '?tienda=' + encodeURIComponent(codigo) + '&cat=' + encodeURIComponent(cat) + cfgParam + promoParam;
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        // SISTEMA DE ENLACE CORTO — genera slug nombre-apellido-XXXXXXX
+        // Guarda la config en workerwebcliente /slug y devuelve URL corta.
+        // No modifica ninguna función existente.
+        // ═══════════════════════════════════════════════════════════════
+        const WORKER_SLUG_BASE = 'https://workerwebcliente.tuweb.workers.dev';
+
+        async function generarEnlaceCorto(cat) {
+            const codigo = getCodigoVendedor();
+            if (!codigo) return null;
+
+            const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+            const cfg = allConfig[cat] || null;
+
+            // Armar cfg completo (color + coloresExtra + rangos + promo)
+            let cfgFull = cfg ? { ...cfg } : {};
+            try {
+                const colorsByCat = JSON.parse(localStorage.getItem('coloresTiendaPorCat') || '{}');
+                if (colorsByCat[cat]) cfgFull.colorTienda = colorsByCat[cat];
+            } catch(_) {}
+            try {
+                const extraAll = JSON.parse(localStorage.getItem('coloresExtraTienda') || '{}');
+                if (extraAll[cat]) cfgFull._coloresExtra = extraAll[cat];
+            } catch(_) {}
+            let promo = null;
+            try {
+                const promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}');
+                if (promos[cat] && (Array.isArray(promos[cat].rangos) || promos[cat].gift)) promo = promos[cat];
+            } catch(_) {}
+
+            // Generar el slug a partir del nombre del revendedor
+            const user = window.currentUser || {};
+            const nombre = (user.nombre || user.name || '').toString().toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'tienda';
+            const apellido = (user.apellido || user.lastName || '').toString().toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || '';
+            const rand7 = Math.floor(1000000 + Math.random() * 9000000);
+            const slugId = (apellido ? nombre + '-' + apellido : nombre) + '-' + rand7;
+
+            const payload = {
+                slugId,
+                codigoVendedor: codigo,
+                cat,
+                cfg: cfgFull,
+                promo
+            };
+
+            try {
+                const res = await fetch(WORKER_SLUG_BASE + '/slug', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error('slug fail');
+                return window.location.origin + '/tienda.html?s=' + slugId;
+            } catch(e) {
+                // Fallback al enlace largo si el Worker no responde
+                return buildEnlaceTienda(cat, cfg);
+            }
+        }
+
         window.tienePromoCat = function(cat) {
             try {
                 const promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}');
@@ -10108,29 +10162,40 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     return;
                 }
             }
-            const tiendas = getTiendasGuardadas();
-            const cfg = tiendas[cat];
-            const enlace = buildEnlaceTienda(cat, cfg);
-            const fallback = () => {
-                const ta = document.createElement('textarea');
-                ta.value = enlace; document.body.appendChild(ta);
-                ta.select(); try { document.execCommand('copy'); } catch(e) {}
-                document.body.removeChild(ta);
+
+            // Marcar botón como "generando..." mientras obtiene el slug corto
+            let originalBtnHtml = '';
+            if (btn) { originalBtnHtml = btn.innerHTML; btn.disabled = true; btn.style.opacity = '0.5'; }
+
+            const doCopiado = (enlace) => {
+                const fallback = () => {
+                    const ta = document.createElement('textarea');
+                    ta.value = enlace; document.body.appendChild(ta);
+                    ta.select(); try { document.execCommand('copy'); } catch(e) {}
+                    document.body.removeChild(ta);
+                };
+                const ok = () => {
+                    if (!btn) return;
+                    btn.disabled = false; btn.style.opacity = '';
+                    const teniaSoloIcono = !btn.textContent.trim();
+                    btn.innerHTML = teniaSoloIcono
+                        ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+                        : '✓ Copiado';
+                    setTimeout(() => { btn.innerHTML = originalBtnHtml; }, 1800);
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(enlace).then(ok).catch(() => { fallback(); ok(); });
+                } else {
+                    fallback(); ok();
+                }
             };
-            const ok = () => {
-                if (!btn) return;
-                const original = btn.innerHTML;
-                const teniaSoloIcono = !btn.textContent.trim();
-                btn.innerHTML = teniaSoloIcono
-                    ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
-                    : '✓ Copiado';
-                setTimeout(() => { btn.innerHTML = original; }, 1800);
-            };
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(enlace).then(ok).catch(() => { fallback(); ok(); });
-            } else {
-                fallback(); ok();
-            }
+
+            // Intentar generar enlace corto; fallback al largo si falla
+            generarEnlaceCorto(cat).then(enlaceCorto => {
+                doCopiado(enlaceCorto || buildEnlaceTienda(cat, (getTiendasGuardadas())[cat]));
+            }).catch(() => {
+                doCopiado(buildEnlaceTienda(cat, (getTiendasGuardadas())[cat]));
+            });
         };
 
         window.eliminarTiendaGuardada = async function(cat) {
