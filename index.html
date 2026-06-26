@@ -4099,7 +4099,11 @@
                 </h2>
             </div>
 
-            <div id="verTiendaConfigResumen" style="background:var(--gray-light);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:13px;color:var(--text);line-height:1.8;"></div>
+            <button type="button" id="verTiendaMargenesToggle" onclick="toggleVerTiendaMargenes()" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 12px;background:var(--gray-light);border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-weight:600;color:var(--text);cursor:pointer;margin-bottom:8px;">
+                <span>Ver Márgenes</span>
+                <span id="verTiendaMargenesArrow" style="transition:transform .2s;">▾</span>
+            </button>
+            <div id="verTiendaConfigResumen" style="display:none;background:var(--gray-light);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:13px;color:var(--text);line-height:1.8;"></div>
 
             <div id="verTiendaEnlacesPorCategoria" style="margin-bottom:16px;"></div>
 
@@ -8747,6 +8751,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         // Abrir modal "Ver mi tienda" (resumen + enlace para compartir)
+        // Despliega/oculta el resumen de márgenes dentro del modal "Mi Tienda"
+        function toggleVerTiendaMargenes() {
+            const cont = document.getElementById('verTiendaConfigResumen');
+            const arrow = document.getElementById('verTiendaMargenesArrow');
+            if (!cont) return;
+            const abierto = cont.style.display !== 'none';
+            cont.style.display = abierto ? 'none' : 'block';
+            if (arrow) arrow.style.transform = abierto ? '' : 'rotate(180deg)';
+        }
+
         function abrirVerTienda(catForzada) {
             // 🔒 MEDIDA DE SEGURIDAD: no se puede compartir el enlace de la tienda
             // sin un WhatsApp válido configurado, porque sin eso el cliente que
@@ -8787,6 +8801,11 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 });
             }
             document.getElementById('verTiendaConfigResumen').innerHTML = resumenHtml;
+            // Siempre arranca colapsado al abrir el modal, sin importar si quedó
+            // desplegado la vez anterior.
+            document.getElementById('verTiendaConfigResumen').style.display = 'none';
+            const arrowReset = document.getElementById('verTiendaMargenesArrow');
+            if (arrowReset) arrowReset.style.transform = '';
 
             // 🆕 Lista de enlaces por categoría — siempre muestra TODAS las
             // categorías guardadas (presentes y futuras), cada una con su
@@ -8797,7 +8816,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 if (todasLasCats.length === 0) {
                     contEnlaces.innerHTML = '';
                 } else {
-                    contEnlaces.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">🏷 Tus tiendas guardadas</label>' +
+                    contEnlaces.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">Tus tiendas guardadas</label>' +
                         todasLasCats.map(c => {
                             const cfgC = allConfig[c];
                             const labelC = (cfgC && cfgC.nombreTienda) ? cfgC.nombreTienda
@@ -8805,8 +8824,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                             const safeCat = c.replace(/'/g, "\\'");
                             const safeLabel = String(labelC).replace(/</g,'&lt;').replace(/>/g,'&gt;');
                             return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-                                <span style="flex:1;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🏷 ${safeLabel}</span>
-                                <button type="button" onclick="copiarEnlaceTiendaGuardada('${safeCat}', this)" style="padding:7px 12px;background:var(--gray-light);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);font-weight:600;cursor:pointer;font-size:12px;white-space:nowrap;">📋 Copiar enlace</button>
+                                <span style="flex:1;min-width:0;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeLabel}</span>
+                                <button type="button" onclick="copiarEnlaceTiendaGuardada('${safeCat}', this)" title="Copiar enlace" aria-label="Copiar enlace" style="flex-shrink:0;padding:7px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:var(--gray-light);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);cursor:pointer;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                </button>
                             </div>`;
                         }).join('');
                 }
@@ -10100,9 +10121,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             };
             const ok = () => {
                 if (!btn) return;
-                const original = btn.textContent;
-                btn.textContent = '✓ Copiado';
-                setTimeout(() => { btn.textContent = original; }, 1800);
+                const original = btn.innerHTML;
+                const teniaSoloIcono = !btn.textContent.trim();
+                btn.innerHTML = teniaSoloIcono
+                    ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+                    : '✓ Copiado';
+                setTimeout(() => { btn.innerHTML = original; }, 1800);
             };
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(enlace).then(ok).catch(() => { fallback(); ok(); });
