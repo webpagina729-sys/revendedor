@@ -4010,7 +4010,6 @@
                         </div>
                         <div class="cp-actions">
                             <button type="button" class="cp-reset" id="cp-reset">Restaurar default</button>
-                            <button type="button" class="cp-done" id="cp-done">Listo</button>
                         </div>
                     </div>
                 </div>
@@ -4083,7 +4082,7 @@
 
 
             <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:10px;" onclick="guardarConfigTienda()">Guardar configuración</button>
-            <button type="button" class="confirmation-button" style="width:100%;background:#fee2e2;color:#b91c1c;margin-bottom:10px;font-weight:700;" onclick="eliminarConfigTienda()">Eliminar configuración</button>
+            <button type="button" class="confirmation-button" style="width:100%;background:#fee2e2;color:#b91c1c;margin-bottom:10px;font-weight:700;" onclick="eliminarConfigTienda()">♻️ Reiniciar configuración</button>
             <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);margin-bottom:10px;" onclick="document.getElementById('configTiendaModal').classList.remove('active')">Cancelar</button>
 
             <a href="https://gesti-n-de-revendedores.pages.dev/" target="_blank" rel="noopener" style="display:block;margin-top:4px;padding:12px 16px;background:linear-gradient(135deg,#1B7F3D,#2BA84F);color:#fff;text-align:center;text-decoration:none;border-radius:var(--radius);font-weight:700;font-size:14px;box-shadow:0 4px 12px rgba(27,127,61,.25);">🧾 Hacer Pedido</a>
@@ -8476,6 +8475,20 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 toast.style.display = 'block';
                 setTimeout(() => { toast.style.display = 'none'; }, 3500);
             }
+
+            // Si el modal se abrió porque el revendedor intentó compartir su
+            // tienda sin tener WhatsApp configurado, retomar esa acción ahora
+            // que ya quedó guardado.
+            if (typeof window._pendingAbrirVerTiendaCat !== 'undefined') {
+                const catPendiente = window._pendingAbrirVerTiendaCat;
+                window._pendingAbrirVerTiendaCat = undefined;
+                setTimeout(() => abrirVerTienda(catPendiente), 150);
+            }
+            if (window._pendingCopiarEnlaceTiendaGuardada) {
+                const pendiente = window._pendingCopiarEnlaceTiendaGuardada;
+                window._pendingCopiarEnlaceTiendaGuardada = null;
+                setTimeout(() => window.copiarEnlaceTiendaGuardada(pendiente.cat, pendiente.btn), 150);
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -8690,9 +8703,18 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // También guardar en la clave legacy para compatibilidad
             localStorage.setItem('configTienda', JSON.stringify(config));
 
-            // Guardar WhatsApp
-            const wa = (document.getElementById('config-whatsapp').value || '').replace(/\D/g, '');
-            if (wa && wa.length >= 10) {
+            // Guardar WhatsApp — misma normalización robusta que aplicarWhatsAppDesdeConfig(),
+            // para que el número quede siempre con el prefijo 549 completo sin importar
+            // si el revendedor usó el botón "Aplicar" del WhatsApp o solo guardó el formulario general.
+            let waLocal = (document.getElementById('config-whatsapp').value || '').replace(/\D/g, '');
+            if (waLocal.startsWith('549')) waLocal = waLocal.slice(3);
+            else if (waLocal.startsWith('54')) waLocal = waLocal.slice(2);
+            if (waLocal.startsWith('0')) waLocal = waLocal.replace(/^0+/, '');
+            if (waLocal.length >= 4 && waLocal.charAt(2) === '1' && waLocal.charAt(3) === '5') {
+                waLocal = waLocal.slice(0,2) + waLocal.slice(4);
+            }
+            const wa = (waLocal && waLocal.length >= 8) ? ('549' + waLocal) : '';
+            if (wa) {
                 localStorage.setItem('whatsappRevendedor', wa);
             }
 
@@ -8724,6 +8746,18 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
         // Abrir modal "Ver mi tienda" (resumen + enlace para compartir)
         function abrirVerTienda(catForzada) {
+            // 🔒 MEDIDA DE SEGURIDAD: no se puede compartir el enlace de la tienda
+            // sin un WhatsApp válido configurado, porque sin eso el cliente que
+            // armó el carrito se queda sin forma de confirmar el pedido.
+            let waGuardado = (localStorage.getItem('whatsappRevendedor') || '').replace(/\D/g, '');
+            if (!waGuardado || waGuardado.length < 10) {
+                if (typeof window.openWhatsappConfirmModal === 'function') {
+                    window._pendingAbrirVerTiendaCat = catForzada || window.currentCatalog || null;
+                    window.openWhatsappConfirmModal();
+                    return;
+                }
+            }
+
             const cat = catForzada || window.currentCatalog || null;
             const codigo = (window.currentUser && window.currentUser.codigoVendedor)
                 || localStorage.getItem('codigoVendedorLocal')
@@ -8949,7 +8983,11 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
         async function eliminarConfigTienda() {
             const cat = window.currentCatalog || 'general';
-            if (!confirm('¿Eliminar la configuración de esta categoría para siempre?')) return;
+            const label = cat === 'perfumes' ? 'Perfumes' : cat === 'calzados' ? 'Calzados' : cat;
+            const confirmado = await window.pedirConfirmacionReiniciar(
+                `Esto borra los márgenes, el color y el nombre configurados para "${label}". Vas a tener que volver a configurarla desde cero.`
+            );
+            if (!confirmado) return;
             const codigo = (window.currentUser && window.currentUser.codigoVendedor) || localStorage.getItem('codigoVendedorLocal') || '';
             const enlace = window.location.origin + '/tienda.html' + (codigo ? '?tienda=' + encodeURIComponent(codigo) + '&cat=' + encodeURIComponent(cat) : '');
             try {
@@ -8960,6 +8998,15 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 const precios = JSON.parse(localStorage.getItem('preciosManualCat') || '{}');
                 delete precios[cat];
                 localStorage.setItem('preciosManualCat', JSON.stringify(precios));
+                // 🔧 FIX: también limpiar el color principal y los colores extra de
+                // ESTA categoría — antes quedaban huérfanos en localStorage y, al
+                // configurar la categoría de nuevo, podían reaparecer colores viejos.
+                const coloresByCat = JSON.parse(localStorage.getItem('coloresTiendaPorCat') || '{}');
+                delete coloresByCat[cat];
+                localStorage.setItem('coloresTiendaPorCat', JSON.stringify(coloresByCat));
+                const coloresExtraAll = JSON.parse(localStorage.getItem('coloresExtraTienda') || '{}');
+                delete coloresExtraAll[cat];
+                localStorage.setItem('coloresExtraTienda', JSON.stringify(coloresExtraAll));
             } catch(e) {}
             const fbUser = firebase.auth().currentUser;
             if (fbUser) {
@@ -8976,12 +9023,22 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 await ref.update({
                     [`configTiendaAll.${cat}`]: del,
                     [`preciosManualCat.${cat}`]: del,
+                    [`coloresTiendaPorCat.${cat}`]: del,
+                    [`coloresExtraTienda.${cat}`]: del,
                     configTienda: del
                 }).catch(() => {});
             }
             document.getElementById('configTiendaModal').classList.remove('active');
             renderProducts();
-            alert('Configuración eliminada. Se guardó únicamente el enlace de la tienda eliminada.');
+            if (typeof window.refrescarMisTiendasFab === 'function') window.refrescarMisTiendasFab();
+
+            // Toast de confirmación con estética de la web, en vez de alert() nativo
+            const toast = document.getElementById('wa-toast');
+            if (toast) {
+                toast.textContent = `♻️ Configuración de "${label}" reiniciada correctamente.`;
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 3500);
+            }
         }
 
         // Usar margen personalizado si existe, sino tabla original
@@ -9958,6 +10015,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         };
 
         window.copiarEnlaceTiendaGuardada = function(cat, btn) {
+            // 🔒 Misma medida de seguridad que abrirVerTienda: sin WhatsApp
+            // configurado no se puede copiar ningún enlace para compartir.
+            let waGuardado = (localStorage.getItem('whatsappRevendedor') || '').replace(/\D/g, '');
+            if (!waGuardado || waGuardado.length < 10) {
+                if (typeof window.openWhatsappConfirmModal === 'function') {
+                    window._pendingCopiarEnlaceTiendaGuardada = { cat, btn };
+                    window.openWhatsappConfirmModal();
+                    return;
+                }
+            }
             const tiendas = getTiendasGuardadas();
             const cfg = tiendas[cat];
             const enlace = buildEnlaceTienda(cat, cfg);
@@ -10055,6 +10122,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         <input id="ntInput" class="nt-input" type="text" maxlength="60" placeholder="Ej: Mi tienda de perfumes" />
         <button type="button" class="nt-save" onclick="_resolverNombreTienda(document.getElementById('ntInput').value)">Guardar nombre</button>
         <button type="button" class="nt-cancel" onclick="_resolverNombreTienda(null)">Cancelar</button>
+    </div>
+</div>
+
+<!-- Modal: Confirmar reinicio de configuración de tienda -->
+<div class="modal-overlay" id="reiniciarConfigModal" onclick="if(event.target.id==='reiniciarConfigModal'){window._resolverReiniciarConfig(false);}">
+    <div class="modal-content" style="max-width:420px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2 class="modal-title">♻️ Reiniciar configuración</h2>
+            <button type="button" class="modal-close" onclick="window._resolverReiniciarConfig(false)" aria-label="Cerrar">×</button>
+        </div>
+        <p class="nt-hint" id="reiniciarConfigTexto" style="margin-bottom:18px;">Esto borra los márgenes, el color y el nombre configurados para esta categoría. Vas a tener que volver a configurarla desde cero.</p>
+        <button type="button" class="nt-save" style="background:#b91c1c;" onclick="window._resolverReiniciarConfig(true)">Sí, reiniciar</button>
+        <button type="button" class="nt-cancel" onclick="window._resolverReiniciarConfig(false)">Cancelar</button>
     </div>
 </div>
 
@@ -10212,6 +10292,22 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (e.key === 'Enter') { e.preventDefault(); window._resolverNombreTienda(this.value); }
             if (e.key === 'Escape') { e.preventDefault(); window._resolverNombreTienda(null); }
         });
+
+        // Modal de confirmación profesional para "Reiniciar configuración"
+        // (reemplaza el confirm()/alert() nativo del navegador).
+        let _resolverRC = null;
+        window.pedirConfirmacionReiniciar = function(texto) {
+            return new Promise((resolve) => {
+                _resolverRC = resolve;
+                const p = document.getElementById('reiniciarConfigTexto');
+                if (p && texto) p.textContent = texto;
+                document.getElementById('reiniciarConfigModal').classList.add('active');
+            });
+        };
+        window._resolverReiniciarConfig = function(val) {
+            document.getElementById('reiniciarConfigModal').classList.remove('active');
+            if (_resolverRC) { const r = _resolverRC; _resolverRC = null; r(val); }
+        };
 
         // ---- Promociones ----
         let _promoCat = null;
@@ -10882,14 +10978,6 @@ function mostrarToastOk(msg) {
         });
         var reset = document.getElementById('cp-reset');
         if (reset) reset.addEventListener('click', function(){ applyHex(DEFAULT_HEX); });
-        var done = document.getElementById('cp-done');
-        if (done) done.addEventListener('click', function(){
-            var v = (document.getElementById('config-color-tienda-hex').value||'').toUpperCase();
-            applyHex(v);
-            // "Listo" cierra el sub-panel visualmente sin cerrar el modal padre.
-            var w = document.getElementById('cp-wrap');
-            if (w) { w.style.opacity = '.6'; setTimeout(function(){ w.style.opacity=''; }, 180); }
-        });
 
         // Sincronizar al estado actual (lo que cargó configTienda)
         var hidden = document.getElementById('config-color-tienda');
