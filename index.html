@@ -4101,6 +4101,8 @@
 
             <div id="verTiendaConfigResumen" style="background:var(--gray-light);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:13px;color:var(--text);line-height:1.8;"></div>
 
+            <div id="verTiendaEnlacesPorCategoria" style="margin-bottom:16px;"></div>
+
             <div style="margin-bottom:16px;">
                 <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">🔗 Enlace de tu tienda</label>
                 <div style="display:flex;gap:8px;align-items:stretch;">
@@ -8786,6 +8788,30 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
             document.getElementById('verTiendaConfigResumen').innerHTML = resumenHtml;
 
+            // 🆕 Lista de enlaces por categoría — siempre muestra TODAS las
+            // categorías guardadas (presentes y futuras), cada una con su
+            // nombre y su propio botón de copiar enlace independiente.
+            const contEnlaces = document.getElementById('verTiendaEnlacesPorCategoria');
+            if (contEnlaces) {
+                const todasLasCats = Object.keys(allConfig).filter(c => allConfig[c]);
+                if (todasLasCats.length === 0) {
+                    contEnlaces.innerHTML = '';
+                } else {
+                    contEnlaces.innerHTML = '<label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">🏷 Tus tiendas guardadas</label>' +
+                        todasLasCats.map(c => {
+                            const cfgC = allConfig[c];
+                            const labelC = (cfgC && cfgC.nombreTienda) ? cfgC.nombreTienda
+                                : (c === 'perfumes' ? 'Mi tienda de perfumes' : c === 'calzados' ? 'Mi tienda de calzados' : 'Mi tienda de ' + c);
+                            const safeCat = c.replace(/'/g, "\\'");
+                            const safeLabel = String(labelC).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                            return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                                <span style="flex:1;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🏷 ${safeLabel}</span>
+                                <button type="button" onclick="copiarEnlaceTiendaGuardada('${safeCat}', this)" style="padding:7px 12px;background:var(--gray-light);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);font-weight:600;cursor:pointer;font-size:12px;white-space:nowrap;">📋 Copiar enlace</button>
+                            </div>`;
+                        }).join('');
+                }
+            }
+
             // Generar enlace
             const base = window.location.origin + '/tienda.html';
             const catParam = cat ? `&cat=${cat}` : '';
@@ -9075,13 +9101,33 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     if (data.configTienda && !localStorage.getItem('configTienda')) {
                         localStorage.setItem('configTienda', JSON.stringify(data.configTienda));
                     }
-                    if (data.configTiendaAll) {
-                        localStorage.setItem('configTiendaAll', JSON.stringify(data.configTiendaAll));
+                    // 🔧 FIX CRÍTICO: esto era un overwrite completo de configTiendaAll,
+                    // que borraba categorías guardadas localmente (ej. "calzados")
+                    // cada vez que se recargaba la página, si por cualquier motivo
+                    // Firestore todavía no tenía esa categoría sincronizada. Ahora es
+                    // un MERGE: solo completa categorías que falten localmente, sin
+                    // pisar ninguna configuración ya guardada en este dispositivo.
+                    if (data.configTiendaAll && typeof data.configTiendaAll === 'object') {
+                        try {
+                            const localAll = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                            let cambio = false;
+                            Object.keys(data.configTiendaAll).forEach(cat => {
+                                if (!localAll[cat]) { localAll[cat] = data.configTiendaAll[cat]; cambio = true; }
+                            });
+                            if (cambio) localStorage.setItem('configTiendaAll', JSON.stringify(localAll));
+                        } catch(_) {}
                         // Re-renderizar productos para aplicar precios actualizados desde Firestore
                         if (typeof renderProducts === 'function') { try { renderProducts(); } catch(_) {} }
                     }
-                    if (data.preciosManualCat) {
-                        localStorage.setItem('preciosManualCat', JSON.stringify(data.preciosManualCat));
+                    if (data.preciosManualCat && typeof data.preciosManualCat === 'object') {
+                        try {
+                            const localPrecios = JSON.parse(localStorage.getItem('preciosManualCat') || '{}');
+                            let cambioP = false;
+                            Object.keys(data.preciosManualCat).forEach(cat => {
+                                if (!localPrecios[cat]) { localPrecios[cat] = data.preciosManualCat[cat]; cambioP = true; }
+                            });
+                            if (cambioP) localStorage.setItem('preciosManualCat', JSON.stringify(localPrecios));
+                        } catch(_) {}
                         if (typeof renderProducts === 'function') { try { renderProducts(); } catch(_) {} }
                     }
                     // Si no tiene WhatsApp configurado, mostrar modal a los 7 segundos
@@ -9210,11 +9256,29 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 if (userData.configTienda && !localStorage.getItem('configTienda')) {
                     localStorage.setItem('configTienda', JSON.stringify(userData.configTienda));
                 }
-                if (userData.configTiendaAll) {
-                    localStorage.setItem('configTiendaAll', JSON.stringify(userData.configTiendaAll));
+                // 🔧 FIX CRÍTICO: mismo bug que en initializeUserSession — overwrite
+                // completo borraba categorías guardadas localmente (ej. "calzados")
+                // al recargar o re-loguear por código. Ahora es MERGE: solo completa
+                // categorías que falten localmente, nunca pisa lo ya guardado.
+                if (userData.configTiendaAll && typeof userData.configTiendaAll === 'object') {
+                    try {
+                        const localAll = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                        let cambio = false;
+                        Object.keys(userData.configTiendaAll).forEach(cat => {
+                            if (!localAll[cat]) { localAll[cat] = userData.configTiendaAll[cat]; cambio = true; }
+                        });
+                        if (cambio) localStorage.setItem('configTiendaAll', JSON.stringify(localAll));
+                    } catch(_) {}
                 }
-                if (userData.preciosManualCat) {
-                    localStorage.setItem('preciosManualCat', JSON.stringify(userData.preciosManualCat));
+                if (userData.preciosManualCat && typeof userData.preciosManualCat === 'object') {
+                    try {
+                        const localPrecios = JSON.parse(localStorage.getItem('preciosManualCat') || '{}');
+                        let cambioP = false;
+                        Object.keys(userData.preciosManualCat).forEach(cat => {
+                            if (!localPrecios[cat]) { localPrecios[cat] = userData.preciosManualCat[cat]; cambioP = true; }
+                        });
+                        if (cambioP) localStorage.setItem('preciosManualCat', JSON.stringify(localPrecios));
+                    } catch(_) {}
                 }
                 if (userData.whatsappRevendedor && !localStorage.getItem('whatsappRevendedor')) {
                     localStorage.setItem('whatsappRevendedor', userData.whatsappRevendedor);
