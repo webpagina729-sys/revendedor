@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -1443,6 +1443,12 @@ async function cargarVendedor() {
             if (!vendedor.coloresExtraTienda && fsData.coloresExtraTienda) vendedor.coloresExtraTienda = fsData.coloresExtraTienda;
             if (!vendedor.configTiendaAll && fsData.configTiendaAll) vendedor.configTiendaAll = fsData.configTiendaAll;
             if (!vendedor.preciosManualCat && fsData.preciosManualCat) vendedor.preciosManualCat = fsData.preciosManualCat;
+            // 🔧 FIX: whatsappRevendedor es el dato crítico para el botón de
+            // "comprar por WhatsApp" en el carrito del cliente. El Worker de
+            // login puede no devolverlo, así que Firestore (fuente de verdad)
+            // siempre tiene prioridad si trae un valor más reciente o si el
+            // Worker no lo trajo en absoluto.
+            if (fsData.whatsappRevendedor) vendedor.whatsappRevendedor = fsData.whatsappRevendedor;
             // promocionesTienda: siempre usar Firestore como fuente de verdad (ignora objeto vacío del Worker)
             if (fsData.promocionesTienda && typeof fsData.promocionesTienda === 'object'
                 && Object.keys(fsData.promocionesTienda).length > 0) {
