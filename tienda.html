@@ -901,35 +901,40 @@ let talleSelec     = null;
 const urlParams  = new URLSearchParams(window.location.search);
 
 // ── Resolución de enlace corto (?s=nombre-apellido-XXXXXXX) ──
-// Si viene el param ?s= se resuelve contra el Worker y se
-// reinicia la página con los params reales. No modifica nada más.
+// Si viene ?s=slug, resuelve contra el Worker ANTES de inicializar.
+// No hace reload() — actualiza urlParams en memoria y sigue.
+// Funciona en Android, iPhone Safari e iPhone Chrome.
+let _slugResuelto = false;
+let _slugPromise = Promise.resolve();
+
 (function() {
     const slugParam = urlParams.get('s');
-    if (!slugParam) return;
+    if (!slugParam) { _slugResuelto = true; return; }
+
     const WORKER_SLUG = 'https://workerwebcliente.tuweb.workers.dev/slug/' + encodeURIComponent(slugParam);
-    fetch(WORKER_SLUG).then(r => r.ok ? r.json() : null).then(data => {
-        if (!data || !data.codigoVendedor) return; // fallback: no redireccionar, mostrar tienda vacía
-        const params = new URLSearchParams();
-        params.set('tienda', data.codigoVendedor);
-        if (data.cat) params.set('cat', data.cat);
-        if (data.cfg && Object.keys(data.cfg).length > 0) {
-            try {
-                params.set('cfg', encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(data.cfg))))));
-            } catch(_) {}
-        }
-        if (data.promo && (Array.isArray(data.promo.rangos) || data.promo.gift)) {
-            try {
-                params.set('promo', encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(data.promo))))));
-            } catch(_) {}
-        }
-        // Reemplazar la URL en el historial (sin recargar) y reinicializar
-        window.history.replaceState({}, '', '?' + params.toString());
-        window.location.reload();
-    }).catch(() => {}); // si falla el Worker, la tienda sigue con params vacíos
+    _slugPromise = fetch(WORKER_SLUG)
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(data) {
+            if (data && data.codigoVendedor) {
+                urlParams.set('tienda', data.codigoVendedor);
+                if (data.cat) urlParams.set('cat', data.cat);
+                if (data.cfg && Object.keys(data.cfg).length > 0) {
+                    try { urlParams.set('cfg', btoa(unescape(encodeURIComponent(JSON.stringify(data.cfg))))); } catch(e) {}
+                }
+                if (data.promo && (Array.isArray(data.promo.rangos) || data.promo.gift)) {
+                    try { urlParams.set('promo', btoa(unescape(encodeURIComponent(JSON.stringify(data.promo))))); } catch(e) {}
+                }
+                try { window.history.replaceState({}, '', '?' + urlParams.toString()); } catch(e) {}
+            }
+            _slugResuelto = true;
+        })
+        .catch(function() { _slugResuelto = true; });
 })();
 
-const codigoParam = urlParams.get('tienda') || '';
-const catParam    = urlParams.get('cat') || 'perfumes';
+// IMPORTANTE: codigoParam y catParam se actualizan tras resolver el slug.
+// Son let para que window.load pueda reasignarlos con los valores del Worker.
+let codigoParam = urlParams.get('tienda') || '';
+let catParam    = urlParams.get('cat') || 'perfumes';
 
 // ═══════════════════════════════════════════════════════════════
 // PRODUCTOS (MISMO DATASET QUE index_v5, sólo data, no UI)
@@ -2013,7 +2018,18 @@ function mostrarError(msg) {
 // ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
-window.addEventListener('load', cargarVendedor);
+// ── Esperar resolución de slug antes de cargar la tienda ──────
+// _slugPromise se resuelve inmediatamente si no hay ?s=
+// Si hay ?s=, espera al fetch del Worker para tener codigoParam correcto.
+// ── Esperar resolución de slug antes de cargar la tienda ──────
+window.addEventListener('load', function() {
+    _slugPromise.then(function() {
+        // Reasignar con los valores reales (tras resolver el slug si venía ?s=)
+        codigoParam = urlParams.get('tienda') || codigoParam;
+        catParam    = urlParams.get('cat')    || catParam;
+        cargarVendedor();
+    });
+});
 
 // ═══════════════════════════════════════════════════════════════
 // ── NUEVAS FUNCIONES: CHECKOUT CON DATOS DEL CLIENTE ──────────
