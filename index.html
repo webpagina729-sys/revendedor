@@ -5797,7 +5797,7 @@
                 } catch(e) { /* silencioso, no bloquea el flujo */ }
 
                 // ── Obtener WhatsApp del revendedor y armar mensaje ──────────
-                const waNum = localStorage.getItem('whatsappRevendedor') || '';
+                const waNum = _lsGet('whatsappRevendedor') || '';
                 if (!waNum) {
                     alert('⚠️ No tenés un número de WhatsApp configurado.\nAndá a "Configurar mi tienda" para agregarlo.');
                     closeCheckout();
@@ -8419,7 +8419,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         function openWhatsappConfirmModal() {
             const modal = document.getElementById('whatsappConfirmModal');
             if (!modal) return;
-            let saved = (localStorage.getItem('whatsappRevendedor') || '').replace(/\D/g, '');
+            let saved = (_lsGet('whatsappRevendedor') || '').replace(/\D/g, '');
             // Mostrar sólo la parte local (sin 549)
             if (saved.startsWith('549')) saved = saved.slice(3);
             else if (saved.startsWith('54')) saved = saved.slice(2);
@@ -8449,7 +8449,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
             const val = '549' + local;
 
-            localStorage.setItem('whatsappRevendedor', val);
+            _lsSet('whatsappRevendedor', val);
             _guardarEnFirestore({ whatsappRevendedor: val });
             document.getElementById('whatsappConfirmModal').classList.remove('active');
 
@@ -8504,7 +8504,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
             const val = '549' + local;
 
-            localStorage.setItem('whatsappRevendedor', val);
+            _lsSet('whatsappRevendedor', val);
             _guardarEnFirestore({ whatsappRevendedor: val });
 
             // Reflejar el valor normalizado en el propio input
@@ -8566,7 +8566,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
                     agregarRangoConfig('', '', '');
                 }
-                document.getElementById('config-whatsapp').value = localStorage.getItem('whatsappRevendedor') || '';
+                document.getElementById('config-whatsapp').value = _lsGet('whatsappRevendedor') || '';
                 // Cargar color de tienda (por categoría)
                 let savedColor = '#0066FF';
                 try {
@@ -8645,6 +8645,28 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             } catch(e) { return null; }
         }
         // Helper para guardar en Firestore con fallback async
+        // ── Helper localStorage compatible con Safari iOS modo privado ──
+        // En Safari privado localStorage.setItem lanza excepción.
+        // Usamos sessionStorage como fallback transparente.
+        const _lsMemFallback = {};
+        function _lsSet(key, value) {
+            try { localStorage.setItem(key, value); } catch(e) {
+                try { sessionStorage.setItem(key, value); } catch(e2) { _lsMemFallback[key] = value; }
+            }
+        }
+        function _lsGet(key) {
+            try {
+                const v = localStorage.getItem(key);
+                if (v !== null) return v;
+            } catch(e) {}
+            try {
+                const v = sessionStorage.getItem(key);
+                if (v !== null) return v;
+            } catch(e) {}
+            return _lsMemFallback[key] !== undefined ? _lsMemFallback[key] : null;
+        }
+        // ────────────────────────────────────────────────────────────────
+
         function _guardarEnFirestore(data) {
             const ref = _firestoreUserRef();
             if (ref) { ref.update(data).catch(() => {}); return; }
@@ -8700,7 +8722,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
             const wa = (waLocal && waLocal.length >= 8) ? ('549' + waLocal) : '';
             if (wa) {
-                localStorage.setItem('whatsappRevendedor', wa);
+                _lsSet('whatsappRevendedor', wa);
             }
 
             // Guardar color de tienda (por categoría)
@@ -8744,7 +8766,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // 🔒 MEDIDA DE SEGURIDAD: no se puede compartir el enlace de la tienda
             // sin un WhatsApp válido configurado, porque sin eso el cliente que
             // armó el carrito se queda sin forma de confirmar el pedido.
-            let waGuardado = (localStorage.getItem('whatsappRevendedor') || '').replace(/\D/g, '');
+            let waGuardado = (_lsGet('whatsappRevendedor') || '').replace(/\D/g, '');
             if (!waGuardado || waGuardado.length < 10) {
                 if (typeof window.openWhatsappConfirmModal === 'function') {
                     window._pendingAbrirVerTiendaCat = catForzada || window.currentCatalog || null;
@@ -8857,17 +8879,36 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
         function copiarEnlaceTienda() {
             const input = document.getElementById('verTiendaEnlace');
-            navigator.clipboard.writeText(input.value).then(() => {
-                const fb = document.getElementById('verTiendaCopiado');
+            const texto = input.value;
+            const fb = document.getElementById('verTiendaCopiado');
+            const mostrarOk = () => {
                 fb.style.display = 'block';
                 setTimeout(() => fb.style.display = 'none', 2500);
-            }).catch(() => {
-                input.select();
-                document.execCommand('copy');
-                const fb = document.getElementById('verTiendaCopiado');
-                fb.style.display = 'block';
-                setTimeout(() => fb.style.display = 'none', 2500);
-            });
+            };
+            // Safari iOS requiere execCommand dentro del evento síncrono del usuario.
+            // Primero intentamos execCommand (funciona en todos los browsers),
+            // luego clipboard API como respaldo para browsers modernos que bloquean execCommand.
+            try {
+                input.removeAttribute('type'); // iOS Safari necesita input visible y seleccionable
+                input.type = 'text';
+                input.style.position = 'fixed';
+                input.style.opacity = '0';
+                input.style.fontSize = '16px'; // evitar zoom en iOS
+                document.body.appendChild(input);
+                input.focus();
+                input.setSelectionRange(0, 99999);
+                const ok = document.execCommand('copy');
+                document.body.removeChild(input);
+                // Restaurar el input al lugar original
+                document.getElementById('verTiendaModal').appendChild(input);
+                if (ok) { mostrarOk(); return; }
+            } catch(_) {}
+            // Fallback: clipboard API moderna
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(texto).then(mostrarOk).catch(mostrarOk);
+            } else {
+                mostrarOk();
+            }
         }
 
         function vistaPreviaTienda() {
@@ -9105,8 +9146,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 firebase.firestore().collection('usuarios').doc(user.uid).get().then(doc => {
                     if (!doc.exists) return;
                     const data = doc.data();
-                    if (data.whatsappRevendedor && !localStorage.getItem('whatsappRevendedor')) {
-                        localStorage.setItem('whatsappRevendedor', data.whatsappRevendedor);
+                    if (data.whatsappRevendedor && !_lsGet('whatsappRevendedor')) {
+                        _lsSet('whatsappRevendedor', data.whatsappRevendedor);
                     }
                     if (data.configTienda && !localStorage.getItem('configTienda')) {
                         localStorage.setItem('configTienda', JSON.stringify(data.configTienda));
@@ -9141,11 +9182,11 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                         if (typeof renderProducts === 'function') { try { renderProducts(); } catch(_) {} }
                     }
                     // Si no tiene WhatsApp configurado, mostrar modal a los 7 segundos
-                    if (!localStorage.getItem('whatsappRevendedor')) {
+                    if (!_lsGet('whatsappRevendedor')) {
                         setTimeout(() => openWhatsappConfirmModal(), 7000);
                     }
                 }).catch(() => {
-                    if (!localStorage.getItem('whatsappRevendedor')) {
+                    if (!_lsGet('whatsappRevendedor')) {
                         setTimeout(() => openWhatsappConfirmModal(), 7000);
                     }
                 });
@@ -9290,8 +9331,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                         if (cambioP) localStorage.setItem('preciosManualCat', JSON.stringify(localPrecios));
                     } catch(_) {}
                 }
-                if (userData.whatsappRevendedor && !localStorage.getItem('whatsappRevendedor')) {
-                    localStorage.setItem('whatsappRevendedor', userData.whatsappRevendedor);
+                if (userData.whatsappRevendedor && !_lsGet('whatsappRevendedor')) {
+                    _lsSet('whatsappRevendedor', userData.whatsappRevendedor);
                 }
 
                 var fbUser = firebase.auth().currentUser;
@@ -9522,7 +9563,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 }, 5000);
 
                 // 4. Modal de WhatsApp si no está configurado
-                var waGuardado = localStorage.getItem('whatsappRevendedor') || userData.whatsappRevendedor || '';
+                var waGuardado = _lsGet('whatsappRevendedor') || userData.whatsappRevendedor || '';
                 if (!waGuardado) {
                     setTimeout(function() {
                         var modal = document.getElementById('whatsappConfirmModal');
@@ -10154,7 +10195,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             // 🔒 Misma medida de seguridad que abrirVerTienda: sin WhatsApp
             // configurado no se puede copiar ningún enlace para compartir.
-            let waGuardado = (localStorage.getItem('whatsappRevendedor') || '').replace(/\D/g, '');
+            let waGuardado = (_lsGet('whatsappRevendedor') || '').replace(/\D/g, '');
             if (!waGuardado || waGuardado.length < 10) {
                 if (typeof window.openWhatsappConfirmModal === 'function') {
                     window._pendingCopiarEnlaceTiendaGuardada = { cat, btn };
@@ -10163,39 +10204,53 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 }
             }
 
-            // Marcar botón como "generando..." mientras obtiene el slug corto
+            // ── Safari iOS fix: copiar SINCRÓNICAMENTE dentro del evento de tap ──
+            // Safari bloquea clipboard.writeText() si se llama después de un await/fetch.
+            // Estrategia: copiar ahora el enlace largo (siempre disponible sincrónicamente),
+            // y en background generar el corto para mostrarlo en el botón.
             let originalBtnHtml = '';
-            if (btn) { originalBtnHtml = btn.innerHTML; btn.disabled = true; btn.style.opacity = '0.5'; }
+            if (btn) { originalBtnHtml = btn.innerHTML; }
 
-            const doCopiado = (enlace) => {
-                const fallback = () => {
+            const enlaceLargoFallback = buildEnlaceTienda(cat, (getTiendasGuardadas())[cat]);
+
+            // Copiar sincrónicamente (compatible con Safari iOS)
+            const _copiarSinc = (texto) => {
+                try {
                     const ta = document.createElement('textarea');
-                    ta.value = enlace; document.body.appendChild(ta);
-                    ta.select(); try { document.execCommand('copy'); } catch(e) {}
+                    ta.value = texto;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    ta.style.fontSize = '16px'; // evita zoom en iOS
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.setSelectionRange(0, 99999);
+                    document.execCommand('copy');
                     document.body.removeChild(ta);
-                };
-                const ok = () => {
-                    if (!btn) return;
-                    btn.disabled = false; btn.style.opacity = '';
-                    const teniaSoloIcono = !btn.textContent.trim();
-                    btn.innerHTML = teniaSoloIcono
-                        ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
-                        : '✓ Copiado';
-                    setTimeout(() => { btn.innerHTML = originalBtnHtml; }, 1800);
-                };
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(enlace).then(ok).catch(() => { fallback(); ok(); });
-                } else {
-                    fallback(); ok();
-                }
+                } catch(_) {}
             };
+            _copiarSinc(enlaceLargoFallback);
 
-            // Intentar generar enlace corto; fallback al largo si falla
+            // Mostrar feedback en botón inmediatamente
+            const mostrarOk = (textoEnlace) => {
+                if (!btn) return;
+                btn.disabled = false; btn.style.opacity = '';
+                const teniaSoloIcono = !btn.textContent.trim();
+                btn.innerHTML = teniaSoloIcono
+                    ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+                    : '✓ Copiado';
+                setTimeout(() => { btn.innerHTML = originalBtnHtml; }, 1800);
+            };
+            mostrarOk();
+
+            // En background, generar enlace corto y actualizar portapapeles si es posible
             generarEnlaceCorto(cat).then(enlaceCorto => {
-                doCopiado(enlaceCorto || buildEnlaceTienda(cat, (getTiendasGuardadas())[cat]));
-            }).catch(() => {
-                doCopiado(buildEnlaceTienda(cat, (getTiendasGuardadas())[cat]));
-            });
+                if (!enlaceCorto) return;
+                // Solo actualizamos clipboard si el browser lo permite en async
+                // (Chrome/Firefox); Safari ya copió el largo arriba.
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(enlaceCorto).catch(() => {});
+                }
+            }).catch(() => {});
         };
 
         window.eliminarTiendaGuardada = async function(cat) {
