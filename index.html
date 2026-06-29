@@ -8645,27 +8645,11 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             } catch(e) { return null; }
         }
         // Helper para guardar en Firestore con fallback async
-        // ── Helper localStorage compatible con Safari iOS modo privado ──
-        // En Safari privado localStorage.setItem lanza excepción.
-        // Usamos sessionStorage como fallback transparente.
-        const _lsMemFallback = {};
-        function _lsSet(key, value) {
-            try { localStorage.setItem(key, value); } catch(e) {
-                try { sessionStorage.setItem(key, value); } catch(e2) { _lsMemFallback[key] = value; }
-            }
-        }
-        function _lsGet(key) {
-            try {
-                const v = localStorage.getItem(key);
-                if (v !== null) return v;
-            } catch(e) {}
-            try {
-                const v = sessionStorage.getItem(key);
-                if (v !== null) return v;
-            } catch(e) {}
-            return _lsMemFallback[key] !== undefined ? _lsMemFallback[key] : null;
-        }
-        // ────────────────────────────────────────────────────────────────
+        // ── localStorage safe: Safari iOS modo privado lanza excepción en setItem ──
+        var _lsMem = {};
+        function _lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){try{sessionStorage.setItem(k,v);}catch(e2){_lsMem[k]=v;}}}
+        function _lsGet(k){try{var v=localStorage.getItem(k);if(v!==null)return v;}catch(e){}try{var v=sessionStorage.getItem(k);if(v!==null)return v;}catch(e){}return _lsMem[k]!==undefined?_lsMem[k]:null;}
+        // ──────────────────────────────────────────────────────────────────────────
 
         function _guardarEnFirestore(data) {
             const ref = _firestoreUserRef();
@@ -8878,37 +8862,26 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         function copiarEnlaceTienda() {
-            const input = document.getElementById('verTiendaEnlace');
-            const texto = input.value;
+            // Compatible Safari iOS: execCommand síncrono primero
+            const texto = document.getElementById('verTiendaEnlace').value;
             const fb = document.getElementById('verTiendaCopiado');
-            const mostrarOk = () => {
+            const mostrarOk = function() {
                 fb.style.display = 'block';
-                setTimeout(() => fb.style.display = 'none', 2500);
+                setTimeout(function() { fb.style.display = 'none'; }, 2500);
             };
-            // Safari iOS requiere execCommand dentro del evento síncrono del usuario.
-            // Primero intentamos execCommand (funciona en todos los browsers),
-            // luego clipboard API como respaldo para browsers modernos que bloquean execCommand.
             try {
-                input.removeAttribute('type'); // iOS Safari necesita input visible y seleccionable
-                input.type = 'text';
-                input.style.position = 'fixed';
-                input.style.opacity = '0';
-                input.style.fontSize = '16px'; // evitar zoom en iOS
-                document.body.appendChild(input);
-                input.focus();
-                input.setSelectionRange(0, 99999);
-                const ok = document.execCommand('copy');
-                document.body.removeChild(input);
-                // Restaurar el input al lugar original
-                document.getElementById('verTiendaModal').appendChild(input);
+                var ta = document.createElement('textarea');
+                ta.value = texto;
+                ta.style.cssText = 'position:fixed;opacity:0;font-size:16px;top:0;left:0;';
+                document.body.appendChild(ta);
+                ta.focus(); ta.setSelectionRange(0, 99999);
+                var ok = document.execCommand('copy');
+                document.body.removeChild(ta);
                 if (ok) { mostrarOk(); return; }
-            } catch(_) {}
-            // Fallback: clipboard API moderna
+            } catch(e) {}
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(texto).then(mostrarOk).catch(mostrarOk);
-            } else {
-                mostrarOk();
-            }
+            } else { mostrarOk(); }
         }
 
         function vistaPreviaTienda() {
@@ -10204,53 +10177,40 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 }
             }
 
-            // ── Safari iOS fix: copiar SINCRÓNICAMENTE dentro del evento de tap ──
-            // Safari bloquea clipboard.writeText() si se llama después de un await/fetch.
-            // Estrategia: copiar ahora el enlace largo (siempre disponible sincrónicamente),
-            // y en background generar el corto para mostrarlo en el botón.
-            let originalBtnHtml = '';
-            if (btn) { originalBtnHtml = btn.innerHTML; }
+            // ── Safari iOS fix: copiar SINCRÓNICAMENTE en el tap ──────────
+            // Safari bloquea clipboard async. Copiamos el largo ahora (sync),
+            // y en background actualizamos con el corto si el browser lo permite.
+            let originalBtnHtml = btn ? btn.innerHTML : '';
+            const enlaceLargo = buildEnlaceTienda(cat, (getTiendasGuardadas())[cat]);
 
-            const enlaceLargoFallback = buildEnlaceTienda(cat, (getTiendasGuardadas())[cat]);
+            // Copiar sincrónicamente (funciona en todos los browsers incluyendo Safari iOS)
+            try {
+                var _ta = document.createElement('textarea');
+                _ta.value = enlaceLargo;
+                _ta.style.cssText = 'position:fixed;opacity:0;font-size:16px;top:0;left:0;';
+                document.body.appendChild(_ta);
+                _ta.focus(); _ta.setSelectionRange(0, 99999);
+                document.execCommand('copy');
+                document.body.removeChild(_ta);
+            } catch(_) {}
 
-            // Copiar sincrónicamente (compatible con Safari iOS)
-            const _copiarSinc = (texto) => {
-                try {
-                    const ta = document.createElement('textarea');
-                    ta.value = texto;
-                    ta.style.position = 'fixed';
-                    ta.style.opacity = '0';
-                    ta.style.fontSize = '16px'; // evita zoom en iOS
-                    document.body.appendChild(ta);
-                    ta.focus();
-                    ta.setSelectionRange(0, 99999);
-                    document.execCommand('copy');
-                    document.body.removeChild(ta);
-                } catch(_) {}
-            };
-            _copiarSinc(enlaceLargoFallback);
-
-            // Mostrar feedback en botón inmediatamente
-            const mostrarOk = (textoEnlace) => {
-                if (!btn) return;
+            // Feedback inmediato en el botón
+            if (btn) {
                 btn.disabled = false; btn.style.opacity = '';
-                const teniaSoloIcono = !btn.textContent.trim();
-                btn.innerHTML = teniaSoloIcono
+                const soloIcono = !btn.textContent.trim();
+                btn.innerHTML = soloIcono
                     ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
                     : '✓ Copiado';
-                setTimeout(() => { btn.innerHTML = originalBtnHtml; }, 1800);
-            };
-            mostrarOk();
+                setTimeout(function() { btn.innerHTML = originalBtnHtml; }, 1800);
+            }
 
-            // En background, generar enlace corto y actualizar portapapeles si es posible
-            generarEnlaceCorto(cat).then(enlaceCorto => {
-                if (!enlaceCorto) return;
-                // Solo actualizamos clipboard si el browser lo permite en async
-                // (Chrome/Firefox); Safari ya copió el largo arriba.
+            // En background: generar enlace corto y actualizar clipboard en Chrome/Firefox
+            generarEnlaceCorto(cat).then(function(corto) {
+                if (!corto) return;
                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(enlaceCorto).catch(() => {});
+                    navigator.clipboard.writeText(corto).catch(function(){});
                 }
-            }).catch(() => {});
+            }).catch(function(){});
         };
 
         window.eliminarTiendaGuardada = async function(cat) {
