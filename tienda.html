@@ -898,45 +898,40 @@ let productoModal  = null;   // producto abierto en modal
 let talleSelec     = null;
 
 // ── Leer URL params ──────────────────────────────────────────
-const urlParams  = new URLSearchParams(window.location.search);
+const urlParams = new URLSearchParams(window.location.search);
 
-// ── Resolución de enlace corto (?s=nombre-apellido-XXXXXXX) ──
-// Si viene ?s=slug resuelve el Worker SIN reload().
-// Actualiza urlParams en memoria; codigoParam/catParam son let
-// para que window.load los reasigne antes de cargarVendedor().
+// ── Slug corto: resuelve ?s=nombre-apellido-XXXXXXX SIN reload ──
+// Actualiza urlParams en memoria; window.load espera antes de iniciar.
 let _slugPromise = Promise.resolve();
 (function() {
-    const slugParam = urlParams.get('s');
-    if (!slugParam) return;
-    const WORKER_SLUG = 'https://workerwebcliente.tuweb.workers.dev/slug/' + encodeURIComponent(slugParam);
-    _slugPromise = fetch(WORKER_SLUG, { signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined })
+    var sp = urlParams.get('s');
+    if (!sp) return;
+    _slugPromise = fetch('https://workerwebcliente.tuweb.workers.dev/slug/' + encodeURIComponent(sp))
         .then(function(r) { return r.ok ? r.json() : null; })
-        .then(function(data) {
-            if (!data || !data.codigoVendedor) return;
-            urlParams.set('tienda', data.codigoVendedor);
-            if (data.cat) urlParams.set('cat', data.cat);
-            if (data.cfg && Object.keys(data.cfg).length > 0) {
-                try { urlParams.set('cfg', btoa(unescape(encodeURIComponent(JSON.stringify(data.cfg))))); } catch(e) {}
+        .then(function(d) {
+            if (!d || !d.codigoVendedor) return;
+            urlParams.set('tienda', d.codigoVendedor);
+            if (d.cat) urlParams.set('cat', d.cat);
+            if (d.cfg && Object.keys(d.cfg).length > 0) {
+                try { urlParams.set('cfg', btoa(unescape(encodeURIComponent(JSON.stringify(d.cfg))))); } catch(e) {}
             }
-            if (data.promo && (Array.isArray(data.promo.rangos) || data.promo.gift)) {
-                try { urlParams.set('promo', btoa(unescape(encodeURIComponent(JSON.stringify(data.promo))))); } catch(e) {}
+            if (d.promo && (Array.isArray(d.promo.rangos) || d.promo.gift)) {
+                try { urlParams.set('promo', btoa(unescape(encodeURIComponent(JSON.stringify(d.promo))))); } catch(e) {}
             }
             try { window.history.replaceState({}, '', window.location.pathname + '?' + urlParams.toString()); } catch(e) {}
         })
         .catch(function() {});
 })();
 
-// let (no const) para que window.load los actualice tras resolver el slug
+// let para que window.load los actualice tras resolver el slug
 let codigoParam = urlParams.get('tienda') || '';
 let catParam    = urlParams.get('cat') || 'perfumes';
 
-// ── localStorage safe para Safari iOS modo privado ──────────
-// Safari privado lanza excepción en setItem. Usamos sessionStorage
-// como fallback y memoria como último recurso.
+// ── localStorage safe: Safari iOS modo privado lanza excepción ──
 var _lsMem = {};
 function _lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){try{sessionStorage.setItem(k,v);}catch(e2){_lsMem[k]=v;}}}
-function _lsGet(k){try{var v=localStorage.getItem(k);if(v!==null)return v;}catch(e){}try{var v=sessionStorage.getItem(k);if(v!==null)return v;}catch(e){}return _lsMem[k]!==undefined?_lsMem[k]:null;}
-// ─────────────────────────────────────────────────────────────
+function _lsGet(k){try{var r=localStorage.getItem(k);if(r!==null)return r;}catch(e){}try{var r=sessionStorage.getItem(k);if(r!==null)return r;}catch(e){}return _lsMem[k]!=null?_lsMem[k]:null;}
+// ─────────────────────────────────────────────────────────────────
 
 // ═══════════════════════════════════════════════════════════════
 // PRODUCTOS (MISMO DATASET QUE index_v5, sólo data, no UI)
@@ -1599,25 +1594,42 @@ async function cargarVendedor() {
         }
     } catch(e) {}
 
-    // ── Resolver whatsappRevendedor: SIEMPRE del vendedor de ESTA tienda ──
-    // (nunca del localStorage del visitante, que pertenece a quien mira la
-    // tienda, no al dueño de la tienda).
+    // ── Resolver whatsappRevendedor ────────────────────────────────
+    // Orden de prioridad:
+    // 1. Ya viene en vendedor.whatsappRevendedor (Firestore/Worker) ✓
+    // 2. Buscar por UID del vendedor en Firestore (doc usuarios/{uid})
+    // 3. Fallback: normalizar vendedor.telefono
     if (!vendedor.whatsappRevendedor) {
-        // Fallback: usar el teléfono con el que este vendedor se registró
-        // (vendedor.telefono viene de Firestore/Worker, identificado por el
-        // codigoVendedor de ESTA tienda — es el dato correcto y específico
-        // de esta persona, no de quien visita el link).
-        let telReg = (vendedor.telefono || '').toString().replace(/\D/g, '');
+        // Intento 2: buscar por UID si lo tenemos
+        var _uid = vendedor.uid || vendedor.userId || vendedor.id || null;
+        if (_uid) {
+            try {
+                var _snapUid = await db.collection('usuarios').doc(_uid).get();
+                if (_snapUid.exists) {
+                    var _udUid = _snapUid.data();
+                    if (_udUid.whatsappRevendedor) {
+                        vendedor.whatsappRevendedor = _udUid.whatsappRevendedor;
+                    } else if (_udUid.telefono) {
+                        vendedor.telefono = vendedor.telefono || _udUid.telefono;
+                    }
+                }
+            } catch(_e) {}
+        }
+    }
+    if (!vendedor.whatsappRevendedor) {
+        // Intento 3: normalizar teléfono registrado
+        var telReg = (vendedor.telefono || '').toString().replace(/\D/g, '');
         if (telReg.startsWith('549')) telReg = telReg.slice(3);
         else if (telReg.startsWith('54')) telReg = telReg.slice(2);
         if (telReg.startsWith('0')) telReg = telReg.replace(/^0+/, '');
         if (telReg.length >= 4 && telReg.charAt(2) === '1' && telReg.charAt(3) === '5') {
-            telReg = telReg.slice(0,2) + telReg.slice(4);
+            telReg = telReg.slice(0, 2) + telReg.slice(4);
         }
         if (telReg && telReg.length >= 8) {
             vendedor.whatsappRevendedor = '549' + telReg;
         }
     }
+    // ─────────────────────────────────────────────────────────────
 
     // ── Asignar promo activa ANTES de iniciarTienda (timing correcto) ──
     if (!window.promoActiva && catParam && vendedor && vendedor.promocionesTienda) {
@@ -2020,10 +2032,8 @@ function mostrarError(msg) {
 // ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
-// Esperar al slug antes de arrancar (si no hay slug resuelve inmediato)
 window.addEventListener('load', function() {
     _slugPromise.then(function() {
-        // Reasignar con valores reales tras resolver slug
         codigoParam = urlParams.get('tienda') || codigoParam;
         catParam    = urlParams.get('cat')    || catParam;
         cargarVendedor();
@@ -2178,36 +2188,34 @@ async function enviarPedidoConDatos() {
         estado: 'pendiente',
     };
 
-    // ── SIEMPRE abrir WhatsApp al confirmar: el pedido llega igual ──
-    // El Worker se llama en background sin bloquear el flujo del cliente.
-    // Si falla (red, codigoVendedor vacío, etc.) la venta NO se pierde.
-    const _enviarAlWorker = () => {
+    // ── Worker en background, WhatsApp SIEMPRE se abre ────────────
+    // El pedido se registra en la BD sin bloquear el flujo del cliente.
+    // Si el Worker falla por cualquier motivo, la venta NO se pierde.
+    const _registrarPedido = function() {
         fetch(WORKER_CLIENTE, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
-        }).catch(() => {});
+        }).catch(function() {});
         if (!esRetiro) {
             fetch(WORKER_DELIVERY, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
-            }).catch(() => {});
+            }).catch(function() {});
         }
     };
-
     try {
+        _registrarPedido();
         document.getElementById('co-status').style.display = 'block';
         btn.textContent = '✓ Pedido confirmado';
-        _enviarAlWorker(); // fire-and-forget: no bloquea
-        setTimeout(() => {
+        setTimeout(function() {
             cerrarCheckout();
             cerrarCarrito();
             _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, total);
         }, 1200);
-    } catch (e) {
-        // Nunca debería llegar acá, pero si pasa igual abrimos WhatsApp
-        _enviarAlWorker();
+    } catch(e) {
+        _registrarPedido();
         cerrarCheckout();
         cerrarCarrito();
         _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, total);
