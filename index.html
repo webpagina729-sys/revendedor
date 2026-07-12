@@ -8828,7 +8828,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
 
             // Generar enlace — primero intenta el corto, fallback al largo
-            const base = window.location.origin + '/tienda.html';
+            const base = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html';
             const catParam = cat ? `&cat=${cat}` : '';
             // 🔧 FIX: embebemos la config de aumento (y el color de tienda) en el propio
             // enlace para que la tienda generada SIEMPRE aplique los porcentajes y la
@@ -8854,13 +8854,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 }
             } catch(e) {}
             const enlaceLargo = codigo ? `${base}?tienda=${codigo}${catParam}${cfgParam}` : base;
-            document.getElementById('verTiendaEnlace').value = enlaceLargo;
+            // Si ya se generó antes un enlace corto para esta categoría, usarlo
+            // directamente en vez de mostrar primero el largo.
+            const cortoCacheado = (cat && window._enlacesCortosCache) ? window._enlacesCortosCache[cat] : null;
+            document.getElementById('verTiendaEnlace').value = cortoCacheado || enlaceLargo;
             document.getElementById('verTiendaCopiado').style.display = 'none';
 
             document.getElementById('verTiendaModal').classList.add('active');
 
             // Intentar reemplazar con enlace corto en background (sin bloquear apertura del modal)
-            if (cat && codigo) {
+            if (cat && codigo && !cortoCacheado) {
                 generarEnlaceCorto(cat).then(corto => {
                     if (corto) {
                         const inputEl = document.getElementById('verTiendaEnlace');
@@ -8868,6 +8871,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     }
                 }).catch(() => {});
             }
+            // Precalentar en background el enlace corto de TODAS las tiendas
+            // guardadas, para que al tocar "copiar" en cualquiera de ellas ya
+            // esté listo y se pueda copiar corto de forma sincrónica.
+            Object.keys(allConfig).filter(c => allConfig[c] && c !== cat && !(window._enlacesCortosCache && window._enlacesCortosCache[c])).forEach(c => {
+                generarEnlaceCorto(c).catch(() => {});
+            });
         }
 
         function copiarEnlaceTienda() {
@@ -9961,9 +9970,18 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 || '';
         }
 
+        // 🔧 FIX ENLACE DE TIENDA: dominio personalizado fijo (no depender de
+        // window.location.origin, que puede variar según dónde se esté viendo
+        // el panel) + caché en memoria de los enlaces cortos ya generados por
+        // categoría, para poder copiarlos de forma SINCRÓNICA (requisito de
+        // Safari iOS) sin caer nunca en el enlace largo una vez que ya se
+        // generó el corto una vez.
+        const TIENDA_DOMINIO_PERSONALIZADO = 'https://mitienda.revendeways.shop';
+        window._enlacesCortosCache = window._enlacesCortosCache || {};
+
         function buildEnlaceTienda(cat, cfg) {
             const codigo = getCodigoVendedor();
-            const base = window.location.origin + '/tienda.html';
+            const base = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html';
             if (!codigo) return base;
             let cfgParam = '';
             try {
@@ -10055,7 +10073,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     body: JSON.stringify(payload)
                 });
                 if (!res.ok) throw new Error('slug fail');
-                return window.location.origin + '/tienda.html?s=' + slugId;
+                // Si el Worker/base de datos devuelve su propio identificador
+                // (por ejemplo tras resolver una colisión), se usa ESE en vez
+                // del propuesto por el cliente — la base de datos manda.
+                let slugFinal = slugId;
+                try {
+                    const data = await res.json();
+                    if (data && (data.slugId || data.slug || data.id)) {
+                        slugFinal = data.slugId || data.slug || data.id;
+                    }
+                } catch(_) {}
+                const urlCorta = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?s=' + slugFinal;
+                window._enlacesCortosCache[cat] = urlCorta;
+                return urlCorta;
             } catch(e) {
                 // Fallback al enlace largo si el Worker no responde
                 return buildEnlaceTienda(cat, cfg);
@@ -10102,6 +10132,11 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             const tiendas = getTiendasGuardadas();
             const cats = Object.keys(tiendas).filter(c => tiendas[c]);
             document.getElementById('misTiendasBubble').style.display = 'none';
+            // Precalentar en background el enlace corto de cada tienda guardada
+            // para que el botón "copiar" de la lista ya tenga el corto listo.
+            cats.filter(c => !(window._enlacesCortosCache && window._enlacesCortosCache[c])).forEach(c => {
+                if (typeof generarEnlaceCorto === 'function') generarEnlaceCorto(c).catch(() => {});
+            });
             if (cats.length === 0) {
                 lista.innerHTML = '<p style="color:var(--text-light);font-size:13px;">Todavía no configuraste ninguna tienda.</p>';
             } else {
@@ -10187,15 +10222,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
 
             // ── Safari iOS fix: copiar SINCRÓNICAMENTE en el tap ──────────
-            // Safari bloquea clipboard async. Copiamos el largo ahora (sync),
-            // y en background actualizamos con el corto si el browser lo permite.
+            // Safari bloquea clipboard async. Si ya tenemos el enlace corto
+            // cacheado (generado antes en background), lo copiamos YA —
+            // sigue siendo síncrono porque es un string ya resuelto, no una
+            // promesa. Sólo si todavía no existe recurrimos al largo como
+            // primer envío, mientras se genera el corto para la próxima vez.
             let originalBtnHtml = btn ? btn.innerHTML : '';
-            const enlaceLargo = buildEnlaceTienda(cat, (getTiendasGuardadas())[cat]);
+            const cortoCacheado = window._enlacesCortosCache && window._enlacesCortosCache[cat];
+            const enlaceACopiar = cortoCacheado || buildEnlaceTienda(cat, (getTiendasGuardadas())[cat]);
 
             // Copiar sincrónicamente (funciona en todos los browsers incluyendo Safari iOS)
             try {
                 var _ta = document.createElement('textarea');
-                _ta.value = enlaceLargo;
+                _ta.value = enlaceACopiar;
                 _ta.style.cssText = 'position:fixed;opacity:0;font-size:16px;top:0;left:0;';
                 document.body.appendChild(_ta);
                 _ta.focus(); _ta.setSelectionRange(0, 99999);
@@ -10213,13 +10252,18 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 setTimeout(function() { btn.innerHTML = originalBtnHtml; }, 1800);
             }
 
-            // En background: generar enlace corto y actualizar clipboard en Chrome/Firefox
-            generarEnlaceCorto(cat).then(function(corto) {
-                if (!corto) return;
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(corto).catch(function(){});
-                }
-            }).catch(function(){});
+            // Si todavía no había corto cacheado, generarlo ahora en background
+            // y reintentar sobreescribir el portapapeles en los navegadores que
+            // sí permiten clipboard async (Chrome/Firefox). Además queda
+            // cacheado para que el PRÓXIMO tap ya copie corto directamente.
+            if (!cortoCacheado) {
+                generarEnlaceCorto(cat).then(function(corto) {
+                    if (!corto) return;
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(corto).catch(function(){});
+                    }
+                }).catch(function(){});
+            }
         };
 
         window.eliminarTiendaGuardada = async function(cat) {
