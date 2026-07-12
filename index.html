@@ -8652,10 +8652,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // ──────────────────────────────────────────────────────────────────────────
 
         function _guardarEnFirestore(data) {
+            // 🔧 FIX CRÍTICO: se usa set(..., {merge:true}) en lugar de update().
+            // update() falla EN SILENCIO (atrapado por el .catch vacío) si el
+            // documento usuarios/{uid} todavía no existe en ese momento (login
+            // reciente, otro navegador, condición de carrera con la creación
+            // del doc, etc.). Eso hacía que el número de WhatsApp quedara SOLO
+            // en localStorage de ese navegador y nunca llegara a Firestore, por
+            // lo que tienda.html (que lee por UID) no lo encontraba nunca.
+            // set con merge:true SIEMPRE persiste el dato: crea el documento si
+            // no existe y lo actualiza si ya existe, sin pisar otros campos.
             const ref = _firestoreUserRef();
-            if (ref) { ref.update(data).catch(() => {}); return; }
-            // Fallback: buscar por código
-            _firestoreUserRefAsync().then(r => { if (r) r.update(data).catch(() => {}); });
+            if (ref) { ref.set(data, { merge: true }).catch(() => {}); return; }
+            // Fallback: buscar por código de revendedor
+            _firestoreUserRefAsync().then(r => { if (r) r.set(data, { merge: true }).catch(() => {}); });
         }
         // ─────────────────────────────────────────────────────────────────────────────────
 
