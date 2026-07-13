@@ -2188,34 +2188,43 @@ async function enviarPedidoConDatos() {
         estado: 'pendiente',
     };
 
-    // ── Worker en background, WhatsApp SIEMPRE se abre ────────────
-    // El pedido se registra en la BD sin bloquear el flujo del cliente.
-    // Si el Worker falla por cualquier motivo, la venta NO se pierde.
+    // ── El pedido se registra ANTES de redirigir a WhatsApp ────────
+    // 🔧 FIX: antes el fetch se disparaba sin esperarlo (fire-and-forget) y
+    // WhatsApp se abría igual por un simple setTimeout, sin garantía real de
+    // que el pedido ya hubiera llegado a "Pedidos recibidos" (dentro de
+    // Perfil, en index.html) para que el revendedor lo apruebe. Ahora se
+    // espera la confirmación del envío (con un límite de 6s para no trabar
+    // al cliente si el servidor tarda o está caído) y recién después se abre
+    // WhatsApp.
     const _registrarPedido = function() {
-        fetch(WORKER_CLIENTE, {
+        const p1 = fetch(WORKER_CLIENTE, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
         }).catch(function() {});
-        if (!esRetiro) {
-            fetch(WORKER_DELIVERY, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            }).catch(function() {});
-        }
+        const p2 = esRetiro ? Promise.resolve() : fetch(WORKER_DELIVERY, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        }).catch(function() {});
+        return Promise.all([p1, p2]);
+    };
+    const _conLimiteDeTiempo = function(promesa, ms) {
+        return Promise.race([
+            promesa,
+            new Promise(function(resolve) { setTimeout(resolve, ms); })
+        ]);
     };
     try {
-        _registrarPedido();
+        await _conLimiteDeTiempo(_registrarPedido(), 6000);
         document.getElementById('co-status').style.display = 'block';
         btn.textContent = '✓ Pedido confirmado';
         setTimeout(function() {
             cerrarCheckout();
             cerrarCarrito();
             _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, total);
-        }, 1200);
+        }, 400);
     } catch(e) {
-        _registrarPedido();
         cerrarCheckout();
         cerrarCarrito();
         _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, total);
