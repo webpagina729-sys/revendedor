@@ -8626,18 +8626,39 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             return firebase.firestore().collection('usuarios').doc(uid);
         }
         // Versión async: si no hay UID en memoria, lo busca por codigoVendedor en Firestore
-        async function _firestoreUserRefAsync() {
+        // 🔧 FIX: antes, si el login por código de revendedor todavía no había
+        // terminado de poblar window.currentUser en el momento exacto de guardar
+        // el WhatsApp (una carrera muy común justo después de loguearse), esta
+        // función devolvía null de una y el número NUNCA se guardaba en
+        // Firestore — quedaba solo en localStorage de ese navegador, por eso
+        // el cliente en tienda.html veía "vendedor no configuró WhatsApp"
+        // aunque el revendedor sí lo había puesto. Ahora reintenta unas pocas
+        // veces con una pequeña espera antes de rendirse.
+        async function _firestoreUserRefAsync(_intento) {
+            _intento = _intento || 0;
             const ref = _firestoreUserRef();
             if (ref) return ref;
             // Intentar buscar por código de vendedor
             const codigo = (window.currentUser && window.currentUser.codigoVendedor)
                 || localStorage.getItem('codigoVendedorLocal')
                 || localStorage.getItem('codigoRevendedorValidado');
-            if (!codigo) return null;
+            if (!codigo) {
+                if (_intento < 5) {
+                    await new Promise(r => setTimeout(r, 400));
+                    return _firestoreUserRefAsync(_intento + 1);
+                }
+                return null;
+            }
             try {
                 const snap = await firebase.firestore().collection('usuarios')
                     .where('codigoVendedor', '==', codigo).limit(1).get();
-                if (snap.empty) return null;
+                if (snap.empty) {
+                    if (_intento < 5) {
+                        await new Promise(r => setTimeout(r, 400));
+                        return _firestoreUserRefAsync(_intento + 1);
+                    }
+                    return null;
+                }
                 const docRef = snap.docs[0].ref;
                 // Cachear el uid real para futuras llamadas
                 if (window.currentUser) window.currentUser.uid = snap.docs[0].id;
@@ -8827,42 +8848,29 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 }
             }
 
-            // Generar enlace — primero intenta el corto, fallback al largo
+            // Generar enlace — corto por diseño: SOLO código + categoría.
+            // 🔧 FIX: antes se embebía toda la config (rangos/márgenes/colores)
+            // en base64 dentro de la URL (&cfg=...), lo que generaba enlaces
+            // de +1500 caracteres Y exponía los datos comerciales del
+            // revendedor a simple vista. Esto es innecesario: tienda.html YA
+            // lee configTiendaAll, colores y promociones directamente desde
+            // Firestore por codigoVendedor (es la "fuente de verdad" ahí, ver
+            // comentario en tienda.html línea ~1465). Con la config guardada
+            // de forma confiable en Firestore, el enlace no necesita llevarla.
             const base = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html';
             const catParam = cat ? `&cat=${cat}` : '';
-            // 🔧 FIX: embebemos la config de aumento (y el color de tienda) en el propio
-            // enlace para que la tienda generada SIEMPRE aplique los porcentajes y la
-            // estética elegida, sin depender de que el Worker/Firestore devuelvan
-            // configTiendaAll a tiempo.
-            let cfgParam = '';
-            try {
-                let cfgForLink = cat ? (allConfig[cat] ? { ...allConfig[cat] } : null) : null;
-                if (cfgForLink) {
-                    if (!cfgForLink.colorTienda) {
-                        try {
-                            const coloresByCat = JSON.parse(localStorage.getItem('coloresTiendaPorCat') || '{}');
-                            if (coloresByCat[cat]) cfgForLink.colorTienda = coloresByCat[cat];
-                        } catch(e) {}
-                    }
-                    if (!cfgForLink._coloresExtra) {
-                        try {
-                            const extraAll = JSON.parse(localStorage.getItem('coloresExtraTienda') || '{}');
-                            if (extraAll[cat]) cfgForLink._coloresExtra = extraAll[cat];
-                        } catch(e) {}
-                    }
-                    cfgParam = '&cfg=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(cfgForLink)))));
-                }
-            } catch(e) {}
-            const enlaceLargo = codigo ? `${base}?tienda=${codigo}${catParam}${cfgParam}` : base;
-            // Si ya se generó antes un enlace corto para esta categoría, usarlo
-            // directamente en vez de mostrar primero el largo.
+            const enlaceLargo = codigo ? `${base}?tienda=${codigo}${catParam}` : base;
+            // Si ya se generó antes un enlace corto (nombre-apellido-código)
+            // para esta categoría, usarlo directamente.
             const cortoCacheado = (cat && window._enlacesCortosCache) ? window._enlacesCortosCache[cat] : null;
             document.getElementById('verTiendaEnlace').value = cortoCacheado || enlaceLargo;
             document.getElementById('verTiendaCopiado').style.display = 'none';
 
             document.getElementById('verTiendaModal').classList.add('active');
 
-            // Intentar reemplazar con enlace corto en background (sin bloquear apertura del modal)
+            // Intentar reemplazar con enlace corto tipo nombre-apellido en
+            // background (mejora estética, ya no es necesario para el largo
+            // porque este último ya es corto y no expone datos).
             if (cat && codigo && !cortoCacheado) {
                 generarEnlaceCorto(cat).then(corto => {
                     if (corto) {
@@ -9983,38 +9991,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             const codigo = getCodigoVendedor();
             const base = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html';
             if (!codigo) return base;
-            let cfgParam = '';
-            try {
-                // 🔧 FIX: garantizar que el color principal y los colores extra
-                // SIEMPRE viajen en el enlace, sin depender de que ya estuvieran
-                // guardados dentro de cfg.colorTienda. Si cfg no lo trae, se
-                // completa acá desde las claves dedicadas (fuente de verdad).
-                let cfgFinal = cfg ? { ...cfg } : null;
-                if (cfgFinal) {
-                    if (!cfgFinal.colorTienda) {
-                        try {
-                            const coloresByCat = JSON.parse(localStorage.getItem('coloresTiendaPorCat') || '{}');
-                            if (coloresByCat[cat]) cfgFinal.colorTienda = coloresByCat[cat];
-                        } catch(e) {}
-                    }
-                    if (!cfgFinal._coloresExtra) {
-                        try {
-                            const extraAll = JSON.parse(localStorage.getItem('coloresExtraTienda') || '{}');
-                            if (extraAll[cat]) cfgFinal._coloresExtra = extraAll[cat];
-                        } catch(e) {}
-                    }
-                }
-                if (cfgFinal) cfgParam = '&cfg=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(cfgFinal)))));
-            } catch(e) {}
-            let promoParam = '';
-            try {
-                const promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}');
-                const promo = promos[cat];
-                if (promo && (Array.isArray(promo.rangos) || promo.gift)) {
-                    promoParam = '&promo=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(promo)))));
-                }
-            } catch(e) {}
-            return base + '?tienda=' + encodeURIComponent(codigo) + '&cat=' + encodeURIComponent(cat) + cfgParam + promoParam;
+            // 🔧 FIX: ya NO se embebe cfg/promo en base64 en la URL — tienda.html
+            // lee configTiendaAll, colores y promocionesTienda directamente desde
+            // Firestore por codigoVendedor (fuente de verdad ahí). Embeberlo acá
+            // solo generaba enlaces gigantes y exponía márgenes/colores del
+            // revendedor a simple vista.
+            return base + '?tienda=' + encodeURIComponent(codigo) + '&cat=' + encodeURIComponent(cat);
         }
 
         // ═══════════════════════════════════════════════════════════════
