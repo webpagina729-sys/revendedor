@@ -8871,8 +8871,9 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // código de base de datos), se mostraba de entrada un enlace de
             // respaldo con "?tienda=CODIGO", exponiendo el código. Ahora el
             // campo arranca en un estado de "generando..." (deshabilitado)
-            // hasta tener el enlace corto real, y si no se puede generar se
-            // muestra un error en vez de exponer el código.
+            // hasta tener el enlace corto real. generarEnlaceCorto() reintenta
+            // solo, indefinidamente, hasta lograrlo — nunca hay que mostrar
+            // ningún error, sólo esperar.
             const inputEnlace = document.getElementById('verTiendaEnlace');
             const cortoCacheado = (cat && window._enlacesCortosCache) ? window._enlacesCortosCache[cat] : null;
             if (cortoCacheado) {
@@ -8883,12 +8884,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 inputEnlace.disabled = true;
                 generarEnlaceCorto(cat).then(corto => {
                     const el = document.getElementById('verTiendaEnlace');
-                    if (!el) return;
-                    if (corto) { el.value = corto; el.disabled = false; }
-                    else { el.value = 'No se pudo generar el enlace. Volvé a intentar.'; el.disabled = true; }
-                }).catch(() => {
-                    const el = document.getElementById('verTiendaEnlace');
-                    if (el) { el.value = 'No se pudo generar el enlace. Volvé a intentar.'; el.disabled = true; }
+                    if (el) { el.value = corto; el.disabled = false; }
                 });
             } else {
                 inputEnlace.value = '';
@@ -10026,8 +10022,15 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         const WORKER_SLUG_BASE = 'https://workerwebcliente.tuweb.workers.dev';
 
         async function generarEnlaceCorto(cat) {
-            const codigo = getCodigoVendedor();
-            if (!codigo) return null;
+            // 🔧 FIX: si el código de revendedor todavía no está disponible en
+            // memoria (misma ventana de carrera justo después del login que
+            // afectaba al guardado del WhatsApp), no hay que rendirse: se
+            // reintenta hasta que esté listo, nunca se corta con un error.
+            let codigo = getCodigoVendedor();
+            while (!codigo) {
+                await new Promise(r => setTimeout(r, 400));
+                codigo = getCodigoVendedor();
+            }
 
             const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
             const cfg = allConfig[cat] || null;
@@ -10068,12 +10071,13 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             };
 
             // 🔧 FIX: el código de revendedor NUNCA debe terminar visible en el
-            // enlace. Antes, si el Worker fallaba, se devolvía un enlace largo
-            // con "?tienda=CODIGO" como respaldo — eso exponía el código. Ahora
-            // se reintenta un par de veces y, si de verdad no se puede generar
-            // el enlace corto, se devuelve null (los que llaman a esta función
-            // deben mostrar un error, nunca el código).
-            for (let intento = 0; intento < 3; intento++) {
+            // enlace, y tampoco se debe mostrar ningún error al revendedor —
+            // si el Worker falla (caída momentánea, red lenta, etc.) hay que
+            // seguir reintentando SOLO hasta que funcione, sin abandonar.
+            // Espera creciente entre intentos (0.5s, 1s, 2s, 3s... hasta un
+            // techo de 5s) para no saturar el servidor, pero nunca se rinde.
+            let intento = 0;
+            while (true) {
                 try {
                     const res = await fetch(WORKER_SLUG_BASE + '/slug', {
                         method: 'POST',
@@ -10095,10 +10099,11 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     window._enlacesCortosCache[cat] = urlCorta;
                     return urlCorta;
                 } catch(e) {
-                    if (intento < 2) await new Promise(r => setTimeout(r, 500));
+                    intento++;
+                    const espera = Math.min(500 * intento, 5000);
+                    await new Promise(r => setTimeout(r, espera));
                 }
             }
-            return null;
         }
 
         window.tienePromoCat = function(cat) {
@@ -10264,12 +10269,11 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // modernos para escribir al portapapeles de forma asíncrona sin
             // perder el permiso otorgado por el gesto del usuario (el click),
             // siempre que la llamada se haga de forma síncrona dentro del
-            // handler del click (como acá).
+            // handler del click (como acá). generarEnlaceCorto() reintenta
+            // solo, indefinidamente, hasta lograrlo — nunca hay que mostrar
+            // ningún error, sólo esperar a que esté listo.
             if (btn) { btn.disabled = true; setBtnEstado(soloIcono ? '⏳' : 'Generando…'); }
-            const promesaTexto = generarEnlaceCorto(cat).then(function(corto) {
-                if (!corto) throw new Error('sin enlace corto');
-                return corto;
-            });
+            const promesaTexto = generarEnlaceCorto(cat);
 
             let copiadoOk = false;
             if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
@@ -10288,8 +10292,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     navigator.clipboard.writeText(corto).catch(function(){});
                 }
                 if (btn) { btn.disabled = false; btn.style.opacity = ''; setBtnEstado(soloIcono ? iconoOk : '✓ Copiado'); restaurarBtn(); }
-            }).catch(function() {
-                if (btn) { btn.disabled = false; btn.style.opacity = ''; setBtnEstado(soloIcono ? '⚠️' : 'Error, probá de nuevo'); restaurarBtn(); }
             });
         };
 
@@ -10816,7 +10818,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // 🔧 FIX: el enlace de promoción tampoco debe exponer el código de
             // revendedor. Se usa el mismo enlace corto (nombre-apellido-código
             // de base de datos) que el enlace de tienda, con estado de carga
-            // mientras se genera.
+            // mientras se genera. generarEnlaceCorto() reintenta solo hasta
+            // lograrlo — nunca hay que mostrar ningún error.
             inputPromo.value = 'Generando enlace…';
             inputPromo.disabled = true;
             document.getElementById('promoModal').classList.remove('active');
@@ -10824,12 +10827,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             try { if (window.refrescarMisTiendasFab) window.refrescarMisTiendasFab(); } catch(e) {}
             generarEnlaceCorto(_promoCat).then(corto => {
                 const el = document.getElementById('promoEnlaceInput');
-                if (!el) return;
-                if (corto) { el.value = corto; el.disabled = false; }
-                else { el.value = 'No se pudo generar el enlace. Volvé a intentar.'; el.disabled = true; }
-            }).catch(() => {
-                const el = document.getElementById('promoEnlaceInput');
-                if (el) { el.value = 'No se pudo generar el enlace. Volvé a intentar.'; el.disabled = true; }
+                if (el) { el.value = corto; el.disabled = false; }
             });
         };
 
