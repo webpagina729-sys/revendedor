@@ -8673,19 +8673,37 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // ──────────────────────────────────────────────────────────────────────────
 
         function _guardarEnFirestore(data) {
-            // 🔧 FIX CRÍTICO: se usa set(..., {merge:true}) en lugar de update().
-            // update() falla EN SILENCIO (atrapado por el .catch vacío) si el
-            // documento usuarios/{uid} todavía no existe en ese momento (login
-            // reciente, otro navegador, condición de carrera con la creación
-            // del doc, etc.). Eso hacía que el número de WhatsApp quedara SOLO
-            // en localStorage de ese navegador y nunca llegara a Firestore, por
-            // lo que tienda.html (que lee por UID) no lo encontraba nunca.
-            // set con merge:true SIEMPRE persiste el dato: crea el documento si
-            // no existe y lo actualiza si ya existe, sin pisar otros campos.
+            // 🔧 FIX DEFINITIVO: el guardado por UID puede terminar apuntando a
+            // un documento distinto del que realmente lee tienda.html — que
+            // busca al revendedor por codigoVendedor, NO por UID (login por
+            // código, sesión vieja cacheada en el navegador, etc. pueden hacer
+            // que el UID en memoria no sea el correcto). Antes, si eso pasaba,
+            // el dato se guardaba "bien" según el código pero en el documento
+            // equivocado, y el cliente nunca lo encontraba — sin ningún error
+            // visible. Ahora se escribe SIEMPRE por los dos caminos en
+            // paralelo: por UID (como antes) Y por una búsqueda directa por
+            // codigoVendedor — el mismo método exacto que usa tienda.html —
+            // así el dato queda garantizado en el documento correcto sin
+            // importar cuál resolución de sesión sea la válida.
             const ref = _firestoreUserRef();
-            if (ref) { ref.set(data, { merge: true }).catch(() => {}); return; }
-            // Fallback: buscar por código de revendedor
-            _firestoreUserRefAsync().then(r => { if (r) r.set(data, { merge: true }).catch(() => {}); });
+            if (ref) { ref.set(data, { merge: true }).catch(() => {}); }
+
+            const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                || localStorage.getItem('codigoVendedorLocal')
+                || localStorage.getItem('codigoRevendedorValidado');
+            if (codigo) {
+                firebase.firestore().collection('usuarios')
+                    .where('codigoVendedor', '==', codigo).limit(1).get()
+                    .then(snap => { if (!snap.empty) return snap.docs[0].ref.set(data, { merge: true }); })
+                    .catch(() => {});
+            }
+
+            if (!ref && !codigo) {
+                // Ni UID ni código disponibles todavía (carga muy temprana):
+                // usar el fallback con reintentos que ya espera a que
+                // currentUser termine de poblarse.
+                _firestoreUserRefAsync().then(r => { if (r) r.set(data, { merge: true }).catch(() => {}); });
+            }
         }
         // ─────────────────────────────────────────────────────────────────────────────────
 
@@ -8848,37 +8866,37 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 }
             }
 
-            // Generar enlace — corto por diseño: SOLO código + categoría.
-            // 🔧 FIX: antes se embebía toda la config (rangos/márgenes/colores)
-            // en base64 dentro de la URL (&cfg=...), lo que generaba enlaces
-            // de +1500 caracteres Y exponía los datos comerciales del
-            // revendedor a simple vista. Esto es innecesario: tienda.html YA
-            // lee configTiendaAll, colores y promociones directamente desde
-            // Firestore por codigoVendedor (es la "fuente de verdad" ahí, ver
-            // comentario en tienda.html línea ~1465). Con la config guardada
-            // de forma confiable en Firestore, el enlace no necesita llevarla.
-            const base = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html';
-            const catParam = cat ? `&cat=${cat}` : '';
-            const enlaceLargo = codigo ? `${base}?tienda=${codigo}${catParam}` : base;
-            // Si ya se generó antes un enlace corto (nombre-apellido-código)
-            // para esta categoría, usarlo directamente.
+            // 🔧 FIX: el enlace NUNCA debe mostrar el código de revendedor.
+            // Antes, mientras se generaba el enlace corto (nombre-apellido-
+            // código de base de datos), se mostraba de entrada un enlace de
+            // respaldo con "?tienda=CODIGO", exponiendo el código. Ahora el
+            // campo arranca en un estado de "generando..." (deshabilitado)
+            // hasta tener el enlace corto real, y si no se puede generar se
+            // muestra un error en vez de exponer el código.
+            const inputEnlace = document.getElementById('verTiendaEnlace');
             const cortoCacheado = (cat && window._enlacesCortosCache) ? window._enlacesCortosCache[cat] : null;
-            document.getElementById('verTiendaEnlace').value = cortoCacheado || enlaceLargo;
+            if (cortoCacheado) {
+                inputEnlace.value = cortoCacheado;
+                inputEnlace.disabled = false;
+            } else if (cat && codigo) {
+                inputEnlace.value = 'Generando enlace…';
+                inputEnlace.disabled = true;
+                generarEnlaceCorto(cat).then(corto => {
+                    const el = document.getElementById('verTiendaEnlace');
+                    if (!el) return;
+                    if (corto) { el.value = corto; el.disabled = false; }
+                    else { el.value = 'No se pudo generar el enlace. Volvé a intentar.'; el.disabled = true; }
+                }).catch(() => {
+                    const el = document.getElementById('verTiendaEnlace');
+                    if (el) { el.value = 'No se pudo generar el enlace. Volvé a intentar.'; el.disabled = true; }
+                });
+            } else {
+                inputEnlace.value = '';
+                inputEnlace.disabled = true;
+            }
             document.getElementById('verTiendaCopiado').style.display = 'none';
 
             document.getElementById('verTiendaModal').classList.add('active');
-
-            // Intentar reemplazar con enlace corto tipo nombre-apellido en
-            // background (mejora estética, ya no es necesario para el largo
-            // porque este último ya es corto y no expone datos).
-            if (cat && codigo && !cortoCacheado) {
-                generarEnlaceCorto(cat).then(corto => {
-                    if (corto) {
-                        const inputEl = document.getElementById('verTiendaEnlace');
-                        if (inputEl) inputEl.value = corto;
-                    }
-                }).catch(() => {});
-            }
             // Precalentar en background el enlace corto de TODAS las tiendas
             // guardadas, para que al tocar "copiar" en cualquiera de ellas ya
             // esté listo y se pueda copiar corto de forma sincrónica.
@@ -8888,8 +8906,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         function copiarEnlaceTienda() {
+            const inputEl = document.getElementById('verTiendaEnlace');
+            // No copiar el placeholder mientras se genera el enlace corto, ni
+            // el mensaje de error — solo el enlace real ya resuelto.
+            if (inputEl.disabled) return;
             // Compatible Safari iOS: execCommand síncrono primero
-            const texto = document.getElementById('verTiendaEnlace').value;
+            const texto = inputEl.value;
             const fb = document.getElementById('verTiendaCopiado');
             const mostrarOk = function() {
                 fb.style.display = 'block';
@@ -8911,12 +8933,15 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         function vistaPreviaTienda() {
-            const enlace = document.getElementById('verTiendaEnlace').value;
-            window.open(enlace, '_blank');
+            const inputEl = document.getElementById('verTiendaEnlace');
+            if (inputEl.disabled) return;
+            window.open(inputEl.value, '_blank');
         }
 
         function compartirTienda() {
-            const enlace = document.getElementById('verTiendaEnlace').value;
+            const inputEl = document.getElementById('verTiendaEnlace');
+            if (inputEl.disabled) return;
+            const enlace = inputEl.value;
             const texto = '¡Mirá mi tienda! ' + enlace;
             if (navigator.share) {
                 navigator.share({ title: 'Mi Tienda', url: enlace }).catch(() => {});
@@ -9987,17 +10012,11 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         const TIENDA_DOMINIO_PERSONALIZADO = 'https://mitienda.revendeways.shop';
         window._enlacesCortosCache = window._enlacesCortosCache || {};
 
-        function buildEnlaceTienda(cat, cfg) {
-            const codigo = getCodigoVendedor();
-            const base = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html';
-            if (!codigo) return base;
-            // 🔧 FIX: ya NO se embebe cfg/promo en base64 en la URL — tienda.html
-            // lee configTiendaAll, colores y promocionesTienda directamente desde
-            // Firestore por codigoVendedor (fuente de verdad ahí). Embeberlo acá
-            // solo generaba enlaces gigantes y exponía márgenes/colores del
-            // revendedor a simple vista.
-            return base + '?tienda=' + encodeURIComponent(codigo) + '&cat=' + encodeURIComponent(cat);
-        }
+        // 🔧 FIX: se eliminó buildEnlaceTienda(), que armaba enlaces del tipo
+        // "?tienda=CODIGO" exponiendo el código de revendedor. Ya no la usa
+        // ninguna función — el único enlace que se genera y se muestra/copia
+        // ahora es el corto (nombre-apellido-código de base de datos), vía
+        // generarEnlaceCorto().
 
         // ═══════════════════════════════════════════════════════════════
         // SISTEMA DE ENLACE CORTO — genera slug nombre-apellido-XXXXXXX
@@ -10048,30 +10067,38 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 promo
             };
 
-            try {
-                const res = await fetch(WORKER_SLUG_BASE + '/slug', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!res.ok) throw new Error('slug fail');
-                // Si el Worker/base de datos devuelve su propio identificador
-                // (por ejemplo tras resolver una colisión), se usa ESE en vez
-                // del propuesto por el cliente — la base de datos manda.
-                let slugFinal = slugId;
+            // 🔧 FIX: el código de revendedor NUNCA debe terminar visible en el
+            // enlace. Antes, si el Worker fallaba, se devolvía un enlace largo
+            // con "?tienda=CODIGO" como respaldo — eso exponía el código. Ahora
+            // se reintenta un par de veces y, si de verdad no se puede generar
+            // el enlace corto, se devuelve null (los que llaman a esta función
+            // deben mostrar un error, nunca el código).
+            for (let intento = 0; intento < 3; intento++) {
                 try {
-                    const data = await res.json();
-                    if (data && (data.slugId || data.slug || data.id)) {
-                        slugFinal = data.slugId || data.slug || data.id;
-                    }
-                } catch(_) {}
-                const urlCorta = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?s=' + slugFinal;
-                window._enlacesCortosCache[cat] = urlCorta;
-                return urlCorta;
-            } catch(e) {
-                // Fallback al enlace largo si el Worker no responde
-                return buildEnlaceTienda(cat, cfg);
+                    const res = await fetch(WORKER_SLUG_BASE + '/slug', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) throw new Error('slug fail');
+                    // Si el Worker/base de datos devuelve su propio identificador
+                    // (por ejemplo tras resolver una colisión), se usa ESE en vez
+                    // del propuesto por el cliente — la base de datos manda.
+                    let slugFinal = slugId;
+                    try {
+                        const data = await res.json();
+                        if (data && (data.slugId || data.slug || data.id)) {
+                            slugFinal = data.slugId || data.slug || data.id;
+                        }
+                    } catch(_) {}
+                    const urlCorta = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?s=' + slugFinal;
+                    window._enlacesCortosCache[cat] = urlCorta;
+                    return urlCorta;
+                } catch(e) {
+                    if (intento < 2) await new Promise(r => setTimeout(r, 500));
+                }
             }
+            return null;
         }
 
         window.tienePromoCat = function(cat) {
@@ -10203,49 +10230,67 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 }
             }
 
-            // ── Safari iOS fix: copiar SINCRÓNICAMENTE en el tap ──────────
-            // Safari bloquea clipboard async. Si ya tenemos el enlace corto
-            // cacheado (generado antes en background), lo copiamos YA —
-            // sigue siendo síncrono porque es un string ya resuelto, no una
-            // promesa. Sólo si todavía no existe recurrimos al largo como
-            // primer envío, mientras se genera el corto para la próxima vez.
             let originalBtnHtml = btn ? btn.innerHTML : '';
+            const soloIcono = btn ? !btn.textContent.trim() : false;
+            const setBtnEstado = function(html) { if (btn) btn.innerHTML = html; };
+            const restaurarBtn = function() { setTimeout(function() { setBtnEstado(originalBtnHtml); }, 1800); };
+            const iconoOk = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
             const cortoCacheado = window._enlacesCortosCache && window._enlacesCortosCache[cat];
-            const enlaceACopiar = cortoCacheado || buildEnlaceTienda(cat, (getTiendasGuardadas())[cat]);
 
-            // Copiar sincrónicamente (funciona en todos los browsers incluyendo Safari iOS)
-            try {
-                var _ta = document.createElement('textarea');
-                _ta.value = enlaceACopiar;
-                _ta.style.cssText = 'position:fixed;opacity:0;font-size:16px;top:0;left:0;';
-                document.body.appendChild(_ta);
-                _ta.focus(); _ta.setSelectionRange(0, 99999);
-                document.execCommand('copy');
-                document.body.removeChild(_ta);
-            } catch(_) {}
-
-            // Feedback inmediato en el botón
-            if (btn) {
-                btn.disabled = false; btn.style.opacity = '';
-                const soloIcono = !btn.textContent.trim();
-                btn.innerHTML = soloIcono
-                    ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
-                    : '✓ Copiado';
-                setTimeout(function() { btn.innerHTML = originalBtnHtml; }, 1800);
+            // 🔧 FIX: el enlace copiado NUNCA debe exponer el código de
+            // revendedor. Si ya está cacheado el corto (nombre-apellido-código
+            // de base de datos), se copia directo y sincrónico (funciona en
+            // todos los navegadores, incluido Safari iOS).
+            if (cortoCacheado) {
+                try {
+                    var _ta = document.createElement('textarea');
+                    _ta.value = cortoCacheado;
+                    _ta.style.cssText = 'position:fixed;opacity:0;font-size:16px;top:0;left:0;';
+                    document.body.appendChild(_ta);
+                    _ta.focus(); _ta.setSelectionRange(0, 99999);
+                    document.execCommand('copy');
+                    document.body.removeChild(_ta);
+                } catch(_) {}
+                if (btn) { btn.disabled = false; btn.style.opacity = ''; setBtnEstado(soloIcono ? iconoOk : '✓ Copiado'); restaurarBtn(); }
+                return;
             }
 
-            // Si todavía no había corto cacheado, generarlo ahora en background
-            // y reintentar sobreescribir el portapapeles en los navegadores que
-            // sí permiten clipboard async (Chrome/Firefox). Además queda
-            // cacheado para que el PRÓXIMO tap ya copie corto directamente.
-            if (!cortoCacheado) {
-                generarEnlaceCorto(cat).then(function(corto) {
-                    if (!corto) return;
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(corto).catch(function(){});
-                    }
-                }).catch(function(){});
+            // Todavía no hay corto cacheado: hay que generarlo (llamada async
+            // al Worker) ANTES de copiar algo, porque no existe ningún enlace
+            // seguro para copiar de forma síncrona en este momento. Se usa
+            // navigator.clipboard.write con un ClipboardItem que envuelve una
+            // Promise — esta es la forma soportada en Safari (13.1+) y Chrome
+            // modernos para escribir al portapapeles de forma asíncrona sin
+            // perder el permiso otorgado por el gesto del usuario (el click),
+            // siempre que la llamada se haga de forma síncrona dentro del
+            // handler del click (como acá).
+            if (btn) { btn.disabled = true; setBtnEstado(soloIcono ? '⏳' : 'Generando…'); }
+            const promesaTexto = generarEnlaceCorto(cat).then(function(corto) {
+                if (!corto) throw new Error('sin enlace corto');
+                return corto;
+            });
+
+            let copiadoOk = false;
+            if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+                try {
+                    const item = new ClipboardItem({
+                        'text/plain': promesaTexto.then(function(txt) { return new Blob([txt], { type: 'text/plain' }); })
+                    });
+                    navigator.clipboard.write([item]).then(function() { copiadoOk = true; }).catch(function() {});
+                } catch(_) {}
             }
+
+            promesaTexto.then(function(corto) {
+                // Respaldo para navegadores sin soporte de ClipboardItem+Promise:
+                // ya con el texto final resuelto, se intenta clipboard normal.
+                if (!copiadoOk && navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(corto).catch(function(){});
+                }
+                if (btn) { btn.disabled = false; btn.style.opacity = ''; setBtnEstado(soloIcono ? iconoOk : '✓ Copiado'); restaurarBtn(); }
+            }).catch(function() {
+                if (btn) { btn.disabled = false; btn.style.opacity = ''; setBtnEstado(soloIcono ? '⚠️' : 'Error, probá de nuevo'); restaurarBtn(); }
+            });
         };
 
         window.eliminarTiendaGuardada = async function(cat) {
@@ -10767,32 +10812,31 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             } catch(e) {}
             // ──────────────────────────────────────────────────────────────────
 
-            const enlace = _buildEnlacePromo(_promoCat, promo);
-            document.getElementById('promoEnlaceInput').value = enlace;
+            const inputPromo = document.getElementById('promoEnlaceInput');
+            // 🔧 FIX: el enlace de promoción tampoco debe exponer el código de
+            // revendedor. Se usa el mismo enlace corto (nombre-apellido-código
+            // de base de datos) que el enlace de tienda, con estado de carga
+            // mientras se genera.
+            inputPromo.value = 'Generando enlace…';
+            inputPromo.disabled = true;
             document.getElementById('promoModal').classList.remove('active');
             document.getElementById('promoConfirmModal').classList.add('active');
             try { if (window.refrescarMisTiendasFab) window.refrescarMisTiendasFab(); } catch(e) {}
+            generarEnlaceCorto(_promoCat).then(corto => {
+                const el = document.getElementById('promoEnlaceInput');
+                if (!el) return;
+                if (corto) { el.value = corto; el.disabled = false; }
+                else { el.value = 'No se pudo generar el enlace. Volvé a intentar.'; el.disabled = true; }
+            }).catch(() => {
+                const el = document.getElementById('promoEnlaceInput');
+                if (el) { el.value = 'No se pudo generar el enlace. Volvé a intentar.'; el.disabled = true; }
+            });
         };
 
-        function _buildEnlacePromo(cat, promo) {
-            const codigo = (window.currentUser && window.currentUser.codigoVendedor)
-                || localStorage.getItem('codigoVendedorLocal')
-                || localStorage.getItem('codigoRevendedorValidado')
-                || '';
-            const base = window.location.origin + '/tienda.html';
-            if (!codigo) return base;
-            let cfgParam = '';
-            try {
-                const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-                const cfg = allConfig[cat];
-                if (cfg) cfgParam = '&cfg=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(cfg)))));
-            } catch(e) {}
-            let promoParam = '';
-            try {
-                promoParam = '&promo=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(promo)))));
-            } catch(e) {}
-            return base + '?tienda=' + encodeURIComponent(codigo) + '&cat=' + encodeURIComponent(cat) + cfgParam + promoParam;
-        }
+        // 🔧 FIX: se eliminó _buildEnlacePromo(), que armaba enlaces del tipo
+        // "?tienda=CODIGO" exponiendo el código de revendedor. El enlace de
+        // promoción ahora se genera con generarEnlaceCorto() (mismo sistema
+        // que el enlace de tienda), que nunca expone el código.
 
         window.volverAPublicarPromo = function() {
             // Re-guarda la promo en Firestore para asegurar que tienda.html la lea fresca
@@ -10816,9 +10860,9 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     }
                 }
             } catch(e) {}
-            // También copiar el enlace
+            // También copiar el enlace (si ya está listo, no el placeholder)
             const input = document.getElementById('promoEnlaceInput');
-            if (input && input.value) {
+            if (input && input.value && !input.disabled) {
                 try {
                     navigator.clipboard.writeText(input.value).catch(() => {});
                 } catch(_) {}
@@ -10827,6 +10871,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
         window.copiarEnlacePromocion = function(btn) {
             const input = document.getElementById('promoEnlaceInput');
+            if (input.disabled) return;
             const val = input.value;
             const done = () => {
                 const orig = btn.textContent;
