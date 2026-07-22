@@ -900,12 +900,17 @@ let talleSelec     = null;
 // ── Leer URL params ──────────────────────────────────────────
 const urlParams = new URLSearchParams(window.location.search);
 
-// ── Slug corto: resuelve ?s=nombre-apellido-XXXXXXX SIN reload ──
+// ── Slug corto: resuelve ?s=nombre-apellido-XXXXXX SIN reload ──
 // Actualiza urlParams en memoria; window.load espera antes de iniciar.
+// 🔧 FIX: los enlaces nuevos ya traen todo embebido (tienda/cat/cfg/promo)
+// junto al slug "s", así que se leen al instante sin red y sin depender
+// de ningún Worker externo (eso era lo que dejaba el enlace colgado).
+// Solo si un enlace viejo trae "s" pero SIN "tienda" (formato anterior)
+// se intenta resolver una única vez contra el Worker, como respaldo.
 let _slugPromise = Promise.resolve();
 (function() {
     var sp = urlParams.get('s');
-    if (!sp) return;
+    if (!sp || urlParams.get('tienda')) return; // ya viene todo en la URL
     _slugPromise = fetch('https://workerwebcliente.tuweb.workers.dev/slug/' + encodeURIComponent(sp))
         .then(function(r) { return r.ok ? r.json() : null; })
         .then(function(d) {
@@ -1700,7 +1705,7 @@ function iniciarTienda() {
     // Header
     const nombre = vendedor.nombre ? (vendedor.nombre + ' ' + (vendedor.apellido || '')).trim() : 'Tienda';
     document.getElementById('header-store-name').textContent = nombre;
-    document.getElementById('header-store-sub').textContent = catalogoActual === 'calzados' ? 'Calzados' : 'Perfumes árabes';
+    document.getElementById('header-store-sub').textContent = catalogoActual === 'calzados' ? 'Calzados' : 'Perfumería';
     document.getElementById('footer-vendor-name').textContent = nombre;
 
     // Hero
