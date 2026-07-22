@@ -3266,12 +3266,13 @@
     <!-- NUEVA SECCIÓN: ELEGÍ TU TIENDA IDEAL -->
     <section class="nichos-section" id="nichos-section">
         <div class="nichos-section-inner">
+            <p class="nichos-pretitle" style="text-align:center; font-weight:600; color:var(--text); max-width:640px; margin:0 auto 14px; font-size:clamp(14px,3.6vw,17px); line-height:1.4;">Elegí por donde querés comenzar, configurá tus márgenes y compartí con tus clientes!</p>
             <h2 class="nichos-title" style="background: linear-gradient(135deg,#1B7F3D,#2BA84F); color:#fff; padding:14px 20px; border-radius:10px; display:block; box-shadow:0 4px 12px rgba(27,127,61,.25); white-space:normal; text-align:center; max-width:100%; font-size:clamp(16px,4.5vw,28px);">¿Por dónde será tu próximo pedido?</h2>
             
-            <!-- NICHO 1: PERFUMES ÁRABES -->
+            <!-- NICHO 1: PERFUMERÍA -->
             <div class="nicho-item">
                 <div class="nicho-info">
-                    <h3 class="nicho-title">Perfumes árabes</h3>
+                    <h3 class="nicho-title">Perfumería</h3>
                     <p class="nicho-subtitle">Fragancias premium de inspiración árabe para tu catálogo</p>
                 </div>
                 
@@ -8549,7 +8550,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (!user) { abrirLogin(); return; }
 
             const cat = window.currentCatalog || 'general';
-            const catLabel = cat === 'perfumes' ? 'Perfumes árabes' : cat === 'calzados' ? 'Calzados' : 'General';
+            const catLabel = cat === 'perfumes' ? 'Perfumería' : cat === 'calzados' ? 'Calzados' : 'General';
             const el = document.getElementById('configTiendaCatLabel');
             if (el) el.textContent = '📁 Categoría: ' + catLabel;
 
@@ -10021,15 +10022,60 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // ═══════════════════════════════════════════════════════════════
         const WORKER_SLUG_BASE = 'https://workerwebcliente.tuweb.workers.dev';
 
+        // 🔧 FIX ENLACE: generación 100% local/sincrónica. Antes dependía de
+        // un Worker externo (fetch a WORKER_SLUG_BASE) que, si fallaba o
+        // tardaba, dejaba el botón "Generando enlace…" congelado para
+        // siempre (el input quedaba disabled y copiarEnlaceTienda() no
+        // podía copiar nada — el "relojito" que nunca resolvía).
+        // Ahora el enlace se arma en el momento, sin red, con:
+        //   dominio oficial + nombre y apellido (Firebase Auth) + código
+        //   aleatorio de 6 dígitos como slug visible; la configuración de
+        // precios/márgenes del revendedor viaja embebida en el propio
+        // enlace (cfg/promo en base64) para que tienda.html no necesite
+        // consultar ningún servidor externo al abrirlo.
+        function armarSlugRevendedor() {
+            const user = window.currentUser || {};
+            const nombre = (user.nombre || user.name || '').toString().toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'tienda';
+            const apellido = (user.apellido || user.lastName || '').toString().toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || '';
+            const rand6 = Math.floor(100000 + Math.random() * 900000);
+            return (apellido ? nombre + '-' + apellido : nombre) + '-' + rand6;
+        }
+
+        // Arma la URL final de tienda.html embebiendo todo lo necesario en
+        // los parámetros (sin depender de ningún servidor para resolverlos).
+        function construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId) {
+            const params = new URLSearchParams();
+            params.set('s', slugId);
+            if (codigo) params.set('tienda', codigo);
+            if (cat) params.set('cat', cat);
+            if (productoId != null) params.set('producto', productoId);
+            try {
+                if (cfgFull && Object.keys(cfgFull).length > 0) {
+                    params.set('cfg', btoa(unescape(encodeURIComponent(JSON.stringify(cfgFull)))));
+                }
+            } catch(_) {}
+            try {
+                if (promo && (Array.isArray(promo.rangos) || promo.gift)) {
+                    params.set('promo', btoa(unescape(encodeURIComponent(JSON.stringify(promo)))));
+                }
+            } catch(_) {}
+            return TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?' + params.toString();
+        }
+
         async function generarEnlaceCorto(cat) {
-            // 🔧 FIX: si el código de revendedor todavía no está disponible en
-            // memoria (misma ventana de carrera justo después del login que
-            // afectaba al guardado del WhatsApp), no hay que rendirse: se
-            // reintenta hasta que esté listo, nunca se corta con un error.
+            // Si el código de revendedor todavía no está disponible en
+            // memoria (carrera justo después del login), se espera breve
+            // pero acotado — nunca de forma indefinida.
             let codigo = getCodigoVendedor();
-            while (!codigo) {
-                await new Promise(r => setTimeout(r, 400));
+            let esperas = 0;
+            while (!codigo && esperas < 10) {
+                await new Promise(r => setTimeout(r, 300));
                 codigo = getCodigoVendedor();
+                esperas++;
             }
 
             const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
@@ -10051,59 +10097,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 if (promos[cat] && (Array.isArray(promos[cat].rangos) || promos[cat].gift)) promo = promos[cat];
             } catch(_) {}
 
-            // Generar el slug a partir del nombre del revendedor
-            const user = window.currentUser || {};
-            const nombre = (user.nombre || user.name || '').toString().toLowerCase()
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'tienda';
-            const apellido = (user.apellido || user.lastName || '').toString().toLowerCase()
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || '';
-            const rand7 = Math.floor(1000000 + Math.random() * 9000000);
-            const slugId = (apellido ? nombre + '-' + apellido : nombre) + '-' + rand7;
-
-            const payload = {
-                slugId,
-                codigoVendedor: codigo,
-                cat,
-                cfg: cfgFull,
-                promo
-            };
-
-            // 🔧 FIX: el código de revendedor NUNCA debe terminar visible en el
-            // enlace, y tampoco se debe mostrar ningún error al revendedor —
-            // si el Worker falla (caída momentánea, red lenta, etc.) hay que
-            // seguir reintentando SOLO hasta que funcione, sin abandonar.
-            // Espera creciente entre intentos (0.5s, 1s, 2s, 3s... hasta un
-            // techo de 5s) para no saturar el servidor, pero nunca se rinde.
-            let intento = 0;
-            while (true) {
-                try {
-                    const res = await fetch(WORKER_SLUG_BASE + '/slug', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!res.ok) throw new Error('slug fail');
-                    // Si el Worker/base de datos devuelve su propio identificador
-                    // (por ejemplo tras resolver una colisión), se usa ESE en vez
-                    // del propuesto por el cliente — la base de datos manda.
-                    let slugFinal = slugId;
-                    try {
-                        const data = await res.json();
-                        if (data && (data.slugId || data.slug || data.id)) {
-                            slugFinal = data.slugId || data.slug || data.id;
-                        }
-                    } catch(_) {}
-                    const urlCorta = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?s=' + slugFinal;
-                    window._enlacesCortosCache[cat] = urlCorta;
-                    return urlCorta;
-                } catch(e) {
-                    intento++;
-                    const espera = Math.min(500 * intento, 5000);
-                    await new Promise(r => setTimeout(r, espera));
-                }
-            }
+            const slugId = armarSlugRevendedor();
+            const urlCorta = construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo);
+            window._enlacesCortosCache[cat] = urlCorta;
+            return urlCorta;
         }
 
         window.tienePromoCat = function(cat) {
@@ -10156,7 +10153,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             } else {
                 lista.innerHTML = cats.map((cat, idx) => {
                     const cfg = tiendas[cat];
-                    const label = cat === 'perfumes' ? '🌹 Perfumes árabes'
+                    const label = cat === 'perfumes' ? '🌹 Perfumería'
                                 : cat === 'calzados' ? '👟 Calzados'
                                 : '📦 ' + cat;
                     const nombre = (cfg && cfg.nombreTienda) ? cfg.nombreTienda
