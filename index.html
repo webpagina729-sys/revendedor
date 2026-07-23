@@ -4963,6 +4963,16 @@
           { id: 50349, nombre: "USHAS LIQ EYESHA BRIG HIGHLI LG1930-07", imagen: MAQUILLAJE_REPO_BASE + "ushasliq.png", imagenes: [MAQUILLAJE_REPO_BASE + "ushasliq.png"], precio: 3040, precioOriginal: 6019, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
         ];
 
+        // Combinación de Perfumería + Maquillaje para la categoría
+        // "Belleza y Cuidado Personal". Se generan copias superficiales de
+        // los productos de perfumería (mismos ids/precios/base) marcadas con
+        // _origin:"perfume" para poder resolver la imagen desde el origen
+        // correcto sin tocar la sección de Perfumería original.
+        window.productsBelleza = [
+            ...window.products.map(p => ({ ...p, _origin: p._origin || 'perfume' })),
+            ...window.productsMaquillaje
+        ];
+
         // Agregar categoría 'adultos' a todos los productos de zapatillas
         window.shoes.forEach(shoe => {
             if (!shoe.categoria) {
