@@ -3291,25 +3291,25 @@
                 </div>
             </div>
 
-            <!-- NICHO 2: DE TODO -->
+            <!-- NICHO 2: BELLEZA Y CUIDADO PERSONAL -->
             <div class="nicho-item">
                 <div class="nicho-info">
-                    <h3 class="nicho-title">Multishop</h3>
-                    <p class="nicho-subtitle">Bazar • Perfumería • Belleza • Herramientas. Accede a múltiples categorías de productos en una sola opción. Expande tu catálogo con variedad.</p>
+                    <h3 class="nicho-title">Belleza y Cuidado Personal</h3>
+                    <p class="nicho-subtitle">PERFUMERÍA + MAQUILLAJE</p>
                 </div>
 
-                <!-- GRID DE IMÁGENES MULTISHOP -->
-                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0;">
-                    <img src="multiuno.png" alt="Multishop 1" style="width:100%;aspect-ratio:1 / 1;object-fit:cover;object-position:center;border-radius:8px;display:block;" loading="lazy">
-                    <img src="multidos.png" alt="Multishop 2" style="width:100%;aspect-ratio:1 / 1;object-fit:cover;object-position:center;border-radius:8px;display:block;" loading="lazy">
-                    <img src="multitres.png" alt="Multishop 3" style="width:100%;aspect-ratio:1 / 1;object-fit:cover;object-position:center;border-radius:8px;display:block;" loading="lazy">
-                    <img src="multicuatro.png" alt="Multishop 4" style="width:100%;aspect-ratio:1 / 1;object-fit:cover;object-position:center;border-radius:8px;display:block;" loading="lazy">
+                <!-- CARRUSEL ANCHO (mismo estilo que Perfumería / Calzados) -->
+                <div class="carrusel-container" id="carrusel-container-belleza">
+                    <div class="carrusel-wrapper" id="carrusel-wrapper-belleza"></div>
+                    <button class="carrusel-nav carrusel-prev" onclick="carruselAnteriorBelleza()" title="Anterior">‹</button>
+                    <button class="carrusel-nav carrusel-next" onclick="carruselSiguienteBelleza()" title="Siguiente">›</button>
+                    <div class="carrusel-dots" id="carrusel-dots-belleza"></div>
                 </div>
 
                 <!-- BADGE + BOTÓN -->
                 <div class="nicho-footer">
-                    <div class="nicho-badge">💰 Monto mínimo: $200.000</div>
-                    <button class="nicho-button" type="button" id="multishop-proximamente-btn">Comenzar próximo pedido en este lugar</button>
+                    <div class="nicho-badge">💰 Monto mínimo: $150.000</div>
+                    <button class="nicho-button" type="button" onclick="abrirModalCodigo('belleza')">Comenzar próximo pedido en este lugar</button>
                 </div>
             </div>
 
@@ -4176,6 +4176,14 @@
         // Usar ruta local para imágenes
         const BASE_URL = window.location.origin;
         const BASE_IMAGE_URL = BASE_URL + '/';
+        // Resuelve URLs de imagen tolerando productos cuyo campo `imagen`
+        // ya es una URL absoluta (p. ej. maquillaje servido desde GitHub).
+        function resolveImgUrl(imagen) {
+            if (!imagen) return '';
+            if (/^https?:\/\//i.test(imagen)) return imagen;
+            return BASE_IMAGE_URL + imagen;
+        }
+
         
         // ✅ Hacer global para evitar problemas de scope
         window.products = [
@@ -4597,6 +4605,364 @@
             { id: 336, nombre: "LOUIS VUITTON", imagen: "lv.png", precio: 37000, precioOriginal: 73260, talle: ["35","36","37","38","39","40","41","42","43","44"], categoria: "adultos", categorias: ["zapatillas","urbanas-g5","adultos"], caracteristicas: ["zapatilla importada G5","adulto","estilo luxury streetwear","diseño LV"], info: "Zapatilla importada G5 estilo Louis Vuitton, diseño luxury streetwear premium.", momento: "salidas / eventos / todo el año" }
         ];
 
+        // ===== BELLEZA Y CUIDADO PERSONAL =====
+        // Base URL pública del repo externo de Maquillaje (imágenes servidas
+        // directamente desde GitHub, sin copiarlas al repo principal).
+        const MAQUILLAJE_REPO_BASE = "https://raw.githubusercontent.com/webpagina729-sys/Maquillaje/main/";
+
+        window.productsMaquillaje = [
+          { id: 50000, nombre: "SANIYE KISS LIP TINT L1364", imagen: MAQUILLAJE_REPO_BASE + "liptint.png", imagenes: [MAQUILLAJE_REPO_BASE + "liptint.png", MAQUILLAJE_REPO_BASE + "liptintdos.png", MAQUILLAJE_REPO_BASE + "liptinttres.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5", "#6"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50001, nombre: "RUBYROSE SUN KISS HB-M200", imagen: MAQUILLAJE_REPO_BASE + "sunkiss.png", imagenes: [MAQUILLAJE_REPO_BASE + "sunkiss.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["Light-Medium", "Medium", "Medium-Tan", "Tan"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50002, nombre: "RUBYROSE POPSTAR ICONIC HB-L6700", imagen: MAQUILLAJE_REPO_BASE + "popstar.png", imagenes: [MAQUILLAJE_REPO_BASE + "popstar.png"], precio: 2090, precioOriginal: 4138, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50003, nombre: "RUBYROSE CREAMY CHEEKS HB-M02", imagen: MAQUILLAJE_REPO_BASE + "creamy.png", imagenes: [MAQUILLAJE_REPO_BASE + "creamy.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50004, nombre: "RUBYROSE LIP LUXE HB-L6000", imagen: MAQUILLAJE_REPO_BASE + "lipluxe.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipluxe.png"], precio: 3800, precioOriginal: 7524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50005, nombre: "GEGE BEAR WATER GLOSS LIP GLAZE GX1138", imagen: MAQUILLAJE_REPO_BASE + "lipgloss.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipgloss.png", MAQUILLAJE_REPO_BASE + "lipglossdos.png"], precio: 4625, precioOriginal: 9158, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5", "#6"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50006, nombre: "COLLAGEN CRYSTAL EYE MASK HT-961", imagen: MAQUILLAJE_REPO_BASE + "collagen.png", imagenes: [MAQUILLAJE_REPO_BASE + "collagen.png"], precio: 975, precioOriginal: 1930, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50007, nombre: "TEI BUNNY HIGLIGHTING SETTING SPRAY TEI8213", imagen: MAQUILLAJE_REPO_BASE + "spray.png", imagenes: [MAQUILLAJE_REPO_BASE + "spray.png"], precio: 3705, precioOriginal: 7336, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50008, nombre: "RUBY ROSE DOPA MINE SHY CHEEKS HB-F1002", imagen: MAQUILLAJE_REPO_BASE + "dopamine.png", imagenes: [MAQUILLAJE_REPO_BASE + "dopamine.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5", "#6"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50009, nombre: "RUBYROSE DUO KISS HB-L6203", imagen: MAQUILLAJE_REPO_BASE + "duokiss.png", imagenes: [MAQUILLAJE_REPO_BASE + "duokiss.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5", "#6"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50010, nombre: "RUBYROSE POPSTAR EYES DONT LIE HB-E2101", imagen: MAQUILLAJE_REPO_BASE + "popstarb.png", imagenes: [MAQUILLAJE_REPO_BASE + "popstarb.png"], precio: 3800, precioOriginal: 7524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50011, nombre: "ELOISE FOUNDATION SUPER STAR EL1035", imagen: MAQUILLAJE_REPO_BASE + "foundation.png", imagenes: [MAQUILLAJE_REPO_BASE + "foundation.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50012, nombre: "ELOISE KISS LOVE LIP GLOSS EL1008", imagen: MAQUILLAJE_REPO_BASE + "lipglossb.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossb.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5", "#6"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50013, nombre: "SOMBRA SUCH A PALETTE RUBYROSE HB-1078", imagen: MAQUILLAJE_REPO_BASE + "sombra.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombra.png"], precio: 5550, precioOriginal: 10989, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["SugarParty", "CheekyPlum", "CheeryLady", "Forever Pink", "Rich Peach", "Souch a Bomb"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50014, nombre: "LIPSTICK DUO RUBYROSE HB-8607", imagen: MAQUILLAJE_REPO_BASE + "lipstick.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipstick.png"], precio: 4810, precioOriginal: 9524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["075", "370", "367", "365", "362", "361", "360", "359"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50015, nombre: "TEI NATURAL ACIDO HIALURONICO TEI8006", imagen: MAQUILLAJE_REPO_BASE + "acidohialuro.png", imagenes: [MAQUILLAJE_REPO_BASE + "acidohialuro.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50016, nombre: "BRILLO LABIAL PATA DE GATO L3826", imagen: MAQUILLAJE_REPO_BASE + "labial.png", imagenes: [MAQUILLAJE_REPO_BASE + "labial.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50017, nombre: "GEGE BEAR CONEJO LIPGLOSS GLAZE GX1088", imagen: MAQUILLAJE_REPO_BASE + "lipglossc.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossc.png"], precio: 5365, precioOriginal: 10623, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50018, nombre: "LIP GLAZE MAGIC HELADO TEI8117", imagen: MAQUILLAJE_REPO_BASE + "lipglossd.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossd.png"], precio: 2660, precioOriginal: 5267, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50019, nombre: "TEI BLUSH JELLY TINT TEI8153", imagen: MAQUILLAJE_REPO_BASE + "blush.png", imagenes: [MAQUILLAJE_REPO_BASE + "blush.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50020, nombre: "ELOISE SWEET HEART LIQUID CONCEALER 2IN1 EL1030", imagen: MAQUILLAJE_REPO_BASE + "concealer.png", imagenes: [MAQUILLAJE_REPO_BASE + "concealer.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50021, nombre: "LIP OIL POPSTAR GIMME BLING RUBYROSE HB-L6507", imagen: MAQUILLAJE_REPO_BASE + "lipoil.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipoil.png"], precio: 6039, precioOriginal: 11957, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50022, nombre: "LIP GLOSS SILK SKIN DREAMY LIPS RUBYROSE HB-F7200", imagen: MAQUILLAJE_REPO_BASE + "lipglosse.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglosse.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50023, nombre: "JUICY LIPGLOSS FEBBLE LG2524A", imagen: MAQUILLAJE_REPO_BASE + "lipglossf.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossf.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#7", "#8", "#11"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50024, nombre: "DELINEADOR LIQUIDO RUBYROSE HB-090", imagen: MAQUILLAJE_REPO_BASE + "delineador.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineador.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50025, nombre: "RUBYROSE PURE PORCELAIN HB-M401", imagen: MAQUILLAJE_REPO_BASE + "pureporcelai.png", imagenes: [MAQUILLAJE_REPO_BASE + "pureporcelai.png"], precio: 5365, precioOriginal: 10623, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["P10", "P20", "P30", "P40"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50026, nombre: "SANIYE SOFT MATTE R6001", imagen: MAQUILLAJE_REPO_BASE + "softmatte.png", imagenes: [MAQUILLAJE_REPO_BASE + "softmatte.png"], precio: 7644, precioOriginal: 15135, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50027, nombre: "ELOISE POLVO TRANSLUCIDO SOFT EL1041", imagen: MAQUILLAJE_REPO_BASE + "polvo.png", imagenes: [MAQUILLAJE_REPO_BASE + "polvo.png"], precio: 6222, precioOriginal: 12320, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50028, nombre: "GEGE BEAR LIP GLOSS GX1163", imagen: MAQUILLAJE_REPO_BASE + "lipglossg.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossg.png"], precio: 4625, precioOriginal: 9158, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50029, nombre: "SOMBRA RUEDA CANDYCRUSH RUBYROSE HB-1075", imagen: MAQUILLAJE_REPO_BASE + "sombrab.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrab.png", MAQUILLAJE_REPO_BASE + "sombrabdos.png", MAQUILLAJE_REPO_BASE + "sombrabtres.png", MAQUILLAJE_REPO_BASE + "sombrabcuatro.png", MAQUILLAJE_REPO_BASE + "sombrabcinco.png", MAQUILLAJE_REPO_BASE + "sombrabseis.png", MAQUILLAJE_REPO_BASE + "sombrabsiete.png", MAQUILLAJE_REPO_BASE + "sombrabocho.png", MAQUILLAJE_REPO_BASE + "sombrabnueve.png"], precio: 7462, precioOriginal: 14775, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["MINT MOOD", "DREAMIN LILAC", "CANDY CRUSH", "FALL IN LOVE", "SUEATER WEATHE", "LET IT RAIN", "ADORE YOU", "OBSESSED", "I LOVE ME"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50030, nombre: "FEELS MOOD DELINEADOR LIQUIDO HB-511", imagen: MAQUILLAJE_REPO_BASE + "delineadorb.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadorb.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50031, nombre: "LABIAL DOBLE MOOD RUBYROSE HB-8614", imagen: MAQUILLAJE_REPO_BASE + "labialb.png", imagenes: [MAQUILLAJE_REPO_BASE + "labialb.png"], precio: 6222, precioOriginal: 12320, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50032, nombre: "TEI ILUMINADOR LIQIOLO T/BIONETA TEI8185", imagen: MAQUILLAJE_REPO_BASE + "ilumina.png", imagenes: [MAQUILLAJE_REPO_BASE + "ilumina.png"], precio: 3040, precioOriginal: 6019, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50033, nombre: "RUBY ROSE OBSIDIAN PALETA DE SOMBRA HB-2601", imagen: MAQUILLAJE_REPO_BASE + "sombrac.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrac.png"], precio: 15573, precioOriginal: 30835, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50034, nombre: "RUBYROSE PO COMPACTO TEXTU/ACETINADA HB-858 G1", imagen: MAQUILLAJE_REPO_BASE + "compacto.png", imagenes: [MAQUILLAJE_REPO_BASE + "compacto.png"], precio: 5550, precioOriginal: 10989, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["P10", "P20", "P30", "P40", "P50"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50035, nombre: "DELINEADOR JIAYAN BEAUTY EYELINER WATERPROOF 204", imagen: MAQUILLAJE_REPO_BASE + "delineadorc.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadorc.png"], precio: 1462, precioOriginal: 2895, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50036, nombre: "GEGE BEAR MAGIC BOW LIP GLOSS GX1006", imagen: MAQUILLAJE_REPO_BASE + "bowl.png", imagenes: [MAQUILLAJE_REPO_BASE + "bowl.png"], precio: 3800, precioOriginal: 7524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50037, nombre: "SOFT MATTE BASE LIQUIDA BRGE 2 HB-8050", imagen: MAQUILLAJE_REPO_BASE + "base.png", imagenes: [MAQUILLAJE_REPO_BASE + "base.png"], precio: 4810, precioOriginal: 9524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50038, nombre: "DELINEADOR LIQUIDO MELU RUBYROSE HB-094", imagen: MAQUILLAJE_REPO_BASE + "delineadord.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadord.png"], precio: 3230, precioOriginal: 6395, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50039, nombre: "TEI LIP GLAZE TEI8051", imagen: MAQUILLAJE_REPO_BASE + "lipglossh.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossh.png"], precio: 3040, precioOriginal: 6019, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50040, nombre: "RUBY ROSE BROW PERFECTION HB-E2501", imagen: MAQUILLAJE_REPO_BASE + "browperfecti.png", imagenes: [MAQUILLAJE_REPO_BASE + "browperfecti.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5", "#6"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50041, nombre: "RUBYROSE SHINE STONE HB-M702", imagen: MAQUILLAJE_REPO_BASE + "shinestone.png", imagenes: [MAQUILLAJE_REPO_BASE + "shinestone.png"], precio: 4995, precioOriginal: 9890, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50042, nombre: "RUBYROSE GLASS ILUMINADOR BAKED HB-F1604", imagen: MAQUILLAJE_REPO_BASE + "iluminab.png", imagenes: [MAQUILLAJE_REPO_BASE + "iluminab.png"], precio: 6222, precioOriginal: 12320, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50043, nombre: "RUBYROSE POPSTAR BOMBASTIC HB-E2004", imagen: MAQUILLAJE_REPO_BASE + "popstarc.png", imagenes: [MAQUILLAJE_REPO_BASE + "popstarc.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50044, nombre: "ELOISE LIP OIL PLUMP EFFECT EL1009", imagen: MAQUILLAJE_REPO_BASE + "lipoilb.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipoilb.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50045, nombre: "ELOISE VELVET LIPGLOSS SUPERSTAR MATTEINK EL1068", imagen: MAQUILLAJE_REPO_BASE + "lipglossi.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossi.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50046, nombre: "ELOISE MATTE BLUSHER SWEET COLOR ON EL1060", imagen: MAQUILLAJE_REPO_BASE + "blushb.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushb.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50047, nombre: "ELOISE EYESHADOW LOOSE EL1055", imagen: MAQUILLAJE_REPO_BASE + "eyeshadow.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyeshadow.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50048, nombre: "ELOISE BLUSHER STICK EL1057", imagen: MAQUILLAJE_REPO_BASE + "blushc.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushc.png"], precio: 4995, precioOriginal: 9890, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50049, nombre: "ELOISE CORRECTOR MAXXI STAY EL1031", imagen: MAQUILLAJE_REPO_BASE + "corrector.png", imagenes: [MAQUILLAJE_REPO_BASE + "corrector.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50050, nombre: "PALETA DE SOMBRAS ELEMENTS BREEZY FLOOD RUBYROSE HB-F535/HB-F536", imagen: MAQUILLAJE_REPO_BASE + "sombrad.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrad.png"], precio: 7137, precioOriginal: 14131, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50051, nombre: "SKIN PERFECT PRIMER FACIAL HB-8086", imagen: MAQUILLAJE_REPO_BASE + "primer.png", imagenes: [MAQUILLAJE_REPO_BASE + "primer.png"], precio: 6954, precioOriginal: 13769, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50052, nombre: "MINI TANGO RUBOR EN BARRA SH240606 AC-240606", imagen: MAQUILLAJE_REPO_BASE + "rubor.png", imagenes: [MAQUILLAJE_REPO_BASE + "rubor.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50053, nombre: "GEGEBEAR CUTE RABBIT VELVET LIP MUD GX1075", imagen: MAQUILLAJE_REPO_BASE + "gegebear.png", imagenes: [MAQUILLAJE_REPO_BASE + "gegebear.png"], precio: 5365, precioOriginal: 10623, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50054, nombre: "GEGE BEAR JELLY FLAVOVER SOLID LIP GLOSS GX1202", imagen: MAQUILLAJE_REPO_BASE + "lipglossj.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossj.png"], precio: 3800, precioOriginal: 7524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50055, nombre: "PEGAMENTO EYE AF10650", imagen: MAQUILLAJE_REPO_BASE + "pegamento.png", imagenes: [MAQUILLAJE_REPO_BASE + "pegamento.png"], precio: 1755, precioOriginal: 3475, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50056, nombre: "SHINY LIP GLAZE TEI8116", imagen: MAQUILLAJE_REPO_BASE + "lipglossk.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossk.png"], precio: 2090, precioOriginal: 4138, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50057, nombre: "TEL COSMETICA CONTOURING STICK TEI8014", imagen: MAQUILLAJE_REPO_BASE + "contour.png", imagenes: [MAQUILLAJE_REPO_BASE + "contour.png"], precio: 3705, precioOriginal: 7336, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50058, nombre: "TEI VOLUME MASCARA TEI8071", imagen: MAQUILLAJE_REPO_BASE + "mascara.png", imagenes: [MAQUILLAJE_REPO_BASE + "mascara.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50059, nombre: "TEI VEVET LIP GLOSS TEI8046", imagen: MAQUILLAJE_REPO_BASE + "lipglossl.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossl.png"], precio: 3420, precioOriginal: 6772, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50060, nombre: "TEI LIQUID HIGHLIGHT TEI8093", imagen: MAQUILLAJE_REPO_BASE + "liquid.png", imagenes: [MAQUILLAJE_REPO_BASE + "liquid.png"], precio: 4162, precioOriginal: 8241, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50061, nombre: "MASCARA EXTENCION ELOISE EL1104", imagen: MAQUILLAJE_REPO_BASE + "mascarab.png", imagenes: [MAQUILLAJE_REPO_BASE + "mascarab.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50062, nombre: "RUBYROSE LATTE MACCHIATO HB-F531", imagen: MAQUILLAJE_REPO_BASE + "lattemacchia.png", imagenes: [MAQUILLAJE_REPO_BASE + "lattemacchia.png"], precio: 7320, precioOriginal: 14494, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50063, nombre: "RUBYROSE SOFT FOCUS TINT BLUR HB-L6601", imagen: MAQUILLAJE_REPO_BASE + "softfocus.png", imagenes: [MAQUILLAJE_REPO_BASE + "softfocus.png"], precio: 3800, precioOriginal: 7524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50064, nombre: "SANIYE SOMBRA/GEL PARA CEJAS 24H M250", imagen: MAQUILLAJE_REPO_BASE + "sombrae.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrae.png"], precio: 5856, precioOriginal: 11595, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5", "#6"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50065, nombre: "GEGE BEAR LABIAL DE COLOR CRISTALINO GX1185", imagen: MAQUILLAJE_REPO_BASE + "labialc.png", imagenes: [MAQUILLAJE_REPO_BASE + "labialc.png"], precio: 6039, precioOriginal: 11957, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50066, nombre: "GEGE BEAR MILK VELVET LIP GLAZE GX1155", imagen: MAQUILLAJE_REPO_BASE + "lipglossm.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossm.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50067, nombre: "FEELS MOOD BASE SERUM GROUP 2 HB-900", imagen: MAQUILLAJE_REPO_BASE + "baseb.png", imagenes: [MAQUILLAJE_REPO_BASE + "baseb.png"], precio: 4810, precioOriginal: 9524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50068, nombre: "PREP PRIME SPRAY PINKWISH RUBYROSE HB-602", imagen: MAQUILLAJE_REPO_BASE + "sprayb.png", imagenes: [MAQUILLAJE_REPO_BASE + "sprayb.png"], precio: 8918, precioOriginal: 17658, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["Pink Wish", "Gold Wish"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50069, nombre: "LIPGLOSS OBSIDIAN RUBYROSE HB-7200", imagen: MAQUILLAJE_REPO_BASE + "lipglossn.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossn.png"], precio: 4070, precioOriginal: 8059, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50070, nombre: "HIGHLIGHT ILUMINADOR GLOW TRIO RUBYROSE HB-7523", imagen: MAQUILLAJE_REPO_BASE + "iluminac.png", imagenes: [MAQUILLAJE_REPO_BASE + "iluminac.png"], precio: 6771, precioOriginal: 13407, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50071, nombre: "TEI LUNAR GLOW HIGHLIGHTER TEI8107", imagen: MAQUILLAJE_REPO_BASE + "lunarglow.png", imagenes: [MAQUILLAJE_REPO_BASE + "lunarglow.png"], precio: 5673, precioOriginal: 11233, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["Pink"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50072, nombre: "RUBYROSE POPSTAR CIRLS CULTURE HB-L6204", imagen: MAQUILLAJE_REPO_BASE + "popstard.png", imagenes: [MAQUILLAJE_REPO_BASE + "popstard.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5", "#6"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50073, nombre: "PALETA DE SOMBRAS FALLING LEAVES RUBYROSE HB-F539", imagen: MAQUILLAJE_REPO_BASE + "sombraf.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombraf.png"], precio: 12600, precioOriginal: 24948, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50074, nombre: "RUBYROSE PINK CHERRY HB-E2202", imagen: MAQUILLAJE_REPO_BASE + "pinkcherry.png", imagenes: [MAQUILLAJE_REPO_BASE + "pinkcherry.png"], precio: 8554, precioOriginal: 16937, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50075, nombre: "ELOISE EYESHADOW PLATE EL1050", imagen: MAQUILLAJE_REPO_BASE + "eyeshadowb.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyeshadowb.png"], precio: 4810, precioOriginal: 9524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50076, nombre: "ELOISE EYESHADOW PALETTE 11COLOR SERIES EL1051", imagen: MAQUILLAJE_REPO_BASE + "eyeshadowc.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyeshadowc.png"], precio: 7462, precioOriginal: 14775, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50077, nombre: "PALETA DE SOMBRAS MYST AURA RUBYROSE HB-E2203", imagen: MAQUILLAJE_REPO_BASE + "sombrag.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrag.png"], precio: 9100, precioOriginal: 18018, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50078, nombre: "ILUMINADOR CREMOSO MARBLE GLOW RUBYROSE RR-F860", imagen: MAQUILLAJE_REPO_BASE + "iluminad.png", imagenes: [MAQUILLAJE_REPO_BASE + "iluminad.png"], precio: 5365, precioOriginal: 10623, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["BEACH SUNSET", "NEON LIGHTS", "SPACE CRUISER", "STARDUST"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50079, nombre: "RUBY ROSE LIP GLOW OLEO LABIAL LIP OILHB-L6502", imagen: MAQUILLAJE_REPO_BASE + "labiald.png", imagenes: [MAQUILLAJE_REPO_BASE + "labiald.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50080, nombre: "EYESHADOW GLITTER 10CLRS SHAS ES4199", imagen: MAQUILLAJE_REPO_BASE + "eyeshadowd.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyeshadowd.png"], precio: 6405, precioOriginal: 12682, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50081, nombre: "ELOISE MASCARA NEGRA EL1019", imagen: MAQUILLAJE_REPO_BASE + "mascarac.png", imagenes: [MAQUILLAJE_REPO_BASE + "mascarac.png"], precio: 6039, precioOriginal: 11957, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50082, nombre: "CONTORNO EN POLVO BM0050", imagen: MAQUILLAJE_REPO_BASE + "polvob.png", imagenes: [MAQUILLAJE_REPO_BASE + "polvob.png"], precio: 11340, precioOriginal: 22453, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50083, nombre: "PALETA CORRECTOR BM0051", imagen: MAQUILLAJE_REPO_BASE + "paleta.png", imagenes: [MAQUILLAJE_REPO_BASE + "paleta.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50084, nombre: "CORRECTOR DOBLE FEELS HB-8101", imagen: MAQUILLAJE_REPO_BASE + "correctorb.png", imagenes: [MAQUILLAJE_REPO_BASE + "correctorb.png"], precio: 4810, precioOriginal: 9524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50085, nombre: "DELINEADOR 2IN1 SKY ROMANTIC RAIN R1908", imagen: MAQUILLAJE_REPO_BASE + "delineadore.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadore.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50086, nombre: "GLOSS + BATOMLIQUIDO MOOD DUO RUBYROSE HB-F569", imagen: MAQUILLAJE_REPO_BASE + "gloss.png", imagenes: [MAQUILLAJE_REPO_BASE + "gloss.png"], precio: 6039, precioOriginal: 11957, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50087, nombre: "LIQUID LIPSTICK FEELS RUBYROSE HB-8225", imagen: MAQUILLAJE_REPO_BASE + "lipstickb.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipstickb.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#364", "#363", "#362", "#360", "#359", "#357"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50088, nombre: "LIP GLOSS LIP SEUM USHAS UC013", imagen: MAQUILLAJE_REPO_BASE + "lipglosso.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglosso.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50089, nombre: "HOLD MORNING LIPGLOSS LAPICERA KITTY HL5704 MJ91", imagen: MAQUILLAJE_REPO_BASE + "lipglossp.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossp.png"], precio: 2470, precioOriginal: 4891, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50090, nombre: "MASCARA FIREW ORK TEI8068", imagen: MAQUILLAJE_REPO_BASE + "mascarad.png", imagenes: [MAQUILLAJE_REPO_BASE + "mascarad.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50091, nombre: "TEI UP TO 24HR WEAR WATER PROOF TEI8163", imagen: MAQUILLAJE_REPO_BASE + "wearwater.png", imagenes: [MAQUILLAJE_REPO_BASE + "wearwater.png"], precio: 3135, precioOriginal: 6207, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["01"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50092, nombre: "TEI COSMETICA HIGHLIGHT TEI8098", imagen: MAQUILLAJE_REPO_BASE + "cosmetica.png", imagenes: [MAQUILLAJE_REPO_BASE + "cosmetica.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50093, nombre: "USHAS BEAUTYLINE DELINEADOR 5104B", imagen: MAQUILLAJE_REPO_BASE + "delineadorf.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadorf.png"], precio: 1950, precioOriginal: 3861, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50094, nombre: "OFERTAUSHAS GLUE EYELINER ROSA TP361F", imagen: MAQUILLAJE_REPO_BASE + "eyeliner.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyeliner.png"], precio: 2660, precioOriginal: 5267, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50095, nombre: "RUBY ROSE DEAMY CHEEKS BLU/CRE/STI HB-M01", imagen: MAQUILLAJE_REPO_BASE + "deamycheeks.png", imagenes: [MAQUILLAJE_REPO_BASE + "deamycheeks.png"], precio: 5856, precioOriginal: 11595, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50096, nombre: "RUBYROSE SILK SKIN MARBLE BLOOM HB-F1001", imagen: MAQUILLAJE_REPO_BASE + "silkskin.png", imagenes: [MAQUILLAJE_REPO_BASE + "silkskin.png"], precio: 6405, precioOriginal: 12682, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["VELVET TAUPE", "SOFT SUEDE", "PURE HONEY", "PINK ECLAT", "BERRY BLOOM"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50097, nombre: "RUBYROSE POPSTAR PARTY TIME GLOSS LABIA HB-L6406", imagen: MAQUILLAJE_REPO_BASE + "glossb.png", imagenes: [MAQUILLAJE_REPO_BASE + "glossb.png"], precio: 4995, precioOriginal: 9890, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50098, nombre: "RUBYROSE SHINE INK GLOSS TINT HB-L6600", imagen: MAQUILLAJE_REPO_BASE + "glossc.png", imagenes: [MAQUILLAJE_REPO_BASE + "glossc.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50099, nombre: "ELOISE RIMEL TRANSPARENTE EL1021", imagen: MAQUILLAJE_REPO_BASE + "rimeltranspa.png", imagenes: [MAQUILLAJE_REPO_BASE + "rimeltranspa.png"], precio: 3230, precioOriginal: 6395, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50100, nombre: "ELOISE LIQUID CONCEALER 24H COVER EL1033", imagen: MAQUILLAJE_REPO_BASE + "concealerb.png", imagenes: [MAQUILLAJE_REPO_BASE + "concealerb.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50101, nombre: "ELOISE EYESHADOW SOMBRA OSO EL1045", imagen: MAQUILLAJE_REPO_BASE + "sombrah.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrah.png"], precio: 5550, precioOriginal: 10989, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50102, nombre: "ELOISE EYESHADOW BLUSHER SOMBRA Y RUBOR EL1044", imagen: MAQUILLAJE_REPO_BASE + "ruborb.png", imagenes: [MAQUILLAJE_REPO_BASE + "ruborb.png"], precio: 3800, precioOriginal: 7524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50103, nombre: "ELOISE EYELINER 24 HOURS EL1067", imagen: MAQUILLAJE_REPO_BASE + "eyelinerb.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyelinerb.png"], precio: 4995, precioOriginal: 9890, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50104, nombre: "ELOISE EYELINE PENCIL ROSA EL1069", imagen: MAQUILLAJE_REPO_BASE + "eyeline.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyeline.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50105, nombre: "RUBY ROSE ALL-IN-ONE PALETA DE BRONZER HB-M1002", imagen: MAQUILLAJE_REPO_BASE + "paletab.png", imagenes: [MAQUILLAJE_REPO_BASE + "paletab.png"], precio: 10800, precioOriginal: 21384, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50106, nombre: "PALETA DE CONTORNO BLUSH ILUMINADOR SILK SKIN PERFECT PALETTE RUBYROSE HB-M1003-1", imagen: MAQUILLAJE_REPO_BASE + "paletac.png", imagenes: [MAQUILLAJE_REPO_BASE + "paletac.png"], precio: 8736, precioOriginal: 17297, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50107, nombre: "PALETA DE SOMBRAS ASTRAL ESSENCE RUBYROSE HB-F2601", imagen: MAQUILLAJE_REPO_BASE + "sombrai.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrai.png"], precio: 13604, precioOriginal: 26936, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50108, nombre: "ILUMINADOR Y RUBOR 36H 760-9", imagen: MAQUILLAJE_REPO_BASE + "ruborc.png", imagenes: [MAQUILLAJE_REPO_BASE + "ruborc.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50109, nombre: "GOLD GREM SIRENA 3375", imagen: MAQUILLAJE_REPO_BASE + "goldgrem.png", imagenes: [MAQUILLAJE_REPO_BASE + "goldgrem.png"], precio: 1755, precioOriginal: 3475, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50110, nombre: "DELINEADOR USHAS SHINY EYELINER TP319", imagen: MAQUILLAJE_REPO_BASE + "delineadorg.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadorg.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50111, nombre: "DELINEADOR DE CEJA MLUNDO MARRON", imagen: MAQUILLAJE_REPO_BASE + "delineadorh.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadorh.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50112, nombre: "CORRECTOR MISS BETTY HD FULL COVER F3865", imagen: MAQUILLAJE_REPO_BASE + "correctorc.png", imagenes: [MAQUILLAJE_REPO_BASE + "correctorc.png"], precio: 2660, precioOriginal: 5267, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50113, nombre: "GEGE BEAR CRYSTAL FROZEN LABIAL GX1129", imagen: MAQUILLAJE_REPO_BASE + "labiale.png", imagenes: [MAQUILLAJE_REPO_BASE + "labiale.png"], precio: 5180, precioOriginal: 10256, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50114, nombre: "GEGE BEAR LIGHT COLOR DOUBLE LIP GLOSS GX1253", imagen: MAQUILLAJE_REPO_BASE + "lipglossq.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossq.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50115, nombre: "PALETA SOMBRA CORAZON BM0004", imagen: MAQUILLAJE_REPO_BASE + "sombrak.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrak.png"], precio: 8736, precioOriginal: 17297, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50116, nombre: "PALETA SOMBRA BM0020", imagen: MAQUILLAJE_REPO_BASE + "sombral.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombral.png"], precio: 13425, precioOriginal: 26582, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50117, nombre: "POLVO COMPACTO STAY FIX RUBYROSE HB-857", imagen: MAQUILLAJE_REPO_BASE + "polvoc.png", imagenes: [MAQUILLAJE_REPO_BASE + "polvoc.png"], precio: 5550, precioOriginal: 10989, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50118, nombre: "PALETA SOMBRA + RUBOR BM0016", imagen: MAQUILLAJE_REPO_BASE + "rubord.png", imagenes: [MAQUILLAJE_REPO_BASE + "rubord.png"], precio: 17542, precioOriginal: 34733, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50119, nombre: "LABIAL CREAM TINT RUBYROSE HB-8233", imagen: MAQUILLAJE_REPO_BASE + "labialf.png", imagenes: [MAQUILLAJE_REPO_BASE + "labialf.png"], precio: 5365, precioOriginal: 10623, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50120, nombre: "ALTA COBERTURA CORRECTIVO LIQUID/CONC HB-8092", imagen: MAQUILLAJE_REPO_BASE + "altacobertur.png", imagenes: [MAQUILLAJE_REPO_BASE + "altacobertur.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50121, nombre: "POLVO COMPACTO OBSIDIAN HB-1800", imagen: MAQUILLAJE_REPO_BASE + "polvod.png", imagenes: [MAQUILLAJE_REPO_BASE + "polvod.png"], precio: 6588, precioOriginal: 13044, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50122, nombre: "RUBOR DUO OBSIDIAN RUBYROSE HB-1000", imagen: MAQUILLAJE_REPO_BASE + "rubore.png", imagenes: [MAQUILLAJE_REPO_BASE + "rubore.png"], precio: 8645, precioOriginal: 17117, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50123, nombre: "USHAS SILKY LIP GLOSS UC025", imagen: MAQUILLAJE_REPO_BASE + "lipglossr.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossr.png"], precio: 2470, precioOriginal: 4891, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50124, nombre: "OFERTA??????JUICY LIPGLOSS FEBBLE LG2524A", imagen: MAQUILLAJE_REPO_BASE + "lipglosss.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglosss.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50125, nombre: "MISS BETTY BEAUTY LIPSTICK 37166 K3716", imagen: MAQUILLAJE_REPO_BASE + "lipstickc.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipstickc.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50126, nombre: "LAPIZ DR LABIOS LIP BLAM BM0044", imagen: MAQUILLAJE_REPO_BASE + "lapizlabios.png", imagenes: [MAQUILLAJE_REPO_BASE + "lapizlabios.png"], precio: 3040, precioOriginal: 6019, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50127, nombre: "OFERTA BILLION BEAUTY CHARM/EYES B20006", imagen: MAQUILLAJE_REPO_BASE + "oferta.png", imagenes: [MAQUILLAJE_REPO_BASE + "oferta.png"], precio: 3230, precioOriginal: 6395, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50128, nombre: "TEI POWER COSMETICA TEI8150", imagen: MAQUILLAJE_REPO_BASE + "powercosmeti.png", imagenes: [MAQUILLAJE_REPO_BASE + "powercosmeti.png"], precio: 5088, precioOriginal: 10074, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50129, nombre: "SPRAY HIDRATANTE TEI SPRAY MOISTURIZING TEI8211", imagen: MAQUILLAJE_REPO_BASE + "sprayc.png", imagenes: [MAQUILLAJE_REPO_BASE + "sprayc.png"], precio: 5365, precioOriginal: 10623, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50130, nombre: "RUBOR EN CREMA TEI TEI8169", imagen: MAQUILLAJE_REPO_BASE + "ruborf.png", imagenes: [MAQUILLAJE_REPO_BASE + "ruborf.png"], precio: 6405, precioOriginal: 12682, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50131, nombre: "CORRECTOR LIQUIDO TEI NOTHING LIQUID TEI 8244", imagen: MAQUILLAJE_REPO_BASE + "correctord.png", imagenes: [MAQUILLAJE_REPO_BASE + "correctord.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50132, nombre: "MASCARA PANORAMA ELOISE EL1085", imagen: MAQUILLAJE_REPO_BASE + "mascarae.png", imagenes: [MAQUILLAJE_REPO_BASE + "mascarae.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50133, nombre: "MASCARA LASH ELOISE EL1076", imagen: MAQUILLAJE_REPO_BASE + "mascaraf.png", imagenes: [MAQUILLAJE_REPO_BASE + "mascaraf.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50134, nombre: "ELOISE SHINK LIPOIL EL1082", imagen: MAQUILLAJE_REPO_BASE + "lipoilc.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipoilc.png"], precio: 3230, precioOriginal: 6395, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50135, nombre: "POLVO COMPACTO POPSTAR FANCYFACE RUBYROSE G1 HB-M406", imagen: MAQUILLAJE_REPO_BASE + "polvoe.png", imagenes: [MAQUILLAJE_REPO_BASE + "polvoe.png"], precio: 5550, precioOriginal: 10989, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["P10", "P20", "P30", "P40"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50136, nombre: "LIQUID LIPSTICK PERFECT LIPS RUBYROSE HB-6200", imagen: MAQUILLAJE_REPO_BASE + "lipstickd.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipstickd.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["FEARLESS", "POSITIVITY", "BOSS BABE", "SELF LOVE", "WILDFLOWER", "FLAWLESS", "DREAM DIG", "CHASING DREAMS"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50137, nombre: "AQUATINT MELU RUBY ROSE RR-7500", imagen: MAQUILLAJE_REPO_BASE + "aquatint.png", imagenes: [MAQUILLAJE_REPO_BASE + "aquatint.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50138, nombre: "RUBYROSE OBSIDIAN CARVED IN MARBLE HB-1002", imagen: MAQUILLAJE_REPO_BASE + "obsidian.png", imagenes: [MAQUILLAJE_REPO_BASE + "obsidian.png"], precio: 7320, precioOriginal: 14494, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50139, nombre: "RUBYROSE POPSTAR ONLY HITS HB-E2200", imagen: MAQUILLAJE_REPO_BASE + "popstare.png", imagenes: [MAQUILLAJE_REPO_BASE + "popstare.png"], precio: 13783, precioOriginal: 27290, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50140, nombre: "RUBYROSE COSMIC MIST HB-E2204", imagen: MAQUILLAJE_REPO_BASE + "cosmic.png", imagenes: [MAQUILLAJE_REPO_BASE + "cosmic.png"], precio: 8554, precioOriginal: 16937, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50141, nombre: "RUBYROSE INTENSE ESPRESSO HB-F532", imagen: MAQUILLAJE_REPO_BASE + "intense.png", imagenes: [MAQUILLAJE_REPO_BASE + "intense.png"], precio: 7320, precioOriginal: 14494, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50142, nombre: "ELOISE LASTING MATTE FOUDATION 24H EL1036", imagen: MAQUILLAJE_REPO_BASE + "lasting.png", imagenes: [MAQUILLAJE_REPO_BASE + "lasting.png"], precio: 7826, precioOriginal: 15495, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50143, nombre: "ELOISE EYESHADOW CHEESE EL1046", imagen: MAQUILLAJE_REPO_BASE + "eyeshadowe.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyeshadowe.png"], precio: 7462, precioOriginal: 14775, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["Rosa", "Amarillo"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50144, nombre: "ELOISE EYESHADOW 6COL PALETTE POWDER EL1047", imagen: MAQUILLAJE_REPO_BASE + "eyeshadowf.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyeshadowf.png"], precio: 4995, precioOriginal: 9890, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50145, nombre: "ELOISE EYE+LIP MICELLAR WATER EL1023", imagen: MAQUILLAJE_REPO_BASE + "eyelip.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyelip.png"], precio: 10080, precioOriginal: 19958, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50146, nombre: "ELOISE 24H LIQUID CONCEALER EL1032", imagen: MAQUILLAJE_REPO_BASE + "concealerc.png", imagenes: [MAQUILLAJE_REPO_BASE + "concealerc.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50147, nombre: "PALETA DE SOMBRAS ELEMENTS OVERLAND HEATED RUBYROSE HB-F533/HB-F534", imagen: MAQUILLAJE_REPO_BASE + "sombram.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombram.png"], precio: 7137, precioOriginal: 14131, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50148, nombre: "PALETA DE SOMBRAS SPRING BREEZE RUBYROSE HB-F538", imagen: MAQUILLAJE_REPO_BASE + "sombran.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombran.png"], precio: 11700, precioOriginal: 23166, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50149, nombre: "RUBY ROSE BLUSH SHINE HB-M1001-1", imagen: MAQUILLAJE_REPO_BASE + "blushd.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushd.png"], precio: 10620, precioOriginal: 21028, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50150, nombre: "IMAN OF NOBLE VELVET LIPGLOSS 15247 1165A", imagen: MAQUILLAJE_REPO_BASE + "lipglosst.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglosst.png"], precio: 3230, precioOriginal: 6395, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50151, nombre: "ELOISE MAGIC LIP GLOSS BLACK EL1012", imagen: MAQUILLAJE_REPO_BASE + "lipglossu.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossu.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50152, nombre: "ELOISE LIPSTICK 6COLORS EL1001", imagen: MAQUILLAJE_REPO_BASE + "lipsticke.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipsticke.png"], precio: 3420, precioOriginal: 6772, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50153, nombre: "ELOISE LIP GLOSS PLUMPER EL1011", imagen: MAQUILLAJE_REPO_BASE + "lipglossv.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossv.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50154, nombre: "ELOISE EYELINER SMOOTH EL1014", imagen: MAQUILLAJE_REPO_BASE + "eyelinerc.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyelinerc.png"], precio: 3040, precioOriginal: 6019, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50155, nombre: "ELOISE EYELINER LIQUID WATERPROOF SMOOTH EL1017", imagen: MAQUILLAJE_REPO_BASE + "eyelinerd.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyelinerd.png"], precio: 3230, precioOriginal: 6395, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50156, nombre: "CORRECTOR FIT ME CONCEALER AC27456 2379", imagen: MAQUILLAJE_REPO_BASE + "correctore.png", imagenes: [MAQUILLAJE_REPO_BASE + "correctore.png"], precio: 2470, precioOriginal: 4891, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50157, nombre: "GEGE BEAR REFRESHING AIR CUSHION CREAM GX2027", imagen: MAQUILLAJE_REPO_BASE + "refreshing.png", imagenes: [MAQUILLAJE_REPO_BASE + "refreshing.png"], precio: 13246, precioOriginal: 26227, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50158, nombre: "GEGE BEAR CREAM SKIN LIGHTWEIGHT LUXURIOUS", imagen: MAQUILLAJE_REPO_BASE + "creamskin.png", imagenes: [MAQUILLAJE_REPO_BASE + "creamskin.png"], precio: 13783, precioOriginal: 27290, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50159, nombre: "GEGE BEAR PUPPDING LIP GLOSS GX1190", imagen: MAQUILLAJE_REPO_BASE + "lipglossw.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossw.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50160, nombre: "GEGE BEAR OUT OF THIN AIR HAIRLIN GX1077", imagen: MAQUILLAJE_REPO_BASE + "outthin.png", imagenes: [MAQUILLAJE_REPO_BASE + "outthin.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50161, nombre: "MATTE LIP CREAM OBSIDIAN RUBYROSE HB-7100", imagen: MAQUILLAJE_REPO_BASE + "mattelip.png", imagenes: [MAQUILLAJE_REPO_BASE + "mattelip.png"], precio: 5550, precioOriginal: 10989, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50162, nombre: "FEELS DUO SCULPT CONTORNO/CORRETIVO HB-8101", imagen: MAQUILLAJE_REPO_BASE + "contorno.png", imagenes: [MAQUILLAJE_REPO_BASE + "contorno.png"], precio: 4810, precioOriginal: 9524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50163, nombre: "RUBOR DISCOLORATION BLUSH 12949 6228C", imagen: MAQUILLAJE_REPO_BASE + "ruborg.png", imagenes: [MAQUILLAJE_REPO_BASE + "ruborg.png"], precio: 3800, precioOriginal: 7524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50164, nombre: "OFERTADELI LAPIZ DE CEJAS MLUND/ROSA GZ8090038", imagen: MAQUILLAJE_REPO_BASE + "ofertadeli.png", imagenes: [MAQUILLAJE_REPO_BASE + "ofertadeli.png"], precio: 2470, precioOriginal: 4891, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50165, nombre: "USHAS CLEANSING FOAM HYALURONIC ACID HA260", imagen: MAQUILLAJE_REPO_BASE + "ushascleansi.png", imagenes: [MAQUILLAJE_REPO_BASE + "ushascleansi.png"], precio: 16468, precioOriginal: 32607, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50166, nombre: "USHAS BROW POWDER USHAS UF007", imagen: MAQUILLAJE_REPO_BASE + "ushasbrow.png", imagenes: [MAQUILLAJE_REPO_BASE + "ushasbrow.png"], precio: 2470, precioOriginal: 4891, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50167, nombre: "ESPUMA FACIAL CLEANSER USHAS HA317", imagen: MAQUILLAJE_REPO_BASE + "espuma.png", imagenes: [MAQUILLAJE_REPO_BASE + "espuma.png"], precio: 10800, precioOriginal: 21384, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50168, nombre: "OCHEAL CUSHION FOUNDATION BB CREAM OSO", imagen: MAQUILLAJE_REPO_BASE + "ocheal.png", imagenes: [MAQUILLAJE_REPO_BASE + "ocheal.png"], precio: 10260, precioOriginal: 20315, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50169, nombre: "GEGE BEAR MILK CUTE PRESSED POWDER GX1043", imagen: MAQUILLAJE_REPO_BASE + "milkcute.png", imagenes: [MAQUILLAJE_REPO_BASE + "milkcute.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50170, nombre: "SHEGLAM PLUMPING LIP GLOSS HL043", imagen: MAQUILLAJE_REPO_BASE + "lipglossx.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossx.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50171, nombre: "LIP OIL OBSIDIAN RUBYROSE HB-7300", imagen: MAQUILLAJE_REPO_BASE + "lipoild.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipoild.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50172, nombre: "LIP MARKER 2746-03", imagen: MAQUILLAJE_REPO_BASE + "lipmarker.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipmarker.png"], precio: 3040, precioOriginal: 6019, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50173, nombre: "KISS BETTY LIP COLOR L3389 AC27188", imagen: MAQUILLAJE_REPO_BASE + "kissbetty.png", imagenes: [MAQUILLAJE_REPO_BASE + "kissbetty.png"], precio: 1950, precioOriginal: 3861, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50174, nombre: "GEGE BEAR LIGHT CLOUD NAKED FOG VELVET LIP MUD", imagen: MAQUILLAJE_REPO_BASE + "lightcloud.png", imagenes: [MAQUILLAJE_REPO_BASE + "lightcloud.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50175, nombre: "USHAS LASH EYE MASCARA 4D MA1091F", imagen: MAQUILLAJE_REPO_BASE + "mascarag.png", imagenes: [MAQUILLAJE_REPO_BASE + "mascarag.png"], precio: 7826, precioOriginal: 15495, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50176, nombre: "OCHEAL ANTI WRINKLE SMOOTH EYE CREAM NO.6846", imagen: MAQUILLAJE_REPO_BASE + "ochealb.png", imagenes: [MAQUILLAJE_REPO_BASE + "ochealb.png"], precio: 4625, precioOriginal: 9158, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50177, nombre: "TEI SHINY LIQUID EYESHADOW TEI8120", imagen: MAQUILLAJE_REPO_BASE + "shinyliquid.png", imagenes: [MAQUILLAJE_REPO_BASE + "shinyliquid.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50178, nombre: "OFERTA 3Q BEAUTY DELINEADOR AC-27119", imagen: MAQUILLAJE_REPO_BASE + "delineadori.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadori.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50179, nombre: "RIMEL USHAS MASCARA DE PESTA AS+DELINEADOR BIG EYES MA1088F", imagen: MAQUILLAJE_REPO_BASE + "delineadorj.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadorj.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50180, nombre: "MISS BETTY PUMPED UP EYELINER AC-E304", imagen: MAQUILLAJE_REPO_BASE + "eyelinere.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyelinere.png"], precio: 2660, precioOriginal: 5267, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50181, nombre: "SOMBRA CON BRILLO TEI SHADOW SHINY TEI8127", imagen: MAQUILLAJE_REPO_BASE + "sombrao.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrao.png"], precio: 3040, precioOriginal: 6019, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5", "#6"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50182, nombre: "RUBOR EN GEL TEI GIRL BLUSH TEI8190", imagen: MAQUILLAJE_REPO_BASE + "ruborh.png", imagenes: [MAQUILLAJE_REPO_BASE + "ruborh.png", MAQUILLAJE_REPO_BASE + "ruborhdos.png", MAQUILLAJE_REPO_BASE + "ruborhtres.png", MAQUILLAJE_REPO_BASE + "ruborhcuatro.png"], precio: 4810, precioOriginal: 9524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50183, nombre: "ELOISE MOIST LIP GLOSS MOISTURIZE EL1006", imagen: MAQUILLAJE_REPO_BASE + "lipglossy.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossy.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50184, nombre: "ELOISE CORRECTOR MATTE EL1029", imagen: MAQUILLAJE_REPO_BASE + "correctorf.png", imagenes: [MAQUILLAJE_REPO_BASE + "correctorf.png"], precio: 4995, precioOriginal: 9890, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50185, nombre: "ELOISE BASE BEAR FOUNDATION EL1073", imagen: MAQUILLAJE_REPO_BASE + "basec.png", imagenes: [MAQUILLAJE_REPO_BASE + "basec.png"], precio: 8736, precioOriginal: 17297, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50186, nombre: "RUBY ROSE SOFT BLEND BASE LIQUIDA HB-M301", imagen: MAQUILLAJE_REPO_BASE + "based.png", imagenes: [MAQUILLAJE_REPO_BASE + "based.png"], precio: 6588, precioOriginal: 13044, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50187, nombre: "RUBY ROSE DUAL CHEEKS DUO COMPACT BLUSH HB-M03", imagen: MAQUILLAJE_REPO_BASE + "blushe.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushe.png"], precio: 6954, precioOriginal: 13769, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50188, nombre: "RUBY ROSE CRYSTAL GLOW ILUMI/BAKED HB-M700 G1 G2", imagen: MAQUILLAJE_REPO_BASE + "crystal.png", imagenes: [MAQUILLAJE_REPO_BASE + "crystal.png"], precio: 5550, precioOriginal: 10989, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["STELLAR SHINE", "RADIANT PEARL", "REACH GLAM", "OPAL SHINE"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50189, nombre: "RUBYROSE PINK SODA EYESHADOW PALETTE HB-F530", imagen: MAQUILLAJE_REPO_BASE + "pinksoda.png", imagenes: [MAQUILLAJE_REPO_BASE + "pinksoda.png"], precio: 7320, precioOriginal: 14494, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50190, nombre: "RUBYROSE PERFECT BLEND HB-M300", imagen: MAQUILLAJE_REPO_BASE + "perfect.png", imagenes: [MAQUILLAJE_REPO_BASE + "perfect.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50191, nombre: "RUBYROSE RADIANT EYES RADIANT EYES HB-E2201", imagen: MAQUILLAJE_REPO_BASE + "radiant.png", imagenes: [MAQUILLAJE_REPO_BASE + "radiant.png"], precio: 10440, precioOriginal: 20671, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50192, nombre: "ELOISE SUPER STAR FOUNDATION EL1037", imagen: MAQUILLAJE_REPO_BASE + "superstar.png", imagenes: [MAQUILLAJE_REPO_BASE + "superstar.png"], precio: 7826, precioOriginal: 15495, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50193, nombre: "ELOISE PRESSED POWDER SUPER MATTE EL1026", imagen: MAQUILLAJE_REPO_BASE + "pressed.png", imagenes: [MAQUILLAJE_REPO_BASE + "pressed.png"], precio: 7320, precioOriginal: 14494, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50194, nombre: "ELOISE POLVO SKIN D/HADA EL1054", imagen: MAQUILLAJE_REPO_BASE + "polvof.png", imagenes: [MAQUILLAJE_REPO_BASE + "polvof.png"], precio: 5365, precioOriginal: 10623, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50195, nombre: "ELOISE LIQUID BLUSHER EL1064", imagen: MAQUILLAJE_REPO_BASE + "blushf.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushf.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50196, nombre: "ELOISE JAPANESE CHERRY BLOSSOM EL1024", imagen: MAQUILLAJE_REPO_BASE + "japanese.png", imagenes: [MAQUILLAJE_REPO_BASE + "japanese.png"], precio: 7644, precioOriginal: 15135, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50197, nombre: "ELOISE GLITTER EYESHADOW EL1049", imagen: MAQUILLAJE_REPO_BASE + "glitter.png", imagenes: [MAQUILLAJE_REPO_BASE + "glitter.png"], precio: 5550, precioOriginal: 10989, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50198, nombre: "ELOISE EYESHADOW NINE COLOR EL1048", imagen: MAQUILLAJE_REPO_BASE + "eyeshadowg.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyeshadowg.png"], precio: 7462, precioOriginal: 14775, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50199, nombre: "ELOISE BLUSHER VELVET EL1059", imagen: MAQUILLAJE_REPO_BASE + "blushg.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushg.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50200, nombre: "RUBY ROSE ILUMINADOR COMPACTO HB-859/G1 G2", imagen: MAQUILLAJE_REPO_BASE + "iluminaf.png", imagenes: [MAQUILLAJE_REPO_BASE + "iluminaf.png"], precio: 6222, precioOriginal: 12320, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["HL10", "HL30", "HL50", "HL70", "HL90", "HL110"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50201, nombre: "RUBOR BLUSH COMPACTO POPSTAR PLAYBACK RUBYROSE HB-M08", imagen: MAQUILLAJE_REPO_BASE + "rubori.png", imagenes: [MAQUILLAJE_REPO_BASE + "rubori.png"], precio: 6039, precioOriginal: 11957, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50202, nombre: "RUBY ROSE BLUSH COMPACTO TEXT/ACETI HB-861", imagen: MAQUILLAJE_REPO_BASE + "blushh.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushh.png"], precio: 5550, precioOriginal: 10989, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["BL10", "BL20", "BL30", "BL40"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50203, nombre: "LIQUID LIPSTICK SILK SKIN SMOOTH BLUR RUBYROSE G1 HB-F7100", imagen: MAQUILLAJE_REPO_BASE + "lipstickf.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipstickf.png"], precio: 4070, precioOriginal: 8059, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50204, nombre: "ILUMINADOR LIQUIDO RIMOCOO LIQUID HIGHLIGHT R1138 11389", imagen: MAQUILLAJE_REPO_BASE + "iluminag.png", imagenes: [MAQUILLAJE_REPO_BASE + "iluminag.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50205, nombre: "HUDA ABC DELINEADOR 8006 AC-28672", imagen: MAQUILLAJE_REPO_BASE + "delineadork.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadork.png"], precio: 2660, precioOriginal: 5267, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50206, nombre: "GEL DE CEJAS BM0034", imagen: MAQUILLAJE_REPO_BASE + "gelcejas.png", imagenes: [MAQUILLAJE_REPO_BASE + "gelcejas.png"], precio: 4810, precioOriginal: 9524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50207, nombre: "ESMALTE SEMI CHARMLIMIT 9ML AF11890", imagen: MAQUILLAJE_REPO_BASE + "esmalte.png", imagenes: [MAQUILLAJE_REPO_BASE + "esmalte.png"], precio: 1950, precioOriginal: 3861, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50208, nombre: "ELOISE LABIAL EN BARRA EL1004", imagen: MAQUILLAJE_REPO_BASE + "labialg.png", imagenes: [MAQUILLAJE_REPO_BASE + "labialg.png"], precio: 3420, precioOriginal: 6772, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50209, nombre: "BRILLO BLANCO 20124-3", imagen: MAQUILLAJE_REPO_BASE + "brillo.png", imagenes: [MAQUILLAJE_REPO_BASE + "brillo.png"], precio: 11160, precioOriginal: 22097, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50210, nombre: "BRILLO BLANCO GG968 GG04091", imagen: MAQUILLAJE_REPO_BASE + "brillob.png", imagenes: [MAQUILLAJE_REPO_BASE + "brillob.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50211, nombre: "BELENDA BEAUTY MICKEY X12 BB-233104 AC-27459", imagen: MAQUILLAJE_REPO_BASE + "belenda.png", imagenes: [MAQUILLAJE_REPO_BASE + "belenda.png"], precio: 18375, precioOriginal: 36382, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50212, nombre: "BASE LIQUIDA FOUNDATION BASE LIQUIDA FD-803", imagen: MAQUILLAJE_REPO_BASE + "basee.png", imagenes: [MAQUILLAJE_REPO_BASE + "basee.png"], precio: 4810, precioOriginal: 9524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50213, nombre: "SOMBRA X12 MELU RUBYROSE HB-1085", imagen: MAQUILLAJE_REPO_BASE + "sombrap.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrap.png"], precio: 11700, precioOriginal: 23166, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50214, nombre: "GOLD WISH FIX PRIMER SPRAY HB-602", imagen: MAQUILLAJE_REPO_BASE + "primerb.png", imagenes: [MAQUILLAJE_REPO_BASE + "primerb.png"], precio: 8463, precioOriginal: 16757, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50215, nombre: "COLOR RICH IN MAN OF NOBLE 8562 LABIAL", imagen: MAQUILLAJE_REPO_BASE + "labialh.png", imagenes: [MAQUILLAJE_REPO_BASE + "labialh.png"], precio: 2660, precioOriginal: 5267, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50216, nombre: "PALETA SOMBRA X9 BM0023", imagen: MAQUILLAJE_REPO_BASE + "sombraq.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombraq.png"], precio: 9180, precioOriginal: 18176, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50217, nombre: "PALETA SOMBRA RUEDA BM0001", imagen: MAQUILLAJE_REPO_BASE + "sombrar.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrar.png"], precio: 19600, precioOriginal: 38808, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50218, nombre: "PALETA DE SOMBRA BM0003", imagen: MAQUILLAJE_REPO_BASE + "sombras.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombras.png"], precio: 15752, precioOriginal: 31189, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50219, nombre: "PALETA DE SOMBRA X12 CLR BM0005", imagen: MAQUILLAJE_REPO_BASE + "sombrat.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrat.png"], precio: 9180, precioOriginal: 18176, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50220, nombre: "PALETA DE ILUMINADOR FEELS MOOD HB-7530", imagen: MAQUILLAJE_REPO_BASE + "paletad.png", imagenes: [MAQUILLAJE_REPO_BASE + "paletad.png"], precio: 8372, precioOriginal: 16577, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50221, nombre: "SATY FIX BLUSH COMPACTO VATA/E RUBYROSE HB-571", imagen: MAQUILLAJE_REPO_BASE + "blushi.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushi.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50222, nombre: "PALETA DE ILUMINADOR FEELS MOOD RUBYROSE HB-7525", imagen: MAQUILLAJE_REPO_BASE + "paletae.png", imagenes: [MAQUILLAJE_REPO_BASE + "paletae.png"], precio: 7320, precioOriginal: 14494, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50223, nombre: "PALETA 3IN1 FEELS MOOD RUBYROSE HB-7528", imagen: MAQUILLAJE_REPO_BASE + "paletaf.png", imagenes: [MAQUILLAJE_REPO_BASE + "paletaf.png"], precio: 7320, precioOriginal: 14494, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50224, nombre: "RUBOR EN BARRA BM0018", imagen: MAQUILLAJE_REPO_BASE + "ruborj.png", imagenes: [MAQUILLAJE_REPO_BASE + "ruborj.png"], precio: 5365, precioOriginal: 10623, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50225, nombre: "OFERTA 2IN1 TRANSPARENTE Y ROJO CONEJO", imagen: MAQUILLAJE_REPO_BASE + "ofertab.png", imagenes: [MAQUILLAJE_REPO_BASE + "ofertab.png"], precio: 2660, precioOriginal: 5267, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50226, nombre: "GEL TINT RUBYROSE HB-555", imagen: MAQUILLAJE_REPO_BASE + "geltint.png", imagenes: [MAQUILLAJE_REPO_BASE + "geltint.png"], precio: 3420, precioOriginal: 6772, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["Juice", "Coral"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50227, nombre: "BATOM LIQUIDO MATTE RUBY ROSE HB-8213", imagen: MAQUILLAJE_REPO_BASE + "batomliquido.png", imagenes: [MAQUILLAJE_REPO_BASE + "batomliquido.png", MAQUILLAJE_REPO_BASE + "batomliquidodos.png", MAQUILLAJE_REPO_BASE + "batomliquidotres.png", MAQUILLAJE_REPO_BASE + "batomliquidocuatro.png", MAQUILLAJE_REPO_BASE + "batomliquidocinco.png", MAQUILLAJE_REPO_BASE + "batomliquidoseis.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["Nº1", "Nº2", "Nº3", "Nº4", "Nº5", "Nº6"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50228, nombre: "BASE LIQUIDA FEELS MOOD RUBYROSE HB-901", imagen: MAQUILLAJE_REPO_BASE + "basef.png", imagenes: [MAQUILLAJE_REPO_BASE + "basef.png"], precio: 8918, precioOriginal: 17658, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50229, nombre: "SHIMMER SPRAY USHAS FS398", imagen: MAQUILLAJE_REPO_BASE + "sprayd.png", imagenes: [MAQUILLAJE_REPO_BASE + "sprayd.png"], precio: 10080, precioOriginal: 19958, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50230, nombre: "JELLY TINT USHAS UC026", imagen: MAQUILLAJE_REPO_BASE + "jellytint.png", imagenes: [MAQUILLAJE_REPO_BASE + "jellytint.png"], precio: 4810, precioOriginal: 9524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50231, nombre: "SHINY LIPGLOSS USHAS LG2582A", imagen: MAQUILLAJE_REPO_BASE + "lipglossz.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossz.png"], precio: 5180, precioOriginal: 10256, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50232, nombre: "OLIBOLLA LIP CHEEK MOUSSE LA-L185 31858", imagen: MAQUILLAJE_REPO_BASE + "olibolla.png", imagenes: [MAQUILLAJE_REPO_BASE + "olibolla.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50233, nombre: "OLIBOLLA JAM LIP BALM LA-L188 31889", imagen: MAQUILLAJE_REPO_BASE + "olibollab.png", imagenes: [MAQUILLAJE_REPO_BASE + "olibollab.png"], precio: 3420, precioOriginal: 6772, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50234, nombre: "OFERTA MAGIC LIP OIL USHAS UC004", imagen: MAQUILLAJE_REPO_BASE + "lipoile.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipoile.png"], precio: 3040, precioOriginal: 6019, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50235, nombre: "OFERTA LIP BALM FEBBLE PLANTS FBC020", imagen: MAQUILLAJE_REPO_BASE + "ofertac.png", imagenes: [MAQUILLAJE_REPO_BASE + "ofertac.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50236, nombre: "MLUNDO LIP GLOSS CUTE TINTS MJ328 GZ8010269", imagen: MAQUILLAJE_REPO_BASE + "lipglossaa.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossaa.png"], precio: 2660, precioOriginal: 5267, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50237, nombre: "MAGIC LIP OIL USHAS ROSA FLOR LG-2495", imagen: MAQUILLAJE_REPO_BASE + "lipoilf.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipoilf.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50238, nombre: "LIPGLOSS FEELS RUBYROSE HB-8227", imagen: MAQUILLAJE_REPO_BASE + "lipglossab.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossab.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50239, nombre: "LIP GLOSS YES GIRL YES USHAS LG2506", imagen: MAQUILLAJE_REPO_BASE + "lipglossac.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossac.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50240, nombre: "OFERTA LIP CHEEKS 2IN1 USHAS FS474", imagen: MAQUILLAJE_REPO_BASE + "ofertad.png", imagenes: [MAQUILLAJE_REPO_BASE + "ofertad.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50241, nombre: "ILUMINADOR HIGHLIGHT LIQUIDO BM0013", imagen: MAQUILLAJE_REPO_BASE + "iluminah.png", imagenes: [MAQUILLAJE_REPO_BASE + "iluminah.png"], precio: 9360, precioOriginal: 18533, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50242, nombre: "OFERTA USHAS EYEBROW PENCIL TP227", imagen: MAQUILLAJE_REPO_BASE + "ofertae.png", imagenes: [MAQUILLAJE_REPO_BASE + "ofertae.png"], precio: 2280, precioOriginal: 4514, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50243, nombre: "OFERTA USHAS LIQUID EYELINER LASTING EL659", imagen: MAQUILLAJE_REPO_BASE + "eyelinerf.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyelinerf.png"], precio: 2660, precioOriginal: 5267, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50244, nombre: "OFERTA BIL/BEA CHARM EYES KUROMI B20007 70074", imagen: MAQUILLAJE_REPO_BASE + "ofertaf.png", imagenes: [MAQUILLAJE_REPO_BASE + "ofertaf.png"], precio: 3420, precioOriginal: 6772, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50245, nombre: "EYESHADOW MANO DEL GATO TEI8112", imagen: MAQUILLAJE_REPO_BASE + "eyeshadowh.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyeshadowh.png"], precio: 5088, precioOriginal: 10074, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["Rosa"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50246, nombre: "TEI SWEET BLUSH POWDER TEI8019", imagen: MAQUILLAJE_REPO_BASE + "blushj.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushj.png"], precio: 3978, precioOriginal: 7876, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["1"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50247, nombre: "TEI LONG LATING MAKEUP SETTING TEI8103", imagen: MAQUILLAJE_REPO_BASE + "longlating.png", imagenes: [MAQUILLAJE_REPO_BASE + "longlating.png"], precio: 5180, precioOriginal: 10256, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50248, nombre: "TEI COSMETICA BLUSHER POWER TEI8105", imagen: MAQUILLAJE_REPO_BASE + "blushl.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushl.png"], precio: 3705, precioOriginal: 7336, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["1"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50249, nombre: "DELINEADOR DE CEJA MLUNDO MARRON GZ8090039", imagen: MAQUILLAJE_REPO_BASE + "delineadorl.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadorl.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50250, nombre: "DELINEADOR DE CEJAS BM0035", imagen: MAQUILLAJE_REPO_BASE + "delineadorm.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadorm.png"], precio: 3230, precioOriginal: 6395, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50251, nombre: "TEI JUST GLOW HIGHLIGHT TEI8194", imagen: MAQUILLAJE_REPO_BASE + "justglow.png", imagenes: [MAQUILLAJE_REPO_BASE + "justglow.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50252, nombre: "ESENCIA FLORAL TEI FLOWER PETALS NIACINAMIDE TEI8214", imagen: MAQUILLAJE_REPO_BASE + "flower.png", imagenes: [MAQUILLAJE_REPO_BASE + "flower.png"], precio: 6405, precioOriginal: 12682, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50253, nombre: "ILUMINADOR EN BARRA TEI COMESTICA TINTED HIGHLIGHT STICK TEI8124", imagen: MAQUILLAJE_REPO_BASE + "comestica.png", imagenes: [MAQUILLAJE_REPO_BASE + "comestica.png"], precio: 5180, precioOriginal: 10256, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50254, nombre: "SOMBRA OSITO TEI TEI8142", imagen: MAQUILLAJE_REPO_BASE + "sombrau.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrau.png"], precio: 3040, precioOriginal: 6019, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50255, nombre: "RUBOR TEI SUN KISSER TEI8099", imagen: MAQUILLAJE_REPO_BASE + "rubork.png", imagenes: [MAQUILLAJE_REPO_BASE + "rubork.png"], precio: 3800, precioOriginal: 7524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50256, nombre: "MASCARA TEI TEI8203", imagen: MAQUILLAJE_REPO_BASE + "mascarah.png", imagenes: [MAQUILLAJE_REPO_BASE + "mascarah.png"], precio: 3800, precioOriginal: 7524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50257, nombre: "MASCARA VOLUMEN WATERPROOF EL1110 ELOISE", imagen: MAQUILLAJE_REPO_BASE + "mascarai.png", imagenes: [MAQUILLAJE_REPO_BASE + "mascarai.png"], precio: 5365, precioOriginal: 10623, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50258, nombre: "MASCARA PARA CEJAS Y PESTANAS EL1087 ELOISE", imagen: MAQUILLAJE_REPO_BASE + "mascaraj.png", imagenes: [MAQUILLAJE_REPO_BASE + "mascaraj.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50259, nombre: "LIP OIL SHINE ELOISE EL1102", imagen: MAQUILLAJE_REPO_BASE + "lipoilg.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipoilg.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50260, nombre: "GLOSS ELOISE EL1105", imagen: MAQUILLAJE_REPO_BASE + "glossd.png", imagenes: [MAQUILLAJE_REPO_BASE + "glossd.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50261, nombre: "FIJADOR SHINE CHERRY BLOSSOMS EL1117 ELOISE", imagen: MAQUILLAJE_REPO_BASE + "fijador.png", imagenes: [MAQUILLAJE_REPO_BASE + "fijador.png"], precio: 9180, precioOriginal: 18176, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50262, nombre: "ELOISE BLUSHER MAGIC EL1061", imagen: MAQUILLAJE_REPO_BASE + "blushm.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushm.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50263, nombre: "BASE FOUNDATION ELOISE EL1121", imagen: MAQUILLAJE_REPO_BASE + "baseg.png", imagenes: [MAQUILLAJE_REPO_BASE + "baseg.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50264, nombre: "GLOSS RUBYROSE POPSTAR GLAM GIRL HB-L6603", imagen: MAQUILLAJE_REPO_BASE + "popstarf.png", imagenes: [MAQUILLAJE_REPO_BASE + "popstarf.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["OBSESSED", "HEARTBREAKER", "LUXURIOUS", "SINGLE", "PROBLEM", "FANCY"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50265, nombre: "RUBY ROSE POSPTAR CRAZY FLUSH HB-M04", imagen: MAQUILLAJE_REPO_BASE + "posptar.png", imagenes: [MAQUILLAJE_REPO_BASE + "posptar.png"], precio: 5856, precioOriginal: 11595, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50266, nombre: "RUBY ROSE CELESTIAL SHINE ILUMINADOR HB-M701", imagen: MAQUILLAJE_REPO_BASE + "iluminai.png", imagenes: [MAQUILLAJE_REPO_BASE + "iluminai.png", MAQUILLAJE_REPO_BASE + "iluminaidos.png"], precio: 4625, precioOriginal: 9158, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50267, nombre: "PALETA DE SOMBRAS SUMMER MUSE RUBYROSE HB-F537", imagen: MAQUILLAJE_REPO_BASE + "sombrav.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrav.png"], precio: 11700, precioOriginal: 23166, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50268, nombre: "ILUMINADOR HIGHLIGHT SILK SKIN RADIANT SHINE RUBYROSE G2 HB-F1600", imagen: MAQUILLAJE_REPO_BASE + "iluminaj.png", imagenes: [MAQUILLAJE_REPO_BASE + "iluminaj.png"], precio: 6588, precioOriginal: 13044, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50269, nombre: "BLUSH CONTORNO ILUMINADOR MOOD OVER THE TOP RUBYROSE HB-F586-2", imagen: MAQUILLAJE_REPO_BASE + "blushn.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushn.png"], precio: 9720, precioOriginal: 19246, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50270, nombre: "BLUSH CONTORNO ILUMINADOR MOOD BEYOND WORDS RUBYROSE HB-F586-1", imagen: MAQUILLAJE_REPO_BASE + "blusho.png", imagenes: [MAQUILLAJE_REPO_BASE + "blusho.png"], precio: 12600, precioOriginal: 24948, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50271, nombre: "RUBYROSE SILK SKIN LIGHT FINISH HB-M403 G1/G2", imagen: MAQUILLAJE_REPO_BASE + "silkskinb.png", imagenes: [MAQUILLAJE_REPO_BASE + "silkskinb.png"], precio: 6405, precioOriginal: 12682, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["PC10", "PC20", "PC30", "PC40", "PC50"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50272, nombre: "RUBY ROSE BLUSH SHINE HB-M1001-2", imagen: MAQUILLAJE_REPO_BASE + "blushp.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushp.png"], precio: 10620, precioOriginal: 21028, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50273, nombre: "RUBYROSE SO SMOOTHIE EYESHADOW PALETTE HB-F529", imagen: MAQUILLAJE_REPO_BASE + "smoothie.png", imagenes: [MAQUILLAJE_REPO_BASE + "smoothie.png"], precio: 7320, precioOriginal: 14494, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50274, nombre: "SANIYE MULTI-USE SCULPTING CONCEALER R1186", imagen: MAQUILLAJE_REPO_BASE + "concealerd.png", imagenes: [MAQUILLAJE_REPO_BASE + "concealerd.png"], precio: 3040, precioOriginal: 6019, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5", "#6"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50275, nombre: "SANIYE GEL BROW POMADE M295", imagen: MAQUILLAJE_REPO_BASE + "gelbrow.png", imagenes: [MAQUILLAJE_REPO_BASE + "gelbrow.png"], precio: 5550, precioOriginal: 10989, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["DARK BROWN", "CHOCOLATE", "MEDIUM BROWN", "EBONY"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50276, nombre: "ELOISE SOMBRA 3 IN 1 EYESHADOW EL1042", imagen: MAQUILLAJE_REPO_BASE + "sombraw.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombraw.png"], precio: 5673, precioOriginal: 11233, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50277, nombre: "ELOISE RUBOR LIQUIDO VELVEL TOUCH EL1062", imagen: MAQUILLAJE_REPO_BASE + "ruborl.png", imagenes: [MAQUILLAJE_REPO_BASE + "ruborl.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50278, nombre: "ELOISE ROSE POWDER LOOSE EL1038", imagen: MAQUILLAJE_REPO_BASE + "powder.png", imagenes: [MAQUILLAJE_REPO_BASE + "powder.png"], precio: 6222, precioOriginal: 12320, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50279, nombre: "ELOISE POLVO POWDER EL1040", imagen: MAQUILLAJE_REPO_BASE + "polvog.png", imagenes: [MAQUILLAJE_REPO_BASE + "polvog.png"], precio: 7320, precioOriginal: 14494, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50280, nombre: "ELOISE POLVO COMPACTO EL1027", imagen: MAQUILLAJE_REPO_BASE + "polvoh.png", imagenes: [MAQUILLAJE_REPO_BASE + "polvoh.png"], precio: 7644, precioOriginal: 15135, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50281, nombre: "ELOISE PEACH PRESSED POWDER EL1039", imagen: MAQUILLAJE_REPO_BASE + "peachpressed.png", imagenes: [MAQUILLAJE_REPO_BASE + "peachpressed.png"], precio: 7320, precioOriginal: 14494, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50282, nombre: "ELOISE EYESHADOW HIGHLIGHTER STICK EL1053", imagen: MAQUILLAJE_REPO_BASE + "eyeshadowi.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyeshadowi.png"], precio: 4625, precioOriginal: 9158, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50283, nombre: "ELOISE EYESHADOW HIGHLIGHT EL1056", imagen: MAQUILLAJE_REPO_BASE + "eyeshadowj.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyeshadowj.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50284, nombre: "ELOISE EYESHADOW HIGHLIGHT BLUSHER EL1052", imagen: MAQUILLAJE_REPO_BASE + "blushq.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushq.png"], precio: 9900, precioOriginal: 19602, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50285, nombre: "ELOISE EYESHADOW EL1043", imagen: MAQUILLAJE_REPO_BASE + "eyeshadowk.png", imagenes: [MAQUILLAJE_REPO_BASE + "eyeshadowk.png"], precio: 4995, precioOriginal: 9890, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50286, nombre: "ELOISE COMPACTO AGE PERFECT EL1025", imagen: MAQUILLAJE_REPO_BASE + "compactob.png", imagenes: [MAQUILLAJE_REPO_BASE + "compactob.png"], precio: 4810, precioOriginal: 9524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50287, nombre: "SOMBRA DE CEJAS EXTRA BROW RUBYROSE HB-E2502", imagen: MAQUILLAJE_REPO_BASE + "sombrax.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombrax.png"], precio: 4995, precioOriginal: 9890, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50288, nombre: "TRIO DE SOMBRAS VIVER VIBRANTE RUBYROSE G1 HB-F528", imagen: MAQUILLAJE_REPO_BASE + "sombray.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombray.png"], precio: 4995, precioOriginal: 9890, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50289, nombre: "PALETA DE SOMBRAS WINTER STORM RUBYROSE HB-F540", imagen: MAQUILLAJE_REPO_BASE + "sombraz.png", imagenes: [MAQUILLAJE_REPO_BASE + "sombraz.png"], precio: 15573, precioOriginal: 30835, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50290, nombre: "KANEKALON PELO AY10 62281", imagen: MAQUILLAJE_REPO_BASE + "kanekalon.png", imagenes: [MAQUILLAJE_REPO_BASE + "kanekalon.png"], precio: 8372, precioOriginal: 16577, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50291, nombre: "HOLD MORNING POLVO DE HADAS KUROMI MJ93 HL5778", imagen: MAQUILLAJE_REPO_BASE + "polvoi.png", imagenes: [MAQUILLAJE_REPO_BASE + "polvoi.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50292, nombre: "FIT ME CONCEALER 24HR HUDA MATTE ME 51012", imagen: MAQUILLAJE_REPO_BASE + "concealere.png", imagenes: [MAQUILLAJE_REPO_BASE + "concealere.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50293, nombre: "FEBBLE SOFT BUTTERFLY BLUSH FBF020A", imagen: MAQUILLAJE_REPO_BASE + "blushr.png", imagenes: [MAQUILLAJE_REPO_BASE + "blushr.png"], precio: 8372, precioOriginal: 16577, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50294, nombre: "FEBBLE CLEANSER VITAMIN C FEH012", imagen: MAQUILLAJE_REPO_BASE + "cleanser.png", imagenes: [MAQUILLAJE_REPO_BASE + "cleanser.png"], precio: 20300, precioOriginal: 40194, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50295, nombre: "FEBBLE CLEANSER ROSE 290ML FEH013", imagen: MAQUILLAJE_REPO_BASE + "cleanserb.png", imagenes: [MAQUILLAJE_REPO_BASE + "cleanserb.png"], precio: 13067, precioOriginal: 25873, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50296, nombre: "ESMALTE SEMI CITY GIRL 10915", imagen: MAQUILLAJE_REPO_BASE + "esmalteb.png", imagenes: [MAQUILLAJE_REPO_BASE + "esmalteb.png"], precio: 3800, precioOriginal: 7524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50297, nombre: "ELOISE MOIST MIRROR LIPS STICK EL1003", imagen: MAQUILLAJE_REPO_BASE + "moistmirror.png", imagenes: [MAQUILLAJE_REPO_BASE + "moistmirror.png"], precio: 3230, precioOriginal: 6395, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50298, nombre: "ELOISE MOIST LIP GLOSS MOISTURIZE EL1006 B", imagen: MAQUILLAJE_REPO_BASE + "lipglossad.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossad.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50299, nombre: "ELOISE MATTE SOFT LIP STICK LONG LASTING EL1002", imagen: MAQUILLAJE_REPO_BASE + "lipstickg.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipstickg.png"], precio: 2470, precioOriginal: 4891, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50300, nombre: "ELOISE LIP OIL PLUMP EL1010", imagen: MAQUILLAJE_REPO_BASE + "lipoilh.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipoilh.png"], precio: 3230, precioOriginal: 6395, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50301, nombre: "ELOISE LIP GLOSS MOISTEN EL1007", imagen: MAQUILLAJE_REPO_BASE + "lipglossae.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossae.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50302, nombre: "ELOISE GLAM MATTE LIP GLOSS EL1005", imagen: MAQUILLAJE_REPO_BASE + "lipglossaf.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossaf.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50303, nombre: "DELINEADOR SKY LINE MISS LIN M1123", imagen: MAQUILLAJE_REPO_BASE + "delineadorn.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadorn.png"], precio: 3230, precioOriginal: 6395, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50304, nombre: "DELINEADOR LIQUIDO BM0063", imagen: MAQUILLAJE_REPO_BASE + "delineadoro.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadoro.png"], precio: 5458, precioOriginal: 10807, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50305, nombre: "DELINEADOR LIQUIDO BM0062", imagen: MAQUILLAJE_REPO_BASE + "delineadorp.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadorp.png"], precio: 3978, precioOriginal: 7876, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50306, nombre: "CORRECTOR USHAS NATURAL LIQUID CONCEALER UC008B", imagen: MAQUILLAJE_REPO_BASE + "correctorg.png", imagenes: [MAQUILLAJE_REPO_BASE + "correctorg.png"], precio: 5550, precioOriginal: 10989, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50307, nombre: "CORRECTOR LIQUIDO BM0053", imagen: MAQUILLAJE_REPO_BASE + "correctorh.png", imagenes: [MAQUILLAJE_REPO_BASE + "correctorh.png"], precio: 3800, precioOriginal: 7524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50308, nombre: "CORRECTOR BM0025", imagen: MAQUILLAJE_REPO_BASE + "correctori.png", imagenes: [MAQUILLAJE_REPO_BASE + "correctori.png"], precio: 4810, precioOriginal: 9524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50309, nombre: "CONTORNO Y ILUMINADOR KUROMI MLUNDO MAGIC PEN HIGHLIGHT CONCEALER GZ8060172", imagen: MAQUILLAJE_REPO_BASE + "iluminak.png", imagenes: [MAQUILLAJE_REPO_BASE + "iluminak.png"], precio: 3610, precioOriginal: 7148, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50310, nombre: "CONTORNO BRONZER SOL BM0006", imagen: MAQUILLAJE_REPO_BASE + "contornob.png", imagenes: [MAQUILLAJE_REPO_BASE + "contornob.png"], precio: 8372, precioOriginal: 16577, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50311, nombre: "CINTA PARA PEZON AC-021-15", imagen: MAQUILLAJE_REPO_BASE + "cintapezon.png", imagenes: [MAQUILLAJE_REPO_BASE + "cintapezon.png"], precio: 8372, precioOriginal: 16577, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50312, nombre: "BASE LIQUIDA USHAS MAKEUP COLLAGEN FOUNDATION UC002B", imagen: MAQUILLAJE_REPO_BASE + "baseh.png", imagenes: [MAQUILLAJE_REPO_BASE + "baseh.png"], precio: 12709, precioOriginal: 25164, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50313, nombre: "BASE LIQUIDA IMAN OF NOBLE MATTE FOUNDATION F431", imagen: MAQUILLAJE_REPO_BASE + "basei.png", imagenes: [MAQUILLAJE_REPO_BASE + "basei.png"], precio: 3885, precioOriginal: 7692, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50314, nombre: "BASE LIQUIDA 3Q BEAUTY FOUNDATION 24HOURS FD-036", imagen: MAQUILLAJE_REPO_BASE + "basej.png", imagenes: [MAQUILLAJE_REPO_BASE + "basej.png"], precio: 8372, precioOriginal: 16577, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50315, nombre: "BAKED SHADOW USHAS ES4140-2", imagen: MAQUILLAJE_REPO_BASE + "bakedshadow.png", imagenes: [MAQUILLAJE_REPO_BASE + "bakedshadow.png"], precio: 5673, precioOriginal: 11233, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50316, nombre: "ADHESIVO DE FOIL MD", imagen: MAQUILLAJE_REPO_BASE + "adhesivo.png", imagenes: [MAQUILLAJE_REPO_BASE + "adhesivo.png"], precio: 2660, precioOriginal: 5267, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50317, nombre: "GEGE BEAR SILKY SOFT COLOR AIR CUSHION GX2017", imagen: MAQUILLAJE_REPO_BASE + "silkysoft.png", imagenes: [MAQUILLAJE_REPO_BASE + "silkysoft.png"], precio: 13246, precioOriginal: 26227, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50318, nombre: "GEGE BEAR SMART HIGHLIGHT STICK GX1192", imagen: MAQUILLAJE_REPO_BASE + "smarthighlig.png", imagenes: [MAQUILLAJE_REPO_BASE + "smarthighlig.png"], precio: 4625, precioOriginal: 9158, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50319, nombre: "BALSAMO LABIAL OBSIDIAN RUBYROSE HB-7400", imagen: MAQUILLAJE_REPO_BASE + "labiali.png", imagenes: [MAQUILLAJE_REPO_BASE + "labiali.png"], precio: 5180, precioOriginal: 10256, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50320, nombre: "LIPSTICK BATOM OBSIDIAN RUBYROSE HB-7000-1", imagen: MAQUILLAJE_REPO_BASE + "lipstickh.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipstickh.png"], precio: 4070, precioOriginal: 8059, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50321, nombre: "BATOM LIQUIDO STAY FIX RUBYROSE HB-569", imagen: MAQUILLAJE_REPO_BASE + "batomliquidb.png", imagenes: [MAQUILLAJE_REPO_BASE + "batomliquidb.png"], precio: 3420, precioOriginal: 6772, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5", "#6", "#7", "#8"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50322, nombre: "DELINEADOR LIQUIDO AZUL BM0028", imagen: MAQUILLAJE_REPO_BASE + "delineadorq.png", imagenes: [MAQUILLAJE_REPO_BASE + "delineadorq.png"], precio: 4810, precioOriginal: 9524, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50323, nombre: "STAY FIX BASE LIQUIDO RUBYROSE HB-873", imagen: MAQUILLAJE_REPO_BASE + "basek.png", imagenes: [MAQUILLAJE_REPO_BASE + "basek.png"], precio: 7137, precioOriginal: 14131, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1 VANILLA", "#2 NUDE", "#3 BEIGE", "#4 LVORY"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50324, nombre: "POWDER SHIMMER MELU RUBYROSE RR-8410", imagen: MAQUILLAJE_REPO_BASE + "powderb.png", imagenes: [MAQUILLAJE_REPO_BASE + "powderb.png"], precio: 9720, precioOriginal: 19246, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50325, nombre: "RUBOR GIRASOL BM0007", imagen: MAQUILLAJE_REPO_BASE + "ruborm.png", imagenes: [MAQUILLAJE_REPO_BASE + "ruborm.png"], precio: 8372, precioOriginal: 16577, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50326, nombre: "RUBOR LIQUIDO BM0030", imagen: MAQUILLAJE_REPO_BASE + "ruborn.png", imagenes: [MAQUILLAJE_REPO_BASE + "ruborn.png"], precio: 6588, precioOriginal: 13044, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50327, nombre: "RUBOR BM0052", imagen: MAQUILLAJE_REPO_BASE + "ruboro.png", imagenes: [MAQUILLAJE_REPO_BASE + "ruboro.png"], precio: 4995, precioOriginal: 9890, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50328, nombre: "LABIAL DOBLE FEELS RUBYROSE HB-8608", imagen: MAQUILLAJE_REPO_BASE + "labialj.png", imagenes: [MAQUILLAJE_REPO_BASE + "labialj.png"], precio: 4440, precioOriginal: 8791, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5", "#6"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50329, nombre: "BELENDA SPRAYFIXER MELODY KITTYBB-224202 AC27454", imagen: MAQUILLAJE_REPO_BASE + "spraye.png", imagenes: [MAQUILLAJE_REPO_BASE + "spraye.png"], precio: 4625, precioOriginal: 9158, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50330, nombre: "BASE LIQUIDA BM0066", imagen: MAQUILLAJE_REPO_BASE + "basel.png", imagenes: [MAQUILLAJE_REPO_BASE + "basel.png"], precio: 11250, precioOriginal: 22275, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50331, nombre: "BASE LIQUIDA EN BOTELLA BM0064", imagen: MAQUILLAJE_REPO_BASE + "basem.png", imagenes: [MAQUILLAJE_REPO_BASE + "basem.png"], precio: 9360, precioOriginal: 18533, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50332, nombre: "USHAS PRIMER FS394", imagen: MAQUILLAJE_REPO_BASE + "primerc.png", imagenes: [MAQUILLAJE_REPO_BASE + "primerc.png"], precio: 8372, precioOriginal: 16577, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50333, nombre: "USHAS CLEANSING FOAM ROSE HA262", imagen: MAQUILLAJE_REPO_BASE + "ushascleansb.png", imagenes: [MAQUILLAJE_REPO_BASE + "ushascleansb.png"], precio: 15215, precioOriginal: 30126, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50334, nombre: "OFERTAUSHAS MATTE LONG WEAR CONCEAL FS158A", imagen: MAQUILLAJE_REPO_BASE + "ofertaushas.png", imagenes: [MAQUILLAJE_REPO_BASE + "ofertaushas.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50335, nombre: "OFERTAUSHAS GOODBYE PONES PRIMER FS251", imagen: MAQUILLAJE_REPO_BASE + "primerd.png", imagenes: [MAQUILLAJE_REPO_BASE + "primerd.png"], precio: 5180, precioOriginal: 10256, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50336, nombre: "CRYSTAL SPRAY USHAS FS370", imagen: MAQUILLAJE_REPO_BASE + "sprayf.png", imagenes: [MAQUILLAJE_REPO_BASE + "sprayf.png"], precio: 8372, precioOriginal: 16577, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50337, nombre: "INSTAGIRL LIQUID FOUNDATION RUBYROSE HB-8054", imagen: MAQUILLAJE_REPO_BASE + "instagirl.png", imagenes: [MAQUILLAJE_REPO_BASE + "instagirl.png"], precio: 11700, precioOriginal: 23166, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista", "disponible en varias variantes"], variantes: ["#1", "#2", "#3", "#4", "#5", "#6"], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50338, nombre: "POLA AYLR LIP GLOSS FA-8602 DEBBY-30", imagen: MAQUILLAJE_REPO_BASE + "lipglossag.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossag.png"], precio: 2660, precioOriginal: 5267, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50339, nombre: "OFERTA3Q BEAUTY MAGIC LIP OIL OL-159 AC-28003", imagen: MAQUILLAJE_REPO_BASE + "lipoili.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipoili.png"], precio: 2660, precioOriginal: 5267, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50340, nombre: "LIPGLOSS MOOD RUBYROSE HB-7201", imagen: MAQUILLAJE_REPO_BASE + "lipglossah.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossah.png"], precio: 4070, precioOriginal: 8059, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50341, nombre: "LIPGLOSS KUROMI MELODY LUCKY CUTIE L3576", imagen: MAQUILLAJE_REPO_BASE + "lipglossai.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossai.png"], precio: 2850, precioOriginal: 5643, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50342, nombre: "LIP MAXI KISS BEAUTY 7831 AC27719", imagen: MAQUILLAJE_REPO_BASE + "lipmaxi.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipmaxi.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50343, nombre: "LIP GLOSS BM0027", imagen: MAQUILLAJE_REPO_BASE + "lipglossaj.png", imagenes: [MAQUILLAJE_REPO_BASE + "lipglossaj.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50344, nombre: "GEGE BEAR FRUTA LIP BALM GX1170", imagen: MAQUILLAJE_REPO_BASE + "frutalip.png", imagenes: [MAQUILLAJE_REPO_BASE + "frutalip.png"], precio: 5365, precioOriginal: 10623, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50345, nombre: "MISS LARA HIGHLIGHT MS-53H MQ306", imagen: MAQUILLAJE_REPO_BASE + "misslara.png", imagenes: [MAQUILLAJE_REPO_BASE + "misslara.png"], precio: 4255, precioOriginal: 8425, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50346, nombre: "OFERTA FAVOR BEAUTY LIQ/HIGHLIGHT EB7067 13833", imagen: MAQUILLAJE_REPO_BASE + "ofertag.png", imagenes: [MAQUILLAJE_REPO_BASE + "ofertag.png"], precio: 3040, precioOriginal: 6019, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50347, nombre: "ILUMINADOR HIGHLIGHT DIAMANTE BM0021", imagen: MAQUILLAJE_REPO_BASE + "iluminam.png", imagenes: [MAQUILLAJE_REPO_BASE + "iluminam.png"], precio: 9360, precioOriginal: 18533, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50348, nombre: "ILUMINADOR HIGHLIGHT CORAZON BM0022", imagen: MAQUILLAJE_REPO_BASE + "iluminan.png", imagenes: [MAQUILLAJE_REPO_BASE + "iluminan.png"], precio: 9360, precioOriginal: 18533, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+          { id: 50349, nombre: "USHAS LIQ EYESHA BRIG HIGHLI LG1930-07", imagen: MAQUILLAJE_REPO_BASE + "ushasliq.png", imagenes: [MAQUILLAJE_REPO_BASE + "ushasliq.png"], precio: 3040, precioOriginal: 6019, categoria: "maquillaje", _origin: "maquillaje", caracteristicas: ["producto de maquillaje mayorista"], variantes: [], info: "Producto de maquillaje mayorista, imagen y stock provistos por el catálogo de Maquillaje." },
+        ];
+
         // Agregar categoría 'adultos' a todos los productos de zapatillas
         window.shoes.forEach(shoe => {
             if (!shoe.categoria) {
@@ -4776,7 +5142,7 @@
                     <button type="button" aria-label="Modificar precio" onclick="event.stopPropagation();abrirEditarPrecioProducto('perfumes', ${p.id})" style="position:absolute;top:8px;right:8px;z-index:4;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-light);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s ease;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
                     <div class="product-image" onclick="openZoom('${p.imagen}')">
                         <div class="zoom-icon">🔍</div>
-                        <img src="${BASE_IMAGE_URL}${p.imagen}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${p.imagen}')">
+                        <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${p.imagen}')">
                     </div>
                     <div class="product-info">
                         <div class="product-name">${p.nombre}</div>
@@ -4845,7 +5211,7 @@
                     <button type="button" aria-label="Modificar precio" onclick="event.stopPropagation();abrirEditarPrecioProducto('calzados', ${p.id})" style="position:absolute;top:8px;right:8px;z-index:4;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-light);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s ease;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
                     <div class="product-image" onclick="openZoom('${p.imagen}')">
                         <div class="zoom-icon">🔍</div>
-                        <img src="${BASE_IMAGE_URL}${p.imagen}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${p.imagen}')">
+                        <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${p.imagen}')">
                     </div>
                     <div class="product-info">
                         <div class="product-name">${p.nombre}</div>
@@ -4873,9 +5239,131 @@
         function loadMore() {
             if (window.currentCatalog === 'calzados') {
                 loadMoreShoesProducts();
+            } else if (window.currentCatalog === 'belleza') {
+                loadMoreBellezaProducts();
             } else {
                 loadMoreProducts();
             }
+        }
+
+        // ===== BELLEZA Y CUIDADO PERSONAL: filtros, búsqueda, orden, render =====
+        window.currentBellezaFilter = 'todos';
+        window.currentBellezaSearch = '';
+        window.currentBellezaSort = '';
+        window.itemsDisplayedBelleza = 6;
+
+        function filterBellezaProducts(sub) {
+            window.currentBellezaFilter = sub;
+            window.itemsDisplayedBelleza = 6;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            if (typeof event !== 'undefined' && event.target) event.target.classList.add('active');
+            renderBellezaProducts();
+        }
+
+        function searchBellezaProducts(searchTerm) {
+            window.currentBellezaSearch = searchTerm;
+            window.itemsDisplayedBelleza = 6;
+            clearTimeout(window.searchBellezaTimeout);
+            window.searchBellezaTimeout = setTimeout(() => {
+                renderBellezaProducts();
+            }, 300);
+        }
+
+        function changeSortBelleza(sortValue) {
+            window.currentBellezaSort = sortValue;
+            window.itemsDisplayedBelleza = 6;
+            renderBellezaProducts();
+        }
+
+        function renderBellezaProducts() {
+            const grid = document.getElementById('products-grid');
+            if (!grid) return;
+
+            let filtered = (window.productsBelleza || []);
+            const sub = window.currentBellezaFilter || 'todos';
+            if (sub === 'maquillaje') {
+                filtered = filtered.filter(p => p._origin === 'maquillaje');
+            } else if (sub === 'perfume') {
+                filtered = filtered.filter(p => p._origin !== 'maquillaje');
+            }
+
+            if ((window.currentBellezaSearch || '').trim() !== '') {
+                const searchTerm = window.currentBellezaSearch.toLowerCase().trim();
+                filtered = filtered.filter(p =>
+                    p.nombre.toLowerCase().includes(searchTerm) ||
+                    (p.caracteristicas || []).some(c => c.toLowerCase().includes(searchTerm)) ||
+                    (p.info || '').toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (window.currentBellezaSort === 'price-asc') {
+                filtered = [...filtered].sort((a, b) => a.precio - b.precio);
+            } else if (window.currentBellezaSort === 'price-desc') {
+                filtered = [...filtered].sort((a, b) => b.precio - a.precio);
+            }
+
+            let html = '';
+            for (let i = 0; i < window.itemsDisplayedBelleza && i < filtered.length; i++) {
+                const p = filtered[i];
+                const precioMostrado = getPrecioProductoConfigurado(p, 'belleza');
+                html += `
+                <div class="product-card">
+                    <button type="button" aria-label="Modificar precio" onclick="event.stopPropagation();abrirEditarPrecioProducto('belleza', ${p.id})" style="position:absolute;top:8px;right:8px;z-index:4;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-light);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s ease;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+                    <div class="product-image" onclick="openZoom('${p.imagen}')">
+                        <div class="zoom-icon">🔍</div>
+                        <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${p.imagen}')">
+                    </div>
+                    <div class="product-info">
+                        <div class="product-name">${p.nombre}</div>
+                        <div class="product-price">
+                            <div class="price-current">$${precioMostrado.toLocaleString()}</div>
+                            <div class="price-original">$${p.precioOriginal.toLocaleString()}</div>
+                            <div class="price-discount">${Math.round((1 - precioMostrado/p.precioOriginal) * 100)}%</div>
+                        </div>
+                        <button class="btn-more" onclick="openDetailsBelleza(${p.id})">Ver más</button>
+                    </div>
+                </div>`;
+            }
+
+            grid.innerHTML = html;
+
+            const paginationSection = document.getElementById('pagination-section');
+            if (paginationSection) {
+                if (window.itemsDisplayedBelleza < filtered.length) {
+                    paginationSection.style.display = 'flex';
+                } else {
+                    paginationSection.style.display = 'none';
+                }
+            }
+        }
+
+        function loadMoreBellezaProducts() {
+            window.itemsDisplayedBelleza += 6;
+            renderBellezaProducts();
+            setTimeout(() => {
+                const grid = document.getElementById('products-grid');
+                if (grid && grid.lastChild) grid.lastChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+
+        function openDetailsBelleza(id) {
+            window.currentCatalog = 'belleza';
+            currentProduct = (window.productsBelleza || []).find(p => p.id === id);
+            window.currentProduct = currentProduct;
+            window.currentProductCatalog = 'belleza';
+            if (!currentProduct) return;
+            const detailsImg = document.getElementById('modal-details-image');
+            detailsImg.dataset.fallbackStep = '';
+            detailsImg.onerror = function() { fallbackProductImage(this, currentProduct.imagen); };
+            detailsImg.src = resolveImgUrl(currentProduct.imagen);
+            document.getElementById('modal-details-name').textContent = currentProduct.nombre;
+            document.getElementById('modal-details-price').textContent = `$${getPrecioProductoConfigurado(currentProduct, 'belleza').toLocaleString()}`;
+            document.getElementById('modal-details-price-original').textContent = `$${currentProduct.precioOriginal.toLocaleString()}`;
+            document.getElementById('modal-details-characteristics').innerHTML = (currentProduct.caracteristicas || []).map(c => `<li>${c}</li>`).join('');
+            document.getElementById('modal-details-info').textContent = currentProduct.info || '';
+            const momentoEl = document.getElementById('modal-details-moment');
+            if (momentoEl) momentoEl.textContent = currentProduct.momento || (currentProduct._origin === 'maquillaje' ? 'uso diario / cualquier ocasión' : '');
+            document.getElementById('modal-details').classList.add('active');
         }
 
         function loadMoreProducts() {
@@ -4897,7 +5385,7 @@
             const zoomImg = document.getElementById('zoom-image');
             zoomImg.dataset.fallbackStep = '';
             zoomImg.onerror = function() { fallbackProductImage(this, img); };
-            zoomImg.src = BASE_IMAGE_URL + img;
+            zoomImg.src = resolveImgUrl(img);
             document.getElementById('modal-zoom').classList.add('active');
         }
 
@@ -4923,7 +5411,7 @@
             const detailsImg = document.getElementById('modal-details-image');
             detailsImg.dataset.fallbackStep = '';
             detailsImg.onerror = function() { fallbackProductImage(this, currentProduct.imagen); };
-            detailsImg.src = BASE_IMAGE_URL + currentProduct.imagen;
+            detailsImg.src = resolveImgUrl(currentProduct.imagen);
             document.getElementById('modal-details-name').textContent = currentProduct.nombre;
             document.getElementById('modal-details-price').textContent = `$${getPrecioProductoConfigurado(currentProduct, 'perfumes').toLocaleString()}`;
             document.getElementById('modal-details-price-original').textContent = `$${currentProduct.precioOriginal.toLocaleString()}`;
@@ -5461,7 +5949,7 @@
                 html += `
                 <div class="cart-item" style="position:relative;">
                     <div class="cart-item-image">
-                        <img src="${BASE_IMAGE_URL}${item.imagen}" alt="${item.nombre}" onerror="fallbackProductImage(this, '${item.imagen}')">
+                        <img src="${resolveImgUrl(item.imagen)}" alt="${item.nombre}" onerror="fallbackProductImage(this, '${item.imagen}')">
                     </div>
                     <div class="cart-item-details">
                         <div class="cart-item-name">${item.nombre}${talleText}</div>
@@ -6890,7 +7378,7 @@
             detailsContent.innerHTML = `
                 <div style="width: 100%; display: flex; flex-direction: column; align-items: center; text-align: center;">
                     <div style="width: 100%; margin-bottom: 20px;">
-                        <img src="${BASE_IMAGE_URL}${product.imagen}" alt="${product.nombre}" style="width: 100%; border-radius: 8px; object-fit: cover;" onerror="fallbackProductImage(this, '${product.imagen}')">
+                        <img src="${resolveImgUrl(product.imagen)}" alt="${product.nombre}" style="width: 100%; border-radius: 8px; object-fit: cover;" onerror="fallbackProductImage(this, '${product.imagen}')">
                     </div>
                     <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
                         <h2 style="margin: 0 0 15px 0; color: var(--text); font-size: 24px; width: 100%;">${product.nombre}</h2>
@@ -6956,7 +7444,7 @@
             productosCarrusel.forEach((producto, index) => {
                 const slide = document.createElement('div');
                 slide.className = 'carrusel-slide';
-                slide.innerHTML = `<img src="${BASE_IMAGE_URL}${producto.imagen}" alt="${producto.nombre}" onerror="fallbackProductImage(this, '${producto.imagen}')">`;
+                slide.innerHTML = `<img src="${resolveImgUrl(producto.imagen)}" alt="${producto.nombre}" onerror="fallbackProductImage(this, '${producto.imagen}')">`;
                 wrapper.appendChild(slide);
 
                 const dot = document.createElement('button');
@@ -7689,7 +8177,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         </div>
     </div>
 
-    <!-- MODAL: PRÓXIMAMENTE DISPONIBLE -->
+    <!-- MODAL: PRÓXIMAMENTE DISPONIBLE (genérico, reutilizable para futuros nichos) -->
     <div class="proximamente-modal" id="proximamente-modal">
         <div class="proximamente-modal-content">
             <span class="proximamente-icon">🚀</span>
@@ -7699,43 +8187,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         </div>
     </div>
 
-    <script>
-        (function() {
-            function abrirMultishopProximamente(event) {
-                if (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
-                }
-                const modalCodigo = document.getElementById('codigo-modal');
-                const modalSesion = document.querySelector('.session-required-modal.active, #auth-modal.active');
-                const modal = document.getElementById('proximamente-modal');
-                const titulo = document.getElementById('proximamente-titulo');
-                if (modalCodigo) modalCodigo.classList.remove('active');
-                if (modalSesion) modalSesion.classList.remove('active');
-                if (titulo) titulo.textContent = 'La sección de Multishop estará disponible muy pronto. Gracias por tu interés.';
-                document.querySelectorAll('.session-required-modal.active, #auth-modal.active, #codigo-modal.active').forEach(function(el) { el.classList.remove('active'); });
-                if (modal) modal.classList.add('active');
-                return false;
-            }
-
-            document.addEventListener('click', function(event) {
-                const boton = event.target.closest && event.target.closest('#multishop-proximamente-btn, .nicho-item:nth-of-type(2) .nicho-button');
-                if (boton) abrirMultishopProximamente(event);
-            }, true);
-
-            document.addEventListener('DOMContentLoaded', function() {
-                const boton = document.querySelector('.nicho-item:nth-of-type(2) .nicho-button');
-                if (boton) {
-                    boton.id = 'multishop-proximamente-btn';
-                    boton.removeAttribute('onclick');
-                    boton.addEventListener('click', abrirMultishopProximamente, true);
-                }
-            });
-        })();
-    </script>
-
-    <!-- SCRIPT: LÓGICA DE NICHOS Y MODALES -->
     <script>
         // Variables globales para nichos
         window.codigoValidado = false;
@@ -7771,7 +8222,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             productosCarrusel.forEach((producto, index) => {
                 const slide = document.createElement('div');
                 slide.className = 'carrusel-slide';
-                slide.innerHTML = `<img src="${BASE_IMAGE_URL}${producto.imagen}" alt="${producto.nombre}" onerror="fallbackProductImage(this, '${producto.imagen}')">`;
+                slide.innerHTML = `<img src="${resolveImgUrl(producto.imagen)}" alt="${producto.nombre}" onerror="fallbackProductImage(this, '${producto.imagen}')">`;
                 wrapper.appendChild(slide);
 
                 // Generar dots
@@ -7813,6 +8264,78 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         function irASlide(index) {
             carruselActual = index;
             actualizarCarrusel();
+        }
+
+        // Resuelve la URL de imagen correcta según el origen del producto:
+        // los productos de Perfumería usan el mismo host que index.html/tienda.html,
+        // los de Maquillaje se sirven directamente desde el repo público externo.
+        function resolverImagenProducto(p) {
+            if (!p) return '';
+            if (p._origin === 'maquillaje') return MAQUILLAJE_REPO_BASE + p.imagen;
+            return resolveImgUrl(p.imagen);
+        }
+
+        // ===== CARRUSEL: BELLEZA Y CUIDADO PERSONAL =====
+        let carruselActualBelleza = 0;
+        let productosCarruselBelleza = [];
+
+        function inicializarCarruselBelleza() {
+            const valid = (window.productsBelleza || []).filter(p => p.imagen && !/portada/i.test(p.imagen));
+            const perfumesSample = valid.filter(p => p._origin !== 'maquillaje').slice(0, 6);
+            const maquillajeSample = valid.filter(p => p._origin === 'maquillaje').slice(0, 6);
+            productosCarruselBelleza = [...perfumesSample, ...maquillajeSample];
+            if (productosCarruselBelleza.length === 0) productosCarruselBelleza = valid.slice(0, 12);
+            if (productosCarruselBelleza.length === 0) return;
+
+            const wrapper = document.getElementById('carrusel-wrapper-belleza');
+            const dotsContainer = document.getElementById('carrusel-dots-belleza');
+            if (!wrapper || !dotsContainer) return;
+
+            wrapper.innerHTML = '';
+            dotsContainer.innerHTML = '';
+
+            productosCarruselBelleza.forEach((producto, index) => {
+                const slide = document.createElement('div');
+                slide.className = 'carrusel-slide';
+                slide.innerHTML = `<img src="${resolverImagenProducto(producto)}" alt="${producto.nombre}" onerror="fallbackProductImage(this, '${producto.imagen}')">`;
+                wrapper.appendChild(slide);
+
+                const dot = document.createElement('button');
+                dot.className = `carrusel-dot ${index === 0 ? 'active' : ''}`;
+                dot.onclick = () => irASlideBelleza(index);
+                dotsContainer.appendChild(dot);
+            });
+
+            carruselActualBelleza = 0;
+            actualizarCarruselBelleza();
+        }
+
+        function actualizarCarruselBelleza() {
+            const wrapper = document.getElementById('carrusel-wrapper-belleza');
+            if (wrapper) {
+                const offset = carruselActualBelleza * -100;
+                wrapper.style.transform = `translateX(${offset}%)`;
+            }
+            document.querySelectorAll('#carrusel-dots-belleza .carrusel-dot').forEach((dot, index) => {
+                dot.classList.toggle('active', index === carruselActualBelleza);
+            });
+        }
+
+        function carruselAnteriorBelleza() {
+            if (productosCarruselBelleza.length === 0) return;
+            carruselActualBelleza = (carruselActualBelleza - 1 + productosCarruselBelleza.length) % productosCarruselBelleza.length;
+            actualizarCarruselBelleza();
+        }
+
+        function carruselSiguienteBelleza() {
+            if (productosCarruselBelleza.length === 0) return;
+            carruselActualBelleza = (carruselActualBelleza + 1) % productosCarruselBelleza.length;
+            actualizarCarruselBelleza();
+        }
+
+        function irASlideBelleza(index) {
+            carruselActualBelleza = index;
+            actualizarCarruselBelleza();
         }
 
         // Auto-deslizar carrusel cada 5 segundos
@@ -7857,6 +8380,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     // Inicializar carruseles
                     setTimeout(inicializarCarrusel, 50);
                     setTimeout(inicializarCarruselShoesPreview, 100);
+                    setTimeout(inicializarCarruselBelleza, 50);
                 }
             } else {
                 // Usuario NO logueado: mostrar nichos
@@ -7866,6 +8390,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 // IMPORTANTE: Inicializar carruseles también cuando no hay usuario logueado
                 setTimeout(inicializarCarrusel, 50);
                 setTimeout(inicializarCarruselShoesPreview, 100);
+                setTimeout(inicializarCarruselBelleza, 50);
             }
         }
 
@@ -8141,6 +8666,48 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     }
                     
                     renderProducts();
+                } else if (window.currentCatalog === 'belleza') {
+                    if (shoesCategorySection) shoesCategorySection.style.display = 'none';
+                    if (filtersContainer) filtersContainer.classList.remove('hidden');
+                    if (productsContainer) productsContainer.classList.remove('hidden');
+                    if (paginationSection) paginationSection.classList.remove('hidden');
+
+                    const searchInput = document.getElementById('products-search');
+                    if (searchInput) {
+                        searchInput.placeholder = 'Buscar en Belleza y Cuidado Personal...';
+                        searchInput.onkeyup = (e) => searchBellezaProducts(e.target.value);
+                    }
+
+                    const filterBtns = document.querySelectorAll('.filter-btn');
+
+                    // Filtros pedidos: Todos / Maquillaje / Perfumes
+                    filterBtns.forEach((btn, idx) => {
+                        btn.classList.toggle('active', idx === 0);
+                        if (idx === 0) {
+                            btn.textContent = 'Todos';
+                            btn.style.display = 'inline-block';
+                            btn.onclick = () => filterBellezaProducts('todos');
+                        } else if (idx === 1) {
+                            btn.textContent = 'Maquillaje';
+                            btn.style.display = 'inline-block';
+                            btn.onclick = () => filterBellezaProducts('maquillaje');
+                        } else if (idx === 2) {
+                            btn.textContent = 'Perfumes';
+                            btn.style.display = 'inline-block';
+                            btn.onclick = () => filterBellezaProducts('perfume');
+                        } else {
+                            btn.style.display = 'none';
+                            btn.onclick = null;
+                        }
+                    });
+
+                    const sortSelect = document.getElementById('sort-select');
+                    if (sortSelect) {
+                        sortSelect.onchange = (e) => changeSortBelleza(e.target.value);
+                    }
+
+                    window.currentBellezaFilter = window.currentBellezaFilter || 'todos';
+                    renderBellezaProducts();
                 }
                 
                 if (portadaDosSection) portadaDosSection.style.display = 'block';
@@ -8265,6 +8832,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 // Re-inicializar carruseles de nichos
                 setTimeout(inicializarCarrusel, 50);
                 setTimeout(inicializarCarruselShoesPreview, 100);
+                setTimeout(inicializarCarruselBelleza, 50);
             } catch (error) {
             } finally {
                 window.isChangingCatalog = false;
@@ -8390,6 +8958,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 // Inicializar carruseles de nichos
                 inicializarCarrusel();
                 inicializarCarruselShoesPreview();
+                inicializarCarruselBelleza();
                 
                 // Actualizar vista de nichos
                 actualizarVistaNichos();
@@ -8951,14 +9520,21 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         function fallbackProductImage(img, imagen) {
             const original = imagen || '';
             const step = img.dataset.fallbackStep || '';
+            // Las imágenes externas (repo de Maquillaje) no tienen los mismos
+            // fallbacks .jpg/.jpeg locales: si falla, va directo al placeholder.
+            if (/^https?:\/\//i.test(original)) {
+                img.onerror = null;
+                img.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-family=%22Arial%22 font-size=%2214%22 fill=%22%23999%22%3EProducto%3C/text%3E%3C/svg%3E';
+                return;
+            }
             if (!step && /\.png$/i.test(original)) {
                 img.dataset.fallbackStep = 'jpg';
-                img.src = BASE_IMAGE_URL + original.replace(/\.png$/i, '.jpg');
+                img.src = resolveImgUrl(original.replace(/\.png$/i, '.jpg'));
                 return;
             }
             if (step === 'jpg' && /\.(png|jpg)$/i.test(original)) {
                 img.dataset.fallbackStep = 'jpeg';
-                img.src = BASE_IMAGE_URL + original.replace(/\.(png|jpg)$/i, '.jpeg');
+                img.src = resolveImgUrl(original.replace(/\.(png|jpg)$/i, '.jpeg'));
                 return;
             }
             img.onerror = null;
@@ -8984,6 +9560,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         function getProductosParaConfigActual() {
             if (window.currentCatalog === 'calzados') return window.shoes || [];
             if (window.currentCatalog === 'perfumes') return window.products || products || [];
+            if (window.currentCatalog === 'belleza') return window.productsBelleza || [];
             return [];
         }
 
@@ -9013,7 +9590,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         function abrirEditarPrecioProducto(catalogo, productId) {
-            const lista = catalogo === 'calzados' ? (window.shoes || []) : (window.products || products || []);
+            const lista = catalogo === 'calzados' ? (window.shoes || []) : catalogo === 'belleza' ? (window.productsBelleza || []) : (window.products || products || []);
             const producto = lista.find(p => p.id === productId);
             if (!producto) return;
             const sugerido = getPrecioProductoConfigurado(producto, catalogo);
@@ -9040,6 +9617,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Precio manual</label>
                     <input type="number" id="editar-precio-manual-input" min="0" value="${manual}" placeholder="Ingresá el precio" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:var(--font-body);margin-bottom:14px;">
                     <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;" onclick="guardarPrecioManualProducto('${catalogo}', ${productId})">Guardar precio</button>
+                    <div style="display:flex;gap:8px;margin-bottom:8px;">
+                        <button type="button" class="confirmation-button" style="flex:1;background:#f5f5f5;color:var(--text);" onclick="abrirVistaPreviaProducto('${catalogo}', ${productId})">👁️ Vista previa</button>
+                        <button type="button" class="confirmation-button" style="flex:1;background:#f5f5f5;color:var(--text);" onclick="compartirTiendaDesdeProducto('${catalogo}', ${productId})">🔗 Compartir tienda desde acá</button>
+                    </div>
                     <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);" onclick="document.getElementById('editarPrecioProductoModal').classList.remove('active')">Cancelar</button>
                 </div>`;
             modal.onclick = function(e) { if (e.target.id === 'editarPrecioProductoModal') modal.classList.remove('active'); };
@@ -9076,7 +9657,9 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             } catch(e) {}
             // ─────────────────────────────────────────────────────────────────
             document.getElementById('editarPrecioProductoModal').classList.remove('active');
-            renderProducts();
+            if (window.currentCatalog === 'calzados') { renderShoesProducts(); }
+            else if (window.currentCatalog === 'belleza') { renderBellezaProducts(); }
+            else { renderProducts(); }
         }
 
         async function eliminarConfigTienda() {
@@ -10033,12 +10616,42 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // precios/márgenes del revendedor viaja embebida en el propio
         // enlace (cfg/promo en base64) para que tienda.html no necesite
         // consultar ningún servidor externo al abrirlo.
-        function armarSlugRevendedor() {
+        // El nombre/apellido para el slug se obtiene del Worker de datos del
+        // revendedor. Para no repetir el bug del enlace colgado, la consulta
+        // tiene un timeout corto y acotado: si no responde a tiempo o falla,
+        // se usa Firebase Auth (window.currentUser) como respaldo inmediato.
+        const DATOS_REVENDEDOR_WORKER = 'https://datosderevendedor.tuweb.workers.dev';
+        async function obtenerNombreApellidoRevendedor() {
             const user = window.currentUser || {};
-            const nombre = (user.nombre || user.name || '').toString().toLowerCase()
+            let nombre = user.nombre || user.name || '';
+            let apellido = user.apellido || user.lastName || '';
+            const codigo = getCodigoVendedor();
+            if (codigo) {
+                try {
+                    const ctrl = new AbortController();
+                    const timeoutId = setTimeout(() => ctrl.abort(), 2500);
+                    const res = await fetch(DATOS_REVENDEDOR_WORKER + '?codigo=' + encodeURIComponent(codigo), { signal: ctrl.signal });
+                    clearTimeout(timeoutId);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data) {
+                            nombre = data.nombre || data.name || nombre;
+                            apellido = data.apellido || data.lastName || apellido;
+                        }
+                    }
+                } catch(_) {
+                    // Timeout o error de red: se sigue con los datos de Firebase Auth.
+                }
+            }
+            return { nombre, apellido };
+        }
+
+        async function armarSlugRevendedor() {
+            const { nombre: nombreRaw, apellido: apellidoRaw } = await obtenerNombreApellidoRevendedor();
+            const nombre = (nombreRaw || '').toString().toLowerCase()
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
                 .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'tienda';
-            const apellido = (user.apellido || user.lastName || '').toString().toLowerCase()
+            const apellido = (apellidoRaw || '').toString().toLowerCase()
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
                 .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || '';
             const rand6 = Math.floor(100000 + Math.random() * 900000);
@@ -10066,22 +10679,9 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             return TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?' + params.toString();
         }
 
-        async function generarEnlaceCorto(cat) {
-            // Si el código de revendedor todavía no está disponible en
-            // memoria (carrera justo después del login), se espera breve
-            // pero acotado — nunca de forma indefinida.
-            let codigo = getCodigoVendedor();
-            let esperas = 0;
-            while (!codigo && esperas < 10) {
-                await new Promise(r => setTimeout(r, 300));
-                codigo = getCodigoVendedor();
-                esperas++;
-            }
-
+        function armarCfgFullYPromo(cat) {
             const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
             const cfg = allConfig[cat] || null;
-
-            // Armar cfg completo (color + coloresExtra + rangos + promo)
             let cfgFull = cfg ? { ...cfg } : {};
             try {
                 const colorsByCat = JSON.parse(localStorage.getItem('coloresTiendaPorCat') || '{}');
@@ -10096,11 +10696,67 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 const promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}');
                 if (promos[cat] && (Array.isArray(promos[cat].rangos) || promos[cat].gift)) promo = promos[cat];
             } catch(_) {}
+            return { cfgFull, promo };
+        }
 
-            const slugId = armarSlugRevendedor();
+        async function generarEnlaceCorto(cat) {
+            // Si el código de revendedor todavía no está disponible en
+            // memoria (carrera justo después del login), se espera breve
+            // pero acotado — nunca de forma indefinida.
+            let codigo = getCodigoVendedor();
+            let esperas = 0;
+            while (!codigo && esperas < 10) {
+                await new Promise(r => setTimeout(r, 300));
+                codigo = getCodigoVendedor();
+                esperas++;
+            }
+
+            const { cfgFull, promo } = armarCfgFullYPromo(cat);
+            const slugId = await armarSlugRevendedor();
             const urlCorta = construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo);
             window._enlacesCortosCache[cat] = urlCorta;
             return urlCorta;
+        }
+
+        // Genera el enlace que abre directamente UN producto puntual en
+        // tienda.html, con el precio configurado (base + margen o manual)
+        // y la configuración de márgenes del revendedor ya aplicada.
+        async function generarEnlaceProducto(cat, productId) {
+            let codigo = getCodigoVendedor();
+            let esperas = 0;
+            while (!codigo && esperas < 10) {
+                await new Promise(r => setTimeout(r, 300));
+                codigo = getCodigoVendedor();
+                esperas++;
+            }
+            const { cfgFull, promo } = armarCfgFullYPromo(cat);
+            const slugId = await armarSlugRevendedor();
+            return construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productId);
+        }
+
+        async function abrirVistaPreviaProducto(catalogo, productId) {
+            try {
+                const url = await generarEnlaceProducto(catalogo, productId);
+                window.open(url, '_blank');
+            } catch(e) {
+                alert('No se pudo generar la vista previa. Intentá de nuevo.');
+            }
+        }
+
+        async function compartirTiendaDesdeProducto(catalogo, productId) {
+            try {
+                const url = await generarEnlaceProducto(catalogo, productId);
+                if (navigator.share) {
+                    try {
+                        await navigator.share({ title: 'Mi tienda', url });
+                        return;
+                    } catch(_) { /* si cancela el share nativo, cae a copiar */ }
+                }
+                await navigator.clipboard.writeText(url);
+                alert('Enlace copiado. Ya podés compartirlo con tus clientes.');
+            } catch(e) {
+                alert('No se pudo generar el enlace. Intentá de nuevo.');
+            }
         }
 
         window.tienePromoCat = function(cat) {
@@ -11002,7 +11658,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             return;
         }
         productos.forEach(p => {
-            const imgSrc = (window.BASE_IMAGE_URL || '/') + (p.imagen || '');
+            const imgSrc = (p.imagen && /^https?:\/\//i.test(p.imagen)) ? p.imagen : (window.BASE_IMAGE_URL || '/') + (p.imagen || '');
             const precioFmt = '$' + Number(p.precio).toLocaleString('es-AR');
             const card = document.createElement('div');
             card.style.cssText = 'flex:0 0 140px;scroll-snap-align:start;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s;';
