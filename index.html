@@ -2046,7 +2046,7 @@
             .revend-section-inner img { max-width: 100%; height: auto; margin-bottom: 8px !important; }
             .revend-title { font-size: 13px; }
             .revend-subtitle { font-size: 13px; margin-bottom: 16px; }
-            .revend-btn { font-size: 12px; padding: 10px 16px; letter-spacing: 0px; line-height: 1.2; white-space: nowrap; text-align: center; }\n            .nicho-footer { flex-direction: column; gap: 12px; }\n            .nicho-badge { min-width: auto; width: 100%; }\n            .nicho-button { width: 100%; }\n            .carrusel-container { height: 250px; }\n            .revend-section-inner { gap: 16px; }
+            .revend-btn { font-size: 12px; padding: 10px 16px; letter-spacing: 0px; line-height: 1.2; white-space: nowrap; text-align: center; }\n            .nicho-footer { flex-direction: column; gap: 12px; }\n            .nicho-badge { min-width: auto; width: 100%; }\n            .nicho-button { width: 100%; }\n            .carrusel-container { height: 160px; }\n            .revend-section-inner { gap: 16px; }
             .final-footer { padding: 30px 8px; }
             .final-footer-inner { margin: 0 8px; }
             .final-footer-title { line-height: 1.3; font-size: 11px; word-break: break-word; text-align: left !important; max-width: 340px; }
@@ -2449,11 +2449,11 @@
             }
         }
         .nichos-title {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 700;
             color: var(--text);
             text-align: center;
-            margin-bottom: 48px;
+            margin-bottom: 32px;
             font-family: var(--font-display);
             white-space: normal;
             max-width: 100%;
@@ -2462,26 +2462,31 @@
         .nichos-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 40px;
-            margin-bottom: 40px;
-        }
-        .nicho-item {
-            margin-bottom: 40px;
-        }
-        .nicho-info {
+            gap: 24px;
             margin-bottom: 24px;
         }
+        .nicho-item {
+            margin-bottom: 22px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface);
+            box-shadow: 0 2px 10px rgba(0,0,0,.04);
+        }
+        .nicho-info {
+            margin-bottom: 14px;
+        }
         .nicho-title {
-            font-size: 24px;
+            font-size: 19px;
             font-weight: 700;
             color: var(--text);
-            margin-bottom: 12px;
+            margin-bottom: 6px;
         }
         .nicho-subtitle {
-            font-size: 15px;
+            font-size: 13px;
             color: var(--text-light);
-            margin-bottom: 8px;
-            line-height: 1.5;
+            margin-bottom: 6px;
+            line-height: 1.4;
         }
         /* SELECTOR DE CATEGORÍA */
         .category-selector {
@@ -2515,8 +2520,8 @@
         .carrusel-container {
             position: relative;
             width: 100%;
-            height: 350px;
-            margin-bottom: 24px;
+            height: 220px;
+            margin-bottom: 16px;
             border-radius: 8px;
             overflow: hidden;
             background: var(--gray-light);
@@ -3479,14 +3484,21 @@
     <div class="modal-details" id="modal-details" onclick="closeDetailsIfClickBackground(event)">
         <div class="modal-details-content">
             <div style="width: 100%; display: flex; flex-direction: column; align-items: center; text-align: center;">
-                <div style="width: 100%; margin-bottom: 20px;">
-                    <img id="modal-details-image" src="" alt="Producto" style="width: 100%; border-radius: 8px; object-fit: cover;">
+                <div style="width: 100%; margin-bottom: 8px; position: relative; border-radius: 8px; overflow: hidden; background: var(--gray-light);">
+                    <img id="modal-details-image" src="" alt="Producto" style="width: 100%; display: block; object-fit: cover;">
+                    <button type="button" id="modal-details-carousel-prev" onclick="irAImagenModal(window.currentModalImagenIndex - 1)" title="Anterior" style="display:none; position:absolute; top:50%; left:6px; transform:translateY(-50%); width:26px; height:26px; border-radius:50%; border:none; background:rgba(0,0,0,.35); color:#fff; font-size:16px; line-height:1; align-items:center; justify-content:center; cursor:pointer; z-index:5;">‹</button>
+                    <button type="button" id="modal-details-carousel-next" onclick="irAImagenModal(window.currentModalImagenIndex + 1)" title="Siguiente" style="display:none; position:absolute; top:50%; right:6px; transform:translateY(-50%); width:26px; height:26px; border-radius:50%; border:none; background:rgba(0,0,0,.35); color:#fff; font-size:16px; line-height:1; align-items:center; justify-content:center; cursor:pointer; z-index:5;">›</button>
+                    <div id="modal-details-carousel-dots" style="display:none; position:absolute; bottom:8px; left:50%; transform:translateX(-50%); gap:4px; z-index:5;"></div>
                 </div>
-                <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
-                    <div class="modal-details-name" id="modal-details-name" style="font-size: 24px; font-weight: 600; margin-bottom: 15px; color: var(--text); width: 100%;"></div>
+                <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 12px;">
+                    <div class="modal-details-name" id="modal-details-name" style="font-size: 17px; font-weight: 600; margin-bottom: 12px; color: var(--text); width: 100%; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;"></div>
                     <div class="modal-details-price" style="margin-bottom: 20px; width: 100%;">
-                        <div class="price-current" id="modal-details-price" style="font-size: 28px; font-weight: 700; color: var(--primary); margin-bottom: 5px;"></div>
-                        <div class="price-original" id="modal-details-price-original" style="font-size: 14px; color: var(--text-light); text-decoration: line-through;"></div>
+                        <div class="price-current" id="modal-details-price" style="font-size: 20px; font-weight: 700; color: var(--primary); margin-bottom: 4px;"></div>
+                        <div class="price-original" id="modal-details-price-original" style="font-size: 12px; color: var(--text-light); text-decoration: line-through;"></div>
+                    </div>
+                    <div class="modal-details-section" id="modal-details-variantes-wrap" style="display:none; margin-bottom: 15px; width: 100%; text-align: left;">
+                        <div class="modal-details-section-title" style="font-weight: 600; margin-bottom: 10px; color: var(--text);">Variante</div>
+                        <div id="modal-details-variantes" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
                     </div>
                     <div class="modal-details-section" style="margin-bottom: 15px; width: 100%; text-align: left;">
                         <div class="modal-details-section-title" style="font-weight: 600; margin-bottom: 10px; color: var(--text);">Características</div>
@@ -3496,12 +3508,25 @@
                         <div class="modal-details-section-title" style="font-weight: 600; margin-bottom: 10px; color: var(--text);">Información</div>
                         <div class="modal-details-section-content" id="modal-details-info" style="color: var(--text); line-height: 1.5;"></div>
                     </div>
-                    <div class="modal-details-section" style="margin-bottom: 25px; width: 100%; text-align: left;">
+                    <div class="modal-details-section" style="margin-bottom: 20px; width: 100%; text-align: left;">
                         <div class="modal-details-section-title" style="font-weight: 600; margin-bottom: 10px; color: var(--text);">Momento Ideal</div>
                         <div class="modal-details-section-content" id="modal-details-moment" style="color: var(--text-light); font-size: 12px; font-style: italic;"></div>
                     </div>
+                    <div class="modal-details-section" style="margin-bottom: 25px; width: 100%; text-align: left;">
+                        <div class="modal-details-section-title" style="font-weight: 600; margin-bottom: 10px; color: var(--text);">Disponibilidad</div>
+                        <div style="display:flex; gap:22px; align-items:center;">
+                            <button type="button" onclick="setStockProductoModal(true)" id="modal-stock-btn-si" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px 0; font-size:14px; color: var(--text);">
+                                <span id="modal-stock-dot-si" style="width:12px;height:12px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px 2px rgba(34,197,94,.7);display:inline-block;"></span>
+                                En stock
+                            </button>
+                            <button type="button" onclick="setStockProductoModal(false)" id="modal-stock-btn-no" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px 0; font-size:14px; color: var(--text);">
+                                <span id="modal-stock-dot-no" style="width:12px;height:12px;border-radius:50%;background:#d1d5db;display:inline-block;"></span>
+                                Sin stock
+                            </button>
+                        </div>
+                    </div>
                     <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px;">
-                        <button class="add-to-cart-modal" onclick="addToCartFromModal()" style="width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Agregar Producto</button>
+                        <button class="add-to-cart-modal" onclick="compartirProductoDesdeModal()" style="width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Compartir Producto</button>
                         <button class="btn-secondary" onclick="closeDetails()" style="width: 100%; padding: 12px; background: var(--border); color: var(--text); border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Cerrar</button>
                     </div>
                 </div>
@@ -4082,11 +4107,9 @@
             </style>
 
 
-            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:10px;" onclick="guardarConfigTienda()">Guardar configuración</button>
-            <button type="button" class="confirmation-button" style="width:100%;background:#fee2e2;color:#b91c1c;margin-bottom:10px;font-weight:700;" onclick="eliminarConfigTienda()">♻️ Reiniciar configuración</button>
-            <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);margin-bottom:10px;" onclick="document.getElementById('configTiendaModal').classList.remove('active')">Cancelar</button>
-
-            <a href="https://gesti-n-de-revendedores.pages.dev/" target="_blank" rel="noopener" style="display:block;margin-top:4px;padding:12px 16px;background:linear-gradient(135deg,#1B7F3D,#2BA84F);color:#fff;text-align:center;text-decoration:none;border-radius:var(--radius);font-weight:700;font-size:14px;box-shadow:0 4px 12px rgba(27,127,61,.25);">🧾 Hacer Pedido</a>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;padding:10px;font-size:13px;" onclick="guardarConfigTienda()">Guardar configuración</button>
+            <button type="button" class="confirmation-button" style="width:100%;background:#fee2e2;color:#b91c1c;margin-bottom:8px;font-weight:700;padding:10px;font-size:13px;" onclick="eliminarConfigTienda()">♻️ Reiniciar configuración</button>
+            <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);padding:10px;font-size:13px;" onclick="document.getElementById('configTiendaModal').classList.remove('active')">Cancelar</button>
         </div>
     </div>
 
@@ -4969,8 +4992,8 @@
         // _origin:"perfume" para poder resolver la imagen desde el origen
         // correcto sin tocar la sección de Perfumería original.
         window.productsBelleza = [
-            ...window.products.map(p => ({ ...p, _origin: p._origin || 'perfume' })),
-            ...window.productsMaquillaje
+            ...window.productsMaquillaje,
+            ...window.products.map(p => ({ ...p, _origin: p._origin || 'perfume' }))
         ];
 
         // Agregar categoría 'adultos' a todos los productos de zapatillas
@@ -5099,6 +5122,77 @@
             }
         }
 
+        // ===== STOCK POR PRODUCTO (solo se configura desde index.html) =====
+        // Por defecto TODO producto está en stock; solo se guarda una entrada
+        // cuando el revendedor lo desactiva manualmente.
+        function getStockProducto(catalogo, productId) {
+            try {
+                const stockData = JSON.parse(localStorage.getItem('stockProductosCat') || '{}');
+                if (stockData[catalogo] && Object.prototype.hasOwnProperty.call(stockData[catalogo], productId)) {
+                    return !!stockData[catalogo][productId];
+                }
+            } catch(e) {}
+            return true; // en stock por defecto
+        }
+
+        function setStockProducto(catalogo, productId, enStock) {
+            try {
+                const stockData = JSON.parse(localStorage.getItem('stockProductosCat') || '{}');
+                if (!stockData[catalogo]) stockData[catalogo] = {};
+                stockData[catalogo][productId] = !!enStock;
+                localStorage.setItem('stockProductosCat', JSON.stringify(stockData));
+                const fbUser = firebase.auth().currentUser;
+                if (fbUser) {
+                    firebase.firestore().collection('usuarios').doc(fbUser.uid)
+                        .update({ [`stockProductosCat.${catalogo}.${productId}`]: !!enStock })
+                        .catch(() => {});
+                }
+            } catch(e) {}
+        }
+
+        function stockDotHtml(catalogo, productId) {
+            const enStock = getStockProducto(catalogo, productId);
+            return enStock
+                ? '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text-light);"><span style="width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px 1px rgba(34,197,94,.7);display:inline-block;"></span>En stock</span>'
+                : '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text-light);"><span style="width:9px;height:9px;border-radius:50%;background:#ef4444;box-shadow:0 0 6px 1px rgba(239,68,68,.7);display:inline-block;"></span>Sin stock</span>';
+        }
+
+        function stockOverlayHtml(catalogo, productId) {
+            if (getStockProducto(catalogo, productId)) return '';
+            return '<div style="position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;border-radius:inherit;z-index:3;"><span style="color:#fff;font-weight:700;font-size:13px;text-shadow:0 0 8px rgba(0,0,0,.8);letter-spacing:.5px;">SIN STOCK</span></div>';
+        }
+
+        function actualizarDotsStockModal(enStock) {
+            const dotSi = document.getElementById('modal-stock-dot-si');
+            const dotNo = document.getElementById('modal-stock-dot-no');
+            if (dotSi) dotSi.style.cssText = enStock
+                ? 'width:12px;height:12px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px 2px rgba(34,197,94,.7);display:inline-block;'
+                : 'width:12px;height:12px;border-radius:50%;background:#d1d5db;display:inline-block;';
+            if (dotNo) dotNo.style.cssText = !enStock
+                ? 'width:12px;height:12px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px 2px rgba(239,68,68,.7);display:inline-block;'
+                : 'width:12px;height:12px;border-radius:50%;background:#d1d5db;display:inline-block;';
+        }
+
+        function setStockProductoModal(enStock) {
+            const catalogo = window.currentProductCatalog || window.currentCatalog;
+            const producto = window.currentProduct || currentProduct;
+            if (!producto) return;
+            setStockProducto(catalogo, producto.id, enStock);
+            actualizarDotsStockModal(enStock);
+            if (catalogo === 'calzados' && typeof renderShoesProducts === 'function') renderShoesProducts();
+            else if (catalogo === 'belleza' && typeof renderBellezaProducts === 'function') renderBellezaProducts();
+            else if (typeof renderProducts === 'function') renderProducts();
+        }
+
+        // Comparte el producto actualmente abierto en el modal (mismo enlace
+        // que "Compartir tienda desde acá": abre tienda.html directo en él).
+        async function compartirProductoDesdeModal() {
+            const catalogo = window.currentProductCatalog || window.currentCatalog;
+            const producto = window.currentProduct || currentProduct;
+            if (!producto) return;
+            await compartirTiendaDesdeProducto(catalogo, producto.id);
+        }
+
         function getPrecioProductoConfigurado(producto, catalogo) {
             if (!producto) return 0;
             const cat = catalogo || window.currentCatalog || 'general';
@@ -5150,7 +5244,8 @@
                 html += `
                 <div class="product-card">
                     <button type="button" aria-label="Modificar precio" onclick="event.stopPropagation();abrirEditarPrecioProducto('perfumes', ${p.id})" style="position:absolute;top:8px;right:8px;z-index:4;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-light);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s ease;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-                    <div class="product-image" onclick="openZoom('${p.imagen}')">
+                    <div class="product-image" onclick="openZoom('${p.imagen}')" style="position:relative;">
+                        ${stockOverlayHtml('perfumes', p.id)}
                         <div class="zoom-icon">🔍</div>
                         <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${p.imagen}')">
                     </div>
@@ -5159,7 +5254,7 @@
                         <div class="product-price">
                             <div class="price-current">$${precioMostrado.toLocaleString()}</div>
                             <div class="price-original">$${p.precioOriginal.toLocaleString()}</div>
-                            <div class="price-discount">${Math.round((1 - precioMostrado/p.precioOriginal) * 100)}%</div>
+                            ${stockDotHtml('perfumes', p.id)}
                         </div>
                         <button class="btn-more" onclick="openDetails(${p.id})">Ver más</button>
                     </div>
@@ -5219,7 +5314,8 @@
                 html += `
                 <div class="product-card">
                     <button type="button" aria-label="Modificar precio" onclick="event.stopPropagation();abrirEditarPrecioProducto('calzados', ${p.id})" style="position:absolute;top:8px;right:8px;z-index:4;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-light);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s ease;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-                    <div class="product-image" onclick="openZoom('${p.imagen}')">
+                    <div class="product-image" onclick="openZoom('${p.imagen}')" style="position:relative;">
+                        ${stockOverlayHtml('calzados', p.id)}
                         <div class="zoom-icon">🔍</div>
                         <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${p.imagen}')">
                     </div>
@@ -5228,7 +5324,7 @@
                         <div class="product-price">
                             <div class="price-current">$${precioMostrado.toLocaleString()}</div>
                             <div class="price-original">$${p.precioOriginal.toLocaleString()}</div>
-                            <div class="price-discount">${Math.round((1 - precioMostrado/p.precioOriginal) * 100)}%</div>
+                            ${stockDotHtml('calzados', p.id)}
                         </div>
                         <button class="btn-more" onclick="openDetailsShoes(${p.id})">Ver más</button>
                     </div>
@@ -5319,7 +5415,8 @@
                 html += `
                 <div class="product-card">
                     <button type="button" aria-label="Modificar precio" onclick="event.stopPropagation();abrirEditarPrecioProducto('belleza', ${p.id})" style="position:absolute;top:8px;right:8px;z-index:4;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-light);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s ease;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-                    <div class="product-image" onclick="openZoom('${p.imagen}')">
+                    <div class="product-image" onclick="openZoom('${p.imagen}')" style="position:relative;">
+                        ${stockOverlayHtml('belleza', p.id)}
                         <div class="zoom-icon">🔍</div>
                         <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${p.imagen}')">
                     </div>
@@ -5328,7 +5425,7 @@
                         <div class="product-price">
                             <div class="price-current">$${precioMostrado.toLocaleString()}</div>
                             <div class="price-original">$${p.precioOriginal.toLocaleString()}</div>
-                            <div class="price-discount">${Math.round((1 - precioMostrado/p.precioOriginal) * 100)}%</div>
+                            ${stockDotHtml('belleza', p.id)}
                         </div>
                         <button class="btn-more" onclick="openDetailsBelleza(${p.id})">Ver más</button>
                     </div>
@@ -5356,6 +5453,72 @@
             }, 100);
         }
 
+        window.currentModalImagenes = [];
+        window.currentModalImagenIndex = 0;
+        window.currentModalVarianteSeleccionada = null;
+
+        function poblarCarruselYVariantesModal(producto) {
+            const imgs = (Array.isArray(producto.imagenes) && producto.imagenes.length > 1) ? producto.imagenes : [producto.imagen];
+            window.currentModalImagenes = imgs;
+            window.currentModalImagenIndex = 0;
+            const dotsWrap = document.getElementById('modal-details-carousel-dots');
+            const prevBtn = document.getElementById('modal-details-carousel-prev');
+            const nextBtn = document.getElementById('modal-details-carousel-next');
+            const multi = imgs.length > 1;
+            if (dotsWrap) {
+                dotsWrap.style.display = multi ? 'flex' : 'none';
+                dotsWrap.innerHTML = multi ? imgs.map((_, i) =>
+                    `<span data-dot-index="${i}" style="height:6px;width:${i===0?'20px':'6px'};border-radius:3px;background:${i===0?'#fff':'rgba(255,255,255,.5)'};display:inline-block;transition:all .2s;cursor:pointer;" onclick="irAImagenModal(${i})"></span>`
+                ).join('') : '';
+            }
+            if (prevBtn) prevBtn.style.display = multi ? 'flex' : 'none';
+            if (nextBtn) nextBtn.style.display = multi ? 'flex' : 'none';
+            const varWrap = document.getElementById('modal-details-variantes-wrap');
+            const varCont = document.getElementById('modal-details-variantes');
+            const variantes = Array.isArray(producto.variantes) ? producto.variantes : [];
+            window.currentModalVarianteSeleccionada = null;
+            if (varWrap && varCont) {
+                if (variantes.length > 0) {
+                    varWrap.style.display = 'block';
+                    varCont.innerHTML = variantes.map((v, i) =>
+                        `<button type="button" onclick="seleccionarVarianteModal('${v.replace(/'/g, "\\'")}', this)" style="padding:6px 12px;border:1.5px solid var(--border);border-radius:20px;background:var(--surface);font-size:12.5px;color:var(--text);cursor:pointer;">${v}</button>`
+                    ).join('');
+                } else {
+                    varWrap.style.display = 'none';
+                    varCont.innerHTML = '';
+                }
+            }
+        }
+
+        function irAImagenModal(index) {
+            const imgs = window.currentModalImagenes || [];
+            if (imgs.length === 0) return;
+            index = ((index % imgs.length) + imgs.length) % imgs.length; // wraparound
+            window.currentModalImagenIndex = index;
+            const img = document.getElementById('modal-details-image');
+            if (img) { img.dataset.fallbackStep = ''; img.src = resolveImgUrl(imgs[index]); }
+            document.querySelectorAll('#modal-details-carousel-dots [data-dot-index]').forEach((dot, i) => {
+                dot.style.width = i === index ? '20px' : '6px';
+                dot.style.background = i === index ? '#fff' : 'rgba(255,255,255,.5)';
+            });
+        }
+
+        function seleccionarVarianteModal(valor, btnEl) {
+            window.currentModalVarianteSeleccionada = valor;
+            document.querySelectorAll('#modal-details-variantes button').forEach(b => {
+                b.style.borderColor = 'var(--border)';
+                b.style.background = 'var(--surface)';
+                b.style.color = 'var(--text)';
+                b.style.fontWeight = '400';
+            });
+            if (btnEl) {
+                btnEl.style.borderColor = 'var(--primary)';
+                btnEl.style.background = 'var(--primary)';
+                btnEl.style.color = '#fff';
+                btnEl.style.fontWeight = '600';
+            }
+        }
+
         function openDetailsBelleza(id) {
             window.currentCatalog = 'belleza';
             currentProduct = (window.productsBelleza || []).find(p => p.id === id);
@@ -5373,6 +5536,8 @@
             document.getElementById('modal-details-info').textContent = currentProduct.info || '';
             const momentoEl = document.getElementById('modal-details-moment');
             if (momentoEl) momentoEl.textContent = currentProduct.momento || (currentProduct._origin === 'maquillaje' ? 'uso diario / cualquier ocasión' : '');
+            poblarCarruselYVariantesModal(currentProduct);
+            actualizarDotsStockModal(getStockProducto('belleza', currentProduct.id));
             document.getElementById('modal-details').classList.add('active');
         }
 
@@ -5428,6 +5593,8 @@
             document.getElementById('modal-details-characteristics').innerHTML = currentProduct.caracteristicas.map(c => `<li>${c}</li>`).join('');
             document.getElementById('modal-details-info').textContent = currentProduct.info;
             document.getElementById('modal-details-moment').textContent = currentProduct.momento;
+            poblarCarruselYVariantesModal(currentProduct);
+            actualizarDotsStockModal(getStockProducto('perfumes', currentProduct.id));
             document.getElementById('modal-details').classList.add('active');
         }
 
@@ -7405,9 +7572,23 @@
                         </div>
                         
                         ${tallesHtml}
-                        
+
+                        <div style="margin: 20px 0; width: 100%; text-align: left;">
+                            <p style="margin: 0 0 10px 0; font-weight: 600; color: var(--text);">Disponibilidad</p>
+                            <div style="display:flex; gap:22px; align-items:center;">
+                                <button type="button" onclick="setStockProductoModal(true)" id="modal-stock-btn-si" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px 0; font-size:14px; color: var(--text);">
+                                    <span id="modal-stock-dot-si" style="width:12px;height:12px;border-radius:50%;background:${getStockProducto('calzados', product.id) ? '#22c55e' : '#d1d5db'};${getStockProducto('calzados', product.id) ? 'box-shadow:0 0 8px 2px rgba(34,197,94,.7);' : ''}display:inline-block;"></span>
+                                    En stock
+                                </button>
+                                <button type="button" onclick="setStockProductoModal(false)" id="modal-stock-btn-no" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px 0; font-size:14px; color: var(--text);">
+                                    <span id="modal-stock-dot-no" style="width:12px;height:12px;border-radius:50%;background:${!getStockProducto('calzados', product.id) ? '#ef4444' : '#d1d5db'};${!getStockProducto('calzados', product.id) ? 'box-shadow:0 0 8px 2px rgba(239,68,68,.7);' : ''}display:inline-block;"></span>
+                                    Sin stock
+                                </button>
+                            </div>
+                        </div>
+
                         <div style="margin-top: 30px; display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px;">
-                            <button class="btn-primary" onclick="addToCart(${product.id})" style="width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Agregar Producto</button>
+                            <button class="btn-primary" onclick="compartirProductoDesdeModal()" style="width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Compartir Producto</button>
                             <button class="btn-secondary" onclick="closeDetailsShoes()" style="width: 100%; padding: 12px; background: var(--border); color: var(--text); border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Cerrar</button>
                         </div>
                     </div>
@@ -8290,11 +8471,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         let productosCarruselBelleza = [];
 
         function inicializarCarruselBelleza() {
-            const valid = (window.productsBelleza || []).filter(p => p.imagen && !/portada/i.test(p.imagen));
-            const perfumesSample = valid.filter(p => p._origin !== 'maquillaje').slice(0, 6);
-            const maquillajeSample = valid.filter(p => p._origin === 'maquillaje').slice(0, 6);
-            productosCarruselBelleza = [...perfumesSample, ...maquillajeSample];
-            if (productosCarruselBelleza.length === 0) productosCarruselBelleza = valid.slice(0, 12);
+            // Imágenes fijas pedidas para el carrusel de la tarjeta de
+            // Belleza y Cuidado Personal (todas de Maquillaje).
+            const CARRUSEL_BELLEZA_IMGS = ['blushl.png', 'spray.png', 'delineadorn.png', 'cleanser.png', 'lipglosst.png'];
+            const todosMaq = (window.productsMaquillaje || []);
+            productosCarruselBelleza = CARRUSEL_BELLEZA_IMGS
+                .map(fname => todosMaq.find(p => (p.imagen || '').endsWith('/' + fname)))
+                .filter(Boolean)
+                .map(p => ({ nombre: p.nombre, imagen: p.imagen, _origin: 'maquillaje' }));
+
+            if (productosCarruselBelleza.length === 0) {
+                const valid = (window.productsBelleza || []).filter(p => p.imagen && !/portada/i.test(p.imagen));
+                productosCarruselBelleza = valid.slice(0, 5);
+            }
             if (productosCarruselBelleza.length === 0) return;
 
             const wrapper = document.getElementById('carrusel-wrapper-belleza');
@@ -9622,16 +9811,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                             </button>
                         </div>
-                        <div>Precio sugerido por configuración: <strong style="color:var(--primary);">$${getPrecioSugerido(producto).toLocaleString()}</strong></div>
+                        <div>Precio Configurado: <strong style="color:var(--primary);">$${sugerido.toLocaleString()}</strong></div>
                     </div>
                     <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Precio manual</label>
                     <input type="number" id="editar-precio-manual-input" min="0" value="${manual}" placeholder="Ingresá el precio" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:var(--font-body);margin-bottom:14px;">
-                    <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;" onclick="guardarPrecioManualProducto('${catalogo}', ${productId})">Guardar precio</button>
+                    <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;padding:9px 10px;font-size:13px;white-space:nowrap;" onclick="guardarPrecioManualProducto('${catalogo}', ${productId})">Guardar precio</button>
                     <div style="display:flex;gap:8px;margin-bottom:8px;">
-                        <button type="button" class="confirmation-button" style="flex:1;background:#f5f5f5;color:var(--text);" onclick="abrirVistaPreviaProducto('${catalogo}', ${productId})">👁️ Vista previa</button>
-                        <button type="button" class="confirmation-button" style="flex:1;background:#f5f5f5;color:var(--text);" onclick="compartirTiendaDesdeProducto('${catalogo}', ${productId})">🔗 Compartir tienda desde acá</button>
+                        <button type="button" class="confirmation-button" style="flex:1;background:#f5f5f5;color:var(--text);padding:9px 6px;font-size:12.5px;white-space:nowrap;" onclick="abrirVistaPreviaProducto('${catalogo}', ${productId})">👁️ Vista previa</button>
+                        <button type="button" class="confirmation-button" style="flex:1;background:#f5f5f5;color:var(--text);padding:9px 6px;font-size:12.5px;white-space:nowrap;" onclick="compartirTiendaDesdeProducto('${catalogo}', ${productId})">🔗 Compartir producto</button>
                     </div>
-                    <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);" onclick="document.getElementById('editarPrecioProductoModal').classList.remove('active')">Cancelar</button>
+                    <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);padding:9px 10px;font-size:13px;" onclick="document.getElementById('editarPrecioProductoModal').classList.remove('active')">Cancelar</button>
                 </div>`;
             modal.onclick = function(e) { if (e.target.id === 'editarPrecioProductoModal') modal.classList.remove('active'); };
             modal.classList.add('active');
@@ -11881,6 +12070,13 @@ function mostrarToastOk(msg) {
             if (!applyHex(v)) {
                 var inp = document.getElementById('config-color-tienda-hex');
                 if (inp) { inp.focus(); inp.select(); }
+                return;
+            }
+            var toast = document.getElementById('wa-toast');
+            if (toast) {
+                toast.textContent = '✅ Color aplicado: ' + v;
+                toast.style.display = 'block';
+                setTimeout(function(){ toast.style.display = 'none'; }, 3000);
             }
         });
         var reset = document.getElementById('cp-reset');
