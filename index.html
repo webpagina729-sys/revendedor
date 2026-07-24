@@ -4109,7 +4109,7 @@
 
             <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;padding:10px;font-size:13px;" onclick="guardarConfigTienda()">Guardar configuración</button>
             <button type="button" class="confirmation-button" style="width:100%;background:#fee2e2;color:#b91c1c;margin-bottom:8px;font-weight:700;padding:10px;font-size:13px;" onclick="eliminarConfigTienda()">♻️ Reiniciar configuración</button>
-            <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);padding:10px;font-size:13px;" onclick="document.getElementById('configTiendaModal').classList.remove('active')">Cancelar</button>
+            <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);padding:10px;font-size:13px;" onclick="document.getElementById('configTiendaModal').classList.remove('active'); restaurarCatalogTrasSubBelleza();">Cancelar</button>
         </div>
     </div>
 
@@ -5153,8 +5153,8 @@
         function stockDotHtml(catalogo, productId) {
             const enStock = getStockProducto(catalogo, productId);
             return enStock
-                ? '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text-light);"><span style="width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px 1px rgba(34,197,94,.7);display:inline-block;"></span>En stock</span>'
-                : '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text-light);"><span style="width:9px;height:9px;border-radius:50%;background:#ef4444;box-shadow:0 0 6px 1px rgba(239,68,68,.7);display:inline-block;"></span>Sin stock</span>';
+                ? '<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-light);margin-bottom:8px;white-space:nowrap;"><span style="width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 5px 1px rgba(34,197,94,.7);display:inline-block;flex-shrink:0;"></span>En stock</div>'
+                : '<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-light);margin-bottom:8px;white-space:nowrap;"><span style="width:7px;height:7px;border-radius:50%;background:#ef4444;box-shadow:0 0 5px 1px rgba(239,68,68,.7);display:inline-block;flex-shrink:0;"></span>Sin stock</div>';
         }
 
         function stockOverlayHtml(catalogo, productId) {
@@ -5254,8 +5254,8 @@
                         <div class="product-price">
                             <div class="price-current">$${precioMostrado.toLocaleString()}</div>
                             <div class="price-original">$${p.precioOriginal.toLocaleString()}</div>
-                            ${stockDotHtml('perfumes', p.id)}
                         </div>
+                        ${stockDotHtml('perfumes', p.id)}
                         <button class="btn-more" onclick="openDetails(${p.id})">Ver más</button>
                     </div>
                 </div>`;
@@ -5324,8 +5324,8 @@
                         <div class="product-price">
                             <div class="price-current">$${precioMostrado.toLocaleString()}</div>
                             <div class="price-original">$${p.precioOriginal.toLocaleString()}</div>
-                            ${stockDotHtml('calzados', p.id)}
                         </div>
+                        ${stockDotHtml('calzados', p.id)}
                         <button class="btn-more" onclick="openDetailsShoes(${p.id})">Ver más</button>
                     </div>
                 </div>`;
@@ -5381,6 +5381,52 @@
             renderBellezaProducts();
         }
 
+        // Cada sub-opción de Belleza (Maquillaje / Perfumes) tiene su propia
+        // configuración de márgenes, reutilizando el mismo mecanismo genérico
+        // de configTiendaAll[catalogo] con una clave virtual distinta.
+        function catalogoEfectivoBelleza(producto) {
+            return producto && producto._origin === 'maquillaje' ? 'belleza_maquillaje' : 'belleza_perfume';
+        }
+
+        // Inserta, junto al botón de filtro Maquillaje/Perfumes, dos íconos:
+        // 🔗 compartir SOLO esos productos, ✏️ editar SOLO el margen de esos
+        // productos — sin afectar al resto de Belleza.
+        function insertarIconosSubBelleza(btn, sub) {
+            const wrap = document.createElement('span');
+            wrap.className = 'belleza-sub-icons';
+            wrap.style.cssText = 'display:inline-flex;align-items:center;gap:4px;margin:0 6px 0 2px;';
+            wrap.innerHTML = `
+                <button type="button" title="Compartir solo ${sub === 'maquillaje' ? 'Maquillaje' : 'Perfumes'}" onclick="compartirEnlaceSubBelleza('${sub}')" style="width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;color:var(--text-light);padding:0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                </button>
+                <button type="button" title="Editar márgenes de ${sub === 'maquillaje' ? 'Maquillaje' : 'Perfumes'}" onclick="abrirEditarMargenSubBelleza('${sub}')" style="width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;color:var(--text-light);padding:0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                </button>`;
+            btn.insertAdjacentElement('afterend', wrap);
+        }
+
+        async function compartirEnlaceSubBelleza(sub) {
+            try {
+                const catConfig = 'belleza_' + sub;
+                const url = await generarEnlaceCorto(catConfig);
+                if (navigator.share) {
+                    try { await navigator.share({ title: 'Mi tienda', url }); return; } catch(_) {}
+                }
+                await navigator.clipboard.writeText(url);
+                alert('Enlace de ' + (sub === 'maquillaje' ? 'Maquillaje' : 'Perfumes') + ' copiado ✓');
+            } catch(e) {
+                alert('No se pudo generar el enlace. Intentá de nuevo.');
+            }
+        }
+
+        // Abre el modal de "Configurar mi tienda" pero acotado a la
+        // sub-categoría elegida: solo modifica los márgenes de esa opción.
+        function abrirEditarMargenSubBelleza(sub) {
+            window._catalogRealAntesDeSub = window.currentCatalog;
+            window.currentCatalog = 'belleza_' + sub;
+            openConfigTiendaModal();
+        }
+
         function renderBellezaProducts() {
             const grid = document.getElementById('products-grid');
             if (!grid) return;
@@ -5411,10 +5457,11 @@
             let html = '';
             for (let i = 0; i < window.itemsDisplayedBelleza && i < filtered.length; i++) {
                 const p = filtered[i];
-                const precioMostrado = getPrecioProductoConfigurado(p, 'belleza');
+                const catEfectivo = catalogoEfectivoBelleza(p);
+                const precioMostrado = getPrecioProductoConfigurado(p, catEfectivo);
                 html += `
                 <div class="product-card">
-                    <button type="button" aria-label="Modificar precio" onclick="event.stopPropagation();abrirEditarPrecioProducto('belleza', ${p.id})" style="position:absolute;top:8px;right:8px;z-index:4;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-light);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s ease;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+                    <button type="button" aria-label="Modificar precio" onclick="event.stopPropagation();abrirEditarPrecioProducto('${catEfectivo}', ${p.id})" style="position:absolute;top:8px;right:8px;z-index:4;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-light);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s ease;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
                     <div class="product-image" onclick="openZoom('${p.imagen}')" style="position:relative;">
                         ${stockOverlayHtml('belleza', p.id)}
                         <div class="zoom-icon">🔍</div>
@@ -5425,8 +5472,8 @@
                         <div class="product-price">
                             <div class="price-current">$${precioMostrado.toLocaleString()}</div>
                             <div class="price-original">$${p.precioOriginal.toLocaleString()}</div>
-                            ${stockDotHtml('belleza', p.id)}
                         </div>
+                        ${stockDotHtml('belleza', p.id)}
                         <button class="btn-more" onclick="openDetailsBelleza(${p.id})">Ver más</button>
                     </div>
                 </div>`;
@@ -5523,14 +5570,15 @@
             window.currentCatalog = 'belleza';
             currentProduct = (window.productsBelleza || []).find(p => p.id === id);
             window.currentProduct = currentProduct;
-            window.currentProductCatalog = 'belleza';
             if (!currentProduct) return;
+            const catEfectivo = catalogoEfectivoBelleza(currentProduct);
+            window.currentProductCatalog = catEfectivo;
             const detailsImg = document.getElementById('modal-details-image');
             detailsImg.dataset.fallbackStep = '';
             detailsImg.onerror = function() { fallbackProductImage(this, currentProduct.imagen); };
             detailsImg.src = resolveImgUrl(currentProduct.imagen);
             document.getElementById('modal-details-name').textContent = currentProduct.nombre;
-            document.getElementById('modal-details-price').textContent = `$${getPrecioProductoConfigurado(currentProduct, 'belleza').toLocaleString()}`;
+            document.getElementById('modal-details-price').textContent = `$${getPrecioProductoConfigurado(currentProduct, catEfectivo).toLocaleString()}`;
             document.getElementById('modal-details-price-original').textContent = `$${currentProduct.precioOriginal.toLocaleString()}`;
             document.getElementById('modal-details-characteristics').innerHTML = (currentProduct.caracteristicas || []).map(c => `<li>${c}</li>`).join('');
             document.getElementById('modal-details-info').textContent = currentProduct.info || '';
@@ -8462,7 +8510,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // los de Maquillaje se sirven directamente desde el repo público externo.
         function resolverImagenProducto(p) {
             if (!p) return '';
-            if (p._origin === 'maquillaje') return MAQUILLAJE_REPO_BASE + p.imagen;
             return resolveImgUrl(p.imagen);
         }
 
@@ -8878,6 +8925,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     }
 
                     const filterBtns = document.querySelectorAll('.filter-btn');
+                    // Limpiar íconos de una render anterior antes de re-agregarlos
+                    document.querySelectorAll('.belleza-sub-icons').forEach(el => el.remove());
 
                     // Filtros pedidos: Todos / Maquillaje / Perfumes
                     filterBtns.forEach((btn, idx) => {
@@ -8890,10 +8939,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                             btn.textContent = 'Maquillaje';
                             btn.style.display = 'inline-block';
                             btn.onclick = () => filterBellezaProducts('maquillaje');
+                            insertarIconosSubBelleza(btn, 'maquillaje');
                         } else if (idx === 2) {
                             btn.textContent = 'Perfumes';
                             btn.style.display = 'inline-block';
                             btn.onclick = () => filterBellezaProducts('perfume');
+                            insertarIconosSubBelleza(btn, 'perfume');
                         } else {
                             btn.style.display = 'none';
                             btn.onclick = null;
@@ -9220,6 +9271,20 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
             _lsSet('whatsappRevendedor', val);
             _guardarEnFirestore({ whatsappRevendedor: val });
+
+            // 🔧 Guardar también en el Worker de datos del revendedor, que es
+            // de donde tienda.html lo termina leyendo para el botón de WhatsApp.
+            try {
+                const codigoVend = getCodigoVendedor();
+                if (codigoVend) {
+                    fetch('https://datosderevendedor.tuweb.workers.dev', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codigo: codigoVend, whatsapp: val })
+                    }).catch(() => {});
+                }
+            } catch(_e) {}
+
             document.getElementById('whatsappConfirmModal').classList.remove('active');
 
             // Toast de confirmación con estética de la web
@@ -9276,6 +9341,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             _lsSet('whatsappRevendedor', val);
             _guardarEnFirestore({ whatsappRevendedor: val });
 
+            // 🔧 Guardar también en el Worker de datos del revendedor, que es
+            // de donde tienda.html lo termina leyendo para el botón de WhatsApp.
+            try {
+                const codigoVend = getCodigoVendedor();
+                if (codigoVend) {
+                    fetch('https://datosderevendedor.tuweb.workers.dev', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codigo: codigoVend, whatsapp: val })
+                    }).catch(() => {});
+                }
+            } catch(_e) {}
+
             // Reflejar el valor normalizado en el propio input
             if (inputEl) inputEl.value = val;
 
@@ -9318,7 +9396,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (!user) { abrirLogin(); return; }
 
             const cat = window.currentCatalog || 'general';
-            const catLabel = cat === 'perfumes' ? 'Perfumería' : cat === 'calzados' ? 'Calzados' : 'General';
+            const catLabel = cat === 'perfumes' ? 'Perfumería' : cat === 'calzados' ? 'Calzados' : cat === 'belleza_maquillaje' ? 'Belleza y Cuidado Personal — Maquillaje' : cat === 'belleza_perfume' ? 'Belleza y Cuidado Personal — Perfumes' : cat === 'belleza' ? 'Belleza y Cuidado Personal' : 'General';
             const el = document.getElementById('configTiendaCatLabel');
             if (el) el.textContent = '📁 Categoría: ' + catLabel;
 
@@ -9357,6 +9435,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         function closeConfigTiendaModal(e) {
             if (e && e.target.id !== 'configTiendaModal') return;
             document.getElementById('configTiendaModal').classList.remove('active');
+            restaurarCatalogTrasSubBelleza();
+        }
+
+        // Si el modal se abrió acotado a una sub-categoría de Belleza
+        // (vía ícono de lápiz), al cerrar se vuelve al catálogo real para
+        // que el resto del panel (renderizado, filtros, etc.) no quede
+        // "pensando" que sigue en 'belleza_maquillaje' / 'belleza_perfume'.
+        function restaurarCatalogTrasSubBelleza() {
+            if (window._catalogRealAntesDeSub) {
+                window.currentCatalog = window._catalogRealAntesDeSub;
+                window._catalogRealAntesDeSub = null;
+                if (typeof renderBellezaProducts === 'function') renderBellezaProducts();
+            }
         }
 
         function agregarRangoConfig(de, hasta, pct) {
@@ -9547,6 +9638,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             _guardarEnFirestore(_updateData);
 
             document.getElementById('configTiendaModal').classList.remove('active');
+
+            if (cat === 'belleza_maquillaje' || cat === 'belleza_perfume') {
+                // Edición acotada a una sub-categoría: no abrir el resumen de
+                // "compartir tienda" completo (eso es para toda la categoría).
+                const toast = document.getElementById('wa-toast');
+                if (toast) {
+                    toast.textContent = '✅ Márgenes de ' + (cat === 'belleza_maquillaje' ? 'Maquillaje' : 'Perfumes') + ' guardados';
+                    toast.style.display = 'block';
+                    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+                }
+                restaurarCatalogTrasSubBelleza();
+                return;
+            }
 
             // Abrir automáticamente el modal de compartir
             setTimeout(() => abrirVerTienda(cat), 200);
@@ -9789,7 +9893,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         function abrirEditarPrecioProducto(catalogo, productId) {
-            const lista = catalogo === 'calzados' ? (window.shoes || []) : catalogo === 'belleza' ? (window.productsBelleza || []) : (window.products || products || []);
+            const lista = catalogo === 'calzados' ? (window.shoes || []) : catalogo.indexOf('belleza') === 0 ? (window.productsBelleza || []) : (window.products || products || []);
             const producto = lista.find(p => p.id === productId);
             if (!producto) return;
             const sugerido = getPrecioProductoConfigurado(producto, catalogo);
@@ -10858,12 +10962,14 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         // Arma la URL final de tienda.html embebiendo todo lo necesario en
-        // los parámetros (sin depender de ningún servidor para resolverlos).
-        function construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId) {
+        // los parámetros. Se usa como FALLBACK si el acortado por Worker no
+        // está disponible (nunca deja al revendedor sin poder compartir).
+        function construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub) {
             const params = new URLSearchParams();
             params.set('s', slugId);
             if (codigo) params.set('tienda', codigo);
             if (cat) params.set('cat', cat);
+            if (sub) params.set('sub', sub);
             if (productoId != null) params.set('producto', productoId);
             try {
                 if (cfgFull && Object.keys(cfgFull).length > 0) {
@@ -10878,27 +10984,74 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             return TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?' + params.toString();
         }
 
-        function armarCfgFullYPromo(cat) {
+        // Intenta guardar la configuración en el Worker de slugs para poder
+        // devolver un enlace CORTO (solo dominio + slug). Timeout acotado:
+        // si el Worker no responde a tiempo, se cae al enlace largo embebido
+        // (construirEnlaceTienda) para que compartir NUNCA se rompa.
+        //
+        // 🔧 IMPORTANTE: el Worker real (handleGuardarSlug) solo persiste
+        // { slugId, codigoVendedor, cat, cfg, promo } — cualquier otro campo
+        // top-level (como "producto" o "sub") lo descarta en silencio. Por
+        // eso "sub" y "producto" viajan EMBEBIDOS dentro de "cfg" (que el
+        // Worker guarda y devuelve tal cual, sin validar su forma), y se
+        // extraen de ahí al resolver el slug del lado de tienda.html.
+        async function acortarEnlace(slugId, codigo, cat, cfgFull, promo, productoId, sub) {
+            try {
+                const ctrl = new AbortController();
+                const timeoutId = setTimeout(() => ctrl.abort(), 3500);
+                const cfgConExtra = { ...(cfgFull || {}) };
+                if (sub) cfgConExtra._sub = sub;
+                if (productoId != null) cfgConExtra._producto = productoId;
+                const res = await fetch(WORKER_SLUG_BASE + '/slug', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: ctrl.signal,
+                    body: JSON.stringify({ slugId, codigoVendedor: codigo, cat, cfg: cfgConExtra, promo })
+                });
+                clearTimeout(timeoutId);
+                if (!res.ok) throw new Error('slug fail');
+                let slugFinal = slugId;
+                try {
+                    const data = await res.json();
+                    if (data && (data.slugId || data.slug || data.id)) slugFinal = data.slugId || data.slug || data.id;
+                } catch(_) {}
+                return TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?s=' + encodeURIComponent(slugFinal);
+            } catch(_e) {
+                // Sin red / Worker caído / timeout: enlace largo como respaldo.
+                return construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub);
+            }
+        }
+
+        function armarCfgFullYPromo(catConfig) {
             const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-            const cfg = allConfig[cat] || null;
+            const cfg = allConfig[catConfig] || null;
             let cfgFull = cfg ? { ...cfg } : {};
             try {
                 const colorsByCat = JSON.parse(localStorage.getItem('coloresTiendaPorCat') || '{}');
-                if (colorsByCat[cat]) cfgFull.colorTienda = colorsByCat[cat];
+                if (colorsByCat[catConfig]) cfgFull.colorTienda = colorsByCat[catConfig];
             } catch(_) {}
             try {
                 const extraAll = JSON.parse(localStorage.getItem('coloresExtraTienda') || '{}');
-                if (extraAll[cat]) cfgFull._coloresExtra = extraAll[cat];
+                if (extraAll[catConfig]) cfgFull._coloresExtra = extraAll[catConfig];
             } catch(_) {}
             let promo = null;
             try {
                 const promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}');
-                if (promos[cat] && (Array.isArray(promos[cat].rangos) || promos[cat].gift)) promo = promos[cat];
+                if (promos[catConfig] && (Array.isArray(promos[catConfig].rangos) || promos[catConfig].gift)) promo = promos[catConfig];
             } catch(_) {}
             return { cfgFull, promo };
         }
 
-        async function generarEnlaceCorto(cat) {
+        // catConfig puede ser 'perfumes' | 'calzados' | 'belleza' |
+        // 'belleza_maquillaje' | 'belleza_perfume'. Devuelve la categoría de
+        // RUTA real (para tienda.html) y el sub-filtro si corresponde.
+        function derivarRutaYSub(catConfig) {
+            if (catConfig === 'belleza_maquillaje') return { cat: 'belleza', sub: 'maquillaje' };
+            if (catConfig === 'belleza_perfume') return { cat: 'belleza', sub: 'perfume' };
+            return { cat: catConfig, sub: null };
+        }
+
+        async function generarEnlaceCorto(catConfig) {
             // Si el código de revendedor todavía no está disponible en
             // memoria (carrera justo después del login), se espera breve
             // pero acotado — nunca de forma indefinida.
@@ -10910,17 +11063,18 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 esperas++;
             }
 
-            const { cfgFull, promo } = armarCfgFullYPromo(cat);
+            const { cfgFull, promo } = armarCfgFullYPromo(catConfig);
+            const { cat, sub } = derivarRutaYSub(catConfig);
             const slugId = await armarSlugRevendedor();
-            const urlCorta = construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo);
-            window._enlacesCortosCache[cat] = urlCorta;
+            const urlCorta = await acortarEnlace(slugId, codigo, cat, cfgFull, promo, null, sub);
+            window._enlacesCortosCache[catConfig] = urlCorta;
             return urlCorta;
         }
 
         // Genera el enlace que abre directamente UN producto puntual en
         // tienda.html, con el precio configurado (base + margen o manual)
         // y la configuración de márgenes del revendedor ya aplicada.
-        async function generarEnlaceProducto(cat, productId) {
+        async function generarEnlaceProducto(catConfig, productId) {
             let codigo = getCodigoVendedor();
             let esperas = 0;
             while (!codigo && esperas < 10) {
@@ -10928,9 +11082,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 codigo = getCodigoVendedor();
                 esperas++;
             }
-            const { cfgFull, promo } = armarCfgFullYPromo(cat);
+            const { cfgFull, promo } = armarCfgFullYPromo(catConfig);
+            const { cat, sub } = derivarRutaYSub(catConfig);
             const slugId = await armarSlugRevendedor();
-            return construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productId);
+            return await acortarEnlace(slugId, codigo, cat, cfgFull, promo, productId, sub);
         }
 
         async function abrirVistaPreviaProducto(catalogo, productId) {
