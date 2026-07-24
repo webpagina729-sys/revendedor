@@ -923,35 +923,51 @@ const urlParams = new URLSearchParams(window.location.search);
 
 // ── Slug corto: resuelve ?s=nombre-apellido-XXXXXX SIN reload ──
 // Actualiza urlParams en memoria; window.load espera antes de iniciar.
-// 🔧 FIX: los enlaces nuevos ya traen todo embebido (tienda/cat/cfg/promo)
-// junto al slug "s", así que se leen al instante sin red y sin depender
-// de ningún Worker externo (eso era lo que dejaba el enlace colgado).
-// Solo si un enlace viejo trae "s" pero SIN "tienda" (formato anterior)
-// se intenta resolver una única vez contra el Worker, como respaldo.
+// Los enlaces cortos nuevos solo traen "?s=slug" — todo lo demás (código
+// de revendedor, categoría, sub-filtro, producto, márgenes, promo) se
+// resuelve acá contra el Worker de slugs. Timeout acotado: si no responde
+// a tiempo, no se rinde para siempre — simplemente sigue sin esos datos
+// (el flujo de cargarVendedor() ya maneja el caso de "revendedor no
+// encontrado" de forma amigable, en vez de dejar la página colgada).
+// Los enlaces viejos que ya traen "tienda"/"cat" embebidos no necesitan
+// esta consulta y se leen al instante.
 let _slugPromise = Promise.resolve();
 (function() {
     var sp = urlParams.get('s');
     if (!sp || urlParams.get('tienda')) return; // ya viene todo en la URL
-    _slugPromise = fetch('https://workerwebcliente.tuweb.workers.dev/slug/' + encodeURIComponent(sp))
-        .then(function(r) { return r.ok ? r.json() : null; })
+    var ctrl = new AbortController();
+    var timeoutId = setTimeout(function() { ctrl.abort(); }, 4000);
+    _slugPromise = fetch('https://workerwebcliente.tuweb.workers.dev/slug/' + encodeURIComponent(sp), { signal: ctrl.signal })
+        .then(function(r) { clearTimeout(timeoutId); return r.ok ? r.json() : null; })
         .then(function(d) {
             if (!d || !d.codigoVendedor) return;
             urlParams.set('tienda', d.codigoVendedor);
             if (d.cat) urlParams.set('cat', d.cat);
-            if (d.cfg && Object.keys(d.cfg).length > 0) {
-                try { urlParams.set('cfg', btoa(unescape(encodeURIComponent(JSON.stringify(d.cfg))))); } catch(e) {}
+            // 🔧 El Worker real (handleGuardarSlug) solo persiste
+            // { codigoVendedor, cat, cfg, promo } — "sub" y "producto" no
+            // tienen columna propia y viajan embebidos DENTRO de "cfg".
+            var cfgObj = (d.cfg && typeof d.cfg === 'object') ? d.cfg : {};
+            if (cfgObj._sub) urlParams.set('sub', cfgObj._sub);
+            if (cfgObj._producto != null) urlParams.set('producto', cfgObj._producto);
+            var cfgLimpio = {};
+            for (var k in cfgObj) {
+                if (k !== '_sub' && k !== '_producto') cfgLimpio[k] = cfgObj[k];
+            }
+            if (Object.keys(cfgLimpio).length > 0) {
+                try { urlParams.set('cfg', btoa(unescape(encodeURIComponent(JSON.stringify(cfgLimpio))))); } catch(e) {}
             }
             if (d.promo && (Array.isArray(d.promo.rangos) || d.promo.gift)) {
                 try { urlParams.set('promo', btoa(unescape(encodeURIComponent(JSON.stringify(d.promo))))); } catch(e) {}
             }
             try { window.history.replaceState({}, '', window.location.pathname + '?' + urlParams.toString()); } catch(e) {}
         })
-        .catch(function() {});
+        .catch(function() { clearTimeout(timeoutId); });
 })();
 
 // let para que window.load los actualice tras resolver el slug
 let codigoParam = urlParams.get('tienda') || '';
 let catParam    = urlParams.get('cat') || 'perfumes';
+let subParam    = urlParams.get('sub') || '';
 
 // ── localStorage safe: Safari iOS modo privado lanza excepción ──
 var _lsMem = {};
@@ -1967,7 +1983,11 @@ async function cargarVendedor() {
                 if (parsed.colorTienda) cfgUrlColorTienda = parsed.colorTienda;
                 if (parsed._coloresExtra) cfgUrlColoresExtra = parsed._coloresExtra;
                 if (Array.isArray(parsed.rangos)) {
-                    const catKey = (catParam === 'calzados') ? 'calzados' : 'perfumes';
+                    const catKey = (catParam === 'calzados') ? 'calzados'
+                        : (catParam === 'belleza' && subParam === 'maquillaje') ? 'belleza_maquillaje'
+                        : (catParam === 'belleza' && subParam === 'perfume') ? 'belleza_perfume'
+                        : (catParam === 'belleza') ? 'belleza'
+                        : 'perfumes';
                     configTienda[catKey] = parsed;
                     configTienda['general'] = parsed;
                 }
@@ -1978,8 +1998,25 @@ async function cargarVendedor() {
     // ── Resolver whatsappRevendedor ────────────────────────────────
     // Orden de prioridad:
     // 1. Ya viene en vendedor.whatsappRevendedor (Firestore/Worker) ✓
-    // 2. Buscar por UID del vendedor en Firestore (doc usuarios/{uid})
-    // 3. Fallback: normalizar vendedor.telefono
+    // 2. Worker de datos del revendedor (fuente de verdad, timeout acotado)
+    // 3. Buscar por UID del vendedor en Firestore (doc usuarios/{uid})
+    // 4. Fallback: normalizar vendedor.telefono
+    if (!vendedor.whatsappRevendedor && codigoParam) {
+        try {
+            const ctrl = new AbortController();
+            const timeoutId = setTimeout(() => ctrl.abort(), 3000);
+            const res = await fetch('https://datosderevendedor.tuweb.workers.dev?codigo=' + encodeURIComponent(codigoParam), { signal: ctrl.signal });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && (data.whatsapp || data.whatsappRevendedor)) {
+                    vendedor.whatsappRevendedor = data.whatsapp || data.whatsappRevendedor;
+                }
+            }
+        } catch(_e) {
+            // Timeout o error de red: se sigue con los demás fallbacks.
+        }
+    }
     if (!vendedor.whatsappRevendedor) {
         // Intento 2: buscar por UID si lo tenemos
         var _uid = vendedor.uid || vendedor.userId || vendedor.id || null;
@@ -2105,7 +2142,7 @@ function iniciarTienda() {
     filtersBar.style.display = 'flex';
 
     // Preparar datos con precios ajustados
-    const raw = catalogoActual === 'calzados'
+    let raw = catalogoActual === 'calzados'
         ? CALZADOS_DATA
         : catalogoActual === 'belleza'
         ? [
@@ -2113,18 +2150,35 @@ function iniciarTienda() {
             ...PERFUMES_DATA.map(p => ({ ...p, _bellezaCat: 'perfume' }))
           ]
         : PERFUMES_DATA;
-    const _preciosManual = (vendedor && vendedor.preciosManualCat && vendedor.preciosManualCat[catalogoActual]) || {};
+
+    // Enlace de una sola sub-categoría (Maquillaje o Perfumes dentro de
+    // Belleza): mostrar SOLO esos productos, con SU margen configurado.
+    if (catalogoActual === 'belleza' && (subParam === 'maquillaje' || subParam === 'perfume')) {
+        raw = raw.filter(p => p._bellezaCat === subParam);
+    }
+
+    // Cada producto de Belleza usa el margen de SU propia sub-categoría
+    // (belleza_maquillaje / belleza_perfume), no uno compartido.
+    function _catalogKeyParaProducto(p) {
+        if (catalogoActual !== 'belleza') return catalogoActual;
+        return p._bellezaCat === 'maquillaje' ? 'belleza_maquillaje' : 'belleza_perfume';
+    }
+
     const _stockCat = (vendedor && vendedor.stockProductosCat && vendedor.stockProductosCat[catalogoActual]) || {};
     const rawEnStock = raw.filter(p => {
         // Solo se considera "sin stock" si el revendedor lo desactivó explícitamente.
         return !(Object.prototype.hasOwnProperty.call(_stockCat, p.id) && _stockCat[p.id] === false);
     });
-    todosProductos = rawEnStock.map(p => ({
-        ...p,
-        precioFinal: (_preciosManual[p.id] !== undefined && _preciosManual[p.id] !== null && _preciosManual[p.id] !== '')
-            ? Number(_preciosManual[p.id])
-            : calcularPrecioConMargen(p.precio, catalogoActual)
-    }));
+    todosProductos = rawEnStock.map(p => {
+        const catKey = _catalogKeyParaProducto(p);
+        const _preciosManualCat = (vendedor && vendedor.preciosManualCat && vendedor.preciosManualCat[catKey]) || {};
+        return {
+            ...p,
+            precioFinal: (_preciosManualCat[p.id] !== undefined && _preciosManualCat[p.id] !== null && _preciosManualCat[p.id] !== '')
+                ? Number(_preciosManualCat[p.id])
+                : calcularPrecioConMargen(p.precio, catKey)
+        };
+    });
 
     // Construir filtros según catálogo
     const filterBtns = document.getElementById('filter-btns');
@@ -2499,6 +2553,7 @@ window.addEventListener('load', function() {
     _slugPromise.then(function() {
         codigoParam = urlParams.get('tienda') || codigoParam;
         catParam    = urlParams.get('cat')    || catParam;
+        subParam    = urlParams.get('sub')    || subParam;
         cargarVendedor();
     });
 });
