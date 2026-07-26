@@ -3379,6 +3379,17 @@
             <button class="filter-btn" onclick="filterProducts('unisex')">Unisex</button>
         </div>
 
+        <!-- Barra sutil de acciones por sub-categoría (solo Belleza: Maquillaje / Perfumes) -->
+        <div id="belleza-sub-toolbar" style="display:none;align-items:center;justify-content:flex-end;gap:10px;margin:-4px 0 10px;">
+            <span id="belleza-sub-toolbar-label" style="font-size:11px;color:var(--text-light);margin-right:auto;"></span>
+            <button type="button" id="belleza-sub-btn-link" title="Compartir solo esta opción" style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:7px;background:var(--surface);cursor:pointer;color:var(--text-light);padding:0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </button>
+            <button type="button" id="belleza-sub-btn-edit" title="Editar precios de esta opción" style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:7px;background:var(--surface);cursor:pointer;color:var(--text-light);padding:0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+            </button>
+        </div>
+
         <!-- Ordenamiento -->
         <div class="sort-control">
             <label for="sort-select">Ordenar:</label>
@@ -3830,71 +3841,93 @@
 
     <!-- MODAL CONFIRMACIÓN DE EMAIL → REEMPLAZADO POR GUÍA RÁPIDA (al ingresar a Mi Tienda) -->
     <div class="modal-overlay" id="emailConfirmationModal" onclick="closeEmailConfirmationModal(event)">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header" style="background:#1a1a1a;border-radius:12px 12px 0 0;margin:-32px -32px 20px;padding:20px 24px;">
-                <h2 class="modal-title" style="color:#fff;">Guía Rápida</h2>
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Guía Rápida</h2>
             </div>
 
-            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
-                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">1</span>
-                <span class="guide-text" style="color:#fff;">Te damos tu tienda lista para comenzar a revender. Elegí tu tienda ideal con los productos que más te veas vendiendo y completá el mínimo de encargue.</span>
+            <div class="guide-item" style="background:#fff;border:1px solid var(--border);border-left:3px solid #2BA84F;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:var(--primary);color:#fff;border:none;">1</span>
+                <span class="guide-text" style="color:var(--text);">Te damos tu tienda lista para comenzar a revender sin poner en riesgo tu capital. Elegí tu tienda ideal con los productos que más te veas vendiendo y completá el mínimo de encargue.</span>
             </div>
 
-            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
-                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">2</span>
-                <span class="guide-text" style="color:#fff;">Completa los mínimos requeridos de cada categoría de productos y entrega a tus clientes a domicilio. Coordina una fecha de entrega con tus clientes, vendé con una seña que te permita completar el total de tu encargo y le llegamos a su casa, realiza el pedido y luego entregá los productos obteniendo tu ganancia.</span>
+            <div class="guide-item" style="background:#fff;border:1px solid var(--border);border-left:3px solid #2BA84F;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:var(--primary);color:#fff;border:none;">2</span>
+                <span class="guide-text" style="color:var(--text);">Completá los mínimos requeridos de cada categoría de productos y entregá a tus clientes a domicilio. Coordiná una fecha de entrega con tus clientes, vendé con una seña que te permita completar el total de tu encargo y le llegamos a tu cliente o a tu casa. Realizá el pedido, entregá los productos y disfrutá de tu ganancia.</span>
             </div>
 
-            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
-                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">3</span>
-                <span class="guide-text" style="color:#fff;">Revisá tus correos electrónicos. Si no encontrás nuestros mensajes en bandeja principal, revisá spam o promociones. Todas las semanas enviaremos ideas y estrategias para ayudarte a vender más.</span>
+            <div class="guide-item" style="background:#fff;border:1px solid var(--border);border-left:3px solid #2BA84F;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:var(--primary);color:#fff;border:none;">3</span>
+                <span class="guide-text" style="color:var(--text);">Mirá los videos tutoriales para configurar tu tienda.<br><a href="#" target="_blank" rel="noopener" class="confirmation-button confirmation-button-primary" style="display:inline-block;margin-top:10px;padding:8px 16px;font-size:12.5px;text-decoration:none;">Ir a Tutorial</a></span>
             </div>
 
-            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
-                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">4</span>
-                <span class="guide-text" style="color:#fff;">Resolvé todas tus dudas en nuestra comunidad. <a href="https://chat.whatsapp.com/KxzwYYIhFHqKe2zCoPRhmj?s=cl&p=a&ilr=2&amv=3" target="_blank" rel="noopener" style="color:#adf;font-weight:700;text-transform:uppercase;text-decoration:underline;">IR A LA COMUNIDAD</a></span>
+            <div class="guide-item" style="background:#fff;border:1px solid var(--border);border-left:3px solid #2BA84F;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:var(--primary);color:#fff;border:none;">4</span>
+                <span class="guide-text" style="color:var(--text);">Confirmá tu correo electrónico. Revisá tus correos electrónicos: si no encontrás nuestros mensajes en bandeja principal, revisá spam o promociones. Todas las semanas enviaremos ideas y estrategias para ayudarte a vender más.</span>
+            </div>
+
+            <div class="guide-item" style="background:#fff;border:1px solid var(--border);border-left:3px solid #2BA84F;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:var(--primary);color:#fff;border:none;">5</span>
+                <span class="guide-text" style="color:var(--text);">Resolvé todas tus dudas en nuestra comunidad. <button type="button" onclick="abrirGateComunidad()" style="background:none;border:none;padding:0;color:var(--primary);font-weight:700;text-transform:uppercase;text-decoration:underline;cursor:pointer;font-size:inherit;font-family:inherit;">Ir a la comunidad</button></span>
             </div>
 
             <div class="modal-cta-text">
-                <button class="modal-cta-link" onclick="closeEmailConfirmationModal(); mostrarInicio();" style="color:#1a1a1a;">Ver más opciones de reventa →</button>
+                <button class="modal-cta-link" onclick="closeEmailConfirmationModal(); mostrarInicio();">→ Ir a Categorías</button>
             </div>
 
-            <button type="button" class="confirmation-button" style="width:100%;margin-top:20px;background:#1a1a1a;color:#fff;border:none;" onclick="closeEmailConfirmationModal()">Cerrar</button>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-top:20px;" onclick="closeEmailConfirmationModal()">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- MODAL: FILTRO DE CÓDIGO ANTES DE IR A LA COMUNIDAD -->
+    <div class="modal-overlay" id="comunidadGateModal" onclick="if(event.target.id==='comunidadGateModal') cerrarGateComunidad()">
+        <div class="modal-content" style="max-width:380px;" onclick="event.stopPropagation()">
+            <div class="modal-header"><h2 class="modal-title">Acceso a la comunidad</h2></div>
+            <p style="font-size:13px;color:var(--text-light);margin:-6px 0 14px;">Ingresá tu código de revendedor para continuar a la comunidad.</p>
+            <input type="text" id="comunidad-gate-input" placeholder="Tu código de revendedor" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:var(--font-body);margin-bottom:10px;text-transform:uppercase;">
+            <p id="comunidad-gate-error" style="display:none;font-size:12.5px;color:#dc2626;margin:-4px 0 10px;">Código inválido. Verificalo e intentá de nuevo.</p>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;" id="comunidad-gate-btn" onclick="validarYAbrirComunidad()">Continuar</button>
+            <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);" onclick="cerrarGateComunidad()">Cancelar</button>
         </div>
     </div>
 
     <!-- MODAL GUÍA RÁPIDA -->
     <div class="modal-overlay" id="guideModal" onclick="closeGuideModal(event)">
-        <div class="modal-content">
-            <div class="modal-header" style="background:#1a1a1a;border-radius:12px 12px 0 0;margin:-32px -32px 20px;padding:20px 24px;">
-                <h2 class="modal-title" style="color:#fff;">Guía Rápida</h2>
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Guía Rápida</h2>
             </div>
 
-            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
-                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">1</span>
-                <span class="guide-text" style="color:#fff;">Te damos tu tienda lista para comenzar a revender. Elegí tu tienda ideal con los productos que más te veas vendiendo y completá el mínimo de encargue.</span>
+            <div class="guide-item" style="background:#fff;border:1px solid var(--border);border-left:3px solid #2BA84F;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:var(--primary);color:#fff;border:none;">1</span>
+                <span class="guide-text" style="color:var(--text);">Te damos tu tienda lista para comenzar a revender sin poner en riesgo tu capital. Elegí tu tienda ideal con los productos que más te veas vendiendo y completá el mínimo de encargue.</span>
             </div>
 
-            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
-                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">2</span>
-                <span class="guide-text" style="color:#fff;">Completa los mínimos requeridos de cada categoría de productos y entrega a tus clientes a domicilio. Coordina una fecha de entrega con tus clientes, vendé con una seña que te permita completar el total de tu encargo y le llegamos a su casa, realiza el pedido y luego entregá los productos obteniendo tu ganancia.</span>
+            <div class="guide-item" style="background:#fff;border:1px solid var(--border);border-left:3px solid #2BA84F;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:var(--primary);color:#fff;border:none;">2</span>
+                <span class="guide-text" style="color:var(--text);">Completá los mínimos requeridos de cada categoría de productos y entregá a tus clientes a domicilio. Coordiná una fecha de entrega con tus clientes, vendé con una seña que te permita completar el total de tu encargo y le llegamos a tu cliente o a tu casa. Realizá el pedido, entregá los productos y disfrutá de tu ganancia.</span>
             </div>
 
-            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
-                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">3</span>
-                <span class="guide-text" style="color:#fff;">Revisá tus correos electrónicos. Si no encontrás nuestros mensajes en bandeja principal, revisá spam o promociones. Todas las semanas enviaremos ideas y estrategias para ayudarte a vender más.</span>
+            <div class="guide-item" style="background:#fff;border:1px solid var(--border);border-left:3px solid #2BA84F;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:var(--primary);color:#fff;border:none;">3</span>
+                <span class="guide-text" style="color:var(--text);">Mirá los videos tutoriales para configurar tu tienda.<br><a href="#" target="_blank" rel="noopener" class="confirmation-button confirmation-button-primary" style="display:inline-block;margin-top:10px;padding:8px 16px;font-size:12.5px;text-decoration:none;">Ir a Tutorial</a></span>
             </div>
 
-            <div class="guide-item" style="background:#1a1a1a;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
-                <span class="guide-number" style="background:#fff;color:#1a1a1a;border:none;">4</span>
-                <span class="guide-text" style="color:#fff;">Resolvé todas tus dudas en nuestra comunidad. <a href="https://chat.whatsapp.com/KxzwYYIhFHqKe2zCoPRhmj?s=cl&p=a&ilr=2&amv=3" target="_blank" rel="noopener" style="color:#adf;font-weight:700;text-transform:uppercase;text-decoration:underline;">IR A LA COMUNIDAD</a></span>
+            <div class="guide-item" style="background:#fff;border:1px solid var(--border);border-left:3px solid #2BA84F;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:var(--primary);color:#fff;border:none;">4</span>
+                <span class="guide-text" style="color:var(--text);">Confirmá tu correo electrónico. Revisá tus correos electrónicos: si no encontrás nuestros mensajes en bandeja principal, revisá spam o promociones. Todas las semanas enviaremos ideas y estrategias para ayudarte a vender más.</span>
+            </div>
+
+            <div class="guide-item" style="background:#fff;border:1px solid var(--border);border-left:3px solid #2BA84F;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+                <span class="guide-number" style="background:var(--primary);color:#fff;border:none;">5</span>
+                <span class="guide-text" style="color:var(--text);">Resolvé todas tus dudas en nuestra comunidad. <button type="button" onclick="abrirGateComunidad()" style="background:none;border:none;padding:0;color:var(--primary);font-weight:700;text-transform:uppercase;text-decoration:underline;cursor:pointer;font-size:inherit;font-family:inherit;">Ir a la comunidad</button></span>
             </div>
 
             <div class="modal-cta-text">
-                <button class="modal-cta-link" onclick="closeGuideModal(); mostrarInicio();" style="color:#1a1a1a;">Ver más opciones de reventa →</button>
+                <button class="modal-cta-link" onclick="closeGuideModal(); mostrarInicio();">→ Ir a Categorías</button>
             </div>
 
-            <button type="button" class="confirmation-button" style="width:100%;margin-top:20px;background:#1a1a1a;color:#fff;border:none;" onclick="closeGuideModal()">Cerrar</button>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-top:20px;" onclick="closeGuideModal()">Cerrar</button>
         </div>
     </div>
 
@@ -3906,30 +3939,30 @@
                 
             </div>
 
-            <div style="padding: 20px 0;">
+            <div style="padding: 8px 0 0;">
                 <!-- Total de Inversión -->
-                <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
-                    <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600;">Total de Inversión</div>
-                    <div style="font-size: 28px; font-weight: 800; color: var(--primary);" id="stat-total-investment">$0</div>
-                    <div style="font-size: 12px; color: var(--text-light); margin-top: 6px;">Suma del valor original de productos</div>
+                <div style="margin-bottom: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: #fafafa;">
+                    <div style="font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600;">Total de Inversión</div>
+                    <div style="font-size: 21px; font-weight: 800; color: var(--primary);" id="stat-total-investment">$0</div>
+                    <div style="font-size: 11.5px; color: var(--text-light); margin-top: 2px;">Suma del valor original de productos</div>
                 </div>
 
                 <!-- Total de Ganancia Neta -->
-                <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
-                    <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600;">Total de Ganancia Neta</div>
-                    <div style="font-size: 28px; font-weight: 800; color: #00a650;" id="stat-total-profit">$0</div>
-                    <div style="font-size: 12px; color: var(--text-light); margin-top: 6px;">Ganancia generada por venta</div>
+                <div style="margin-bottom: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: #fafafa;">
+                    <div style="font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600;">Total de Ganancia Neta</div>
+                    <div style="font-size: 21px; font-weight: 800; color: #00a650;" id="stat-total-profit">$0</div>
+                    <div style="font-size: 11.5px; color: var(--text-light); margin-top: 2px;">Ganancia generada por venta</div>
                 </div>
 
                 <!-- Total Final -->
-                <div>
-                    <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600;">Total Final</div>
-                    <div style="font-size: 28px; font-weight: 800; color: var(--primary);" id="stat-total-final">$0</div>
-                    <div style="font-size: 12px; color: var(--text-light); margin-top: 6px;">Producto + Ganancia</div>
+                <div style="padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: #eff5ff;">
+                    <div style="font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600;">Total Final</div>
+                    <div style="font-size: 21px; font-weight: 800; color: var(--primary);" id="stat-total-final">$0</div>
+                    <div style="font-size: 11.5px; color: var(--text-light); margin-top: 2px;">Producto + Ganancia</div>
                 </div>
             </div>
 
-            <button type="button" class="confirmation-button confirmation-button-primary" style="width: 100%; margin-top: 20px;" onclick="closeStatisticsModal()">Cerrar</button>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width: 100%; margin-top: 16px;" onclick="closeStatisticsModal()">Cerrar</button>
         </div>
     </div>
 
@@ -4110,6 +4143,19 @@
             <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;padding:10px;font-size:13px;" onclick="guardarConfigTienda()">Guardar configuración</button>
             <button type="button" class="confirmation-button" style="width:100%;background:#fee2e2;color:#b91c1c;margin-bottom:8px;font-weight:700;padding:10px;font-size:13px;" onclick="eliminarConfigTienda()">♻️ Reiniciar configuración</button>
             <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);padding:10px;font-size:13px;" onclick="document.getElementById('configTiendaModal').classList.remove('active'); restaurarCatalogTrasSubBelleza();">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MODAL: EDITAR PRECIOS DE UNA SOLA SUB-CATEGORÍA (Maquillaje / Perfumes dentro de Belleza) -->
+    <div class="modal-overlay" id="editarMargenSubModal" onclick="if(event.target.id==='editarMargenSubModal') cerrarEditarMargenSubModal()">
+        <div class="modal-content" style="max-width:400px;" onclick="event.stopPropagation()">
+            <div class="modal-header"><h2 class="modal-title" id="editarMargenSubTitle">Editar precios</h2></div>
+            <p style="font-size:12.5px;color:var(--text-light);margin:-6px 0 14px;">Estos márgenes solo afectan a esta opción — el resto de Belleza y Cuidado Personal no se modifica.</p>
+            <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">Márgenes por rango de precio</label>
+            <div id="margen-sub-rangos-container" style="margin-bottom:6px;"></div>
+            <button type="button" onclick="agregarRangoConfig('','','', 'margen-sub-rangos-container')" style="background:none;border:1px dashed var(--border);border-radius:var(--radius);padding:7px 10px;font-size:12px;color:var(--text-light);cursor:pointer;width:100%;margin-bottom:14px;">+ Agregar rango</button>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;padding:10px;font-size:13px;" onclick="guardarMargenSubBelleza()">Guardar precios</button>
+            <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);padding:10px;font-size:13px;" onclick="cerrarEditarMargenSubModal()">Cancelar</button>
         </div>
     </div>
 
@@ -5363,6 +5409,7 @@
             window.itemsDisplayedBelleza = 6;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             if (typeof event !== 'undefined' && event.target) event.target.classList.add('active');
+            actualizarToolbarSubBelleza(sub);
             renderBellezaProducts();
         }
 
@@ -5388,24 +5435,30 @@
             return producto && producto._origin === 'maquillaje' ? 'belleza_maquillaje' : 'belleza_perfume';
         }
 
-        // Inserta, junto al botón de filtro Maquillaje/Perfumes, dos íconos:
-        // 🔗 compartir SOLO esos productos, ✏️ editar SOLO el margen de esos
-        // productos — sin afectar al resto de Belleza.
-        function insertarIconosSubBelleza(btn, sub) {
-            const wrap = document.createElement('span');
-            wrap.className = 'belleza-sub-icons';
-            wrap.style.cssText = 'display:inline-flex;align-items:center;gap:4px;margin:0 6px 0 2px;';
-            wrap.innerHTML = `
-                <button type="button" title="Compartir solo ${sub === 'maquillaje' ? 'Maquillaje' : 'Perfumes'}" onclick="compartirEnlaceSubBelleza('${sub}')" style="width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;color:var(--text-light);padding:0;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                </button>
-                <button type="button" title="Editar márgenes de ${sub === 'maquillaje' ? 'Maquillaje' : 'Perfumes'}" onclick="abrirEditarMargenSubBelleza('${sub}')" style="width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;color:var(--text-light);padding:0;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                </button>`;
-            btn.insertAdjacentElement('afterend', wrap);
+        // Muestra/oculta la barra de acciones (🔗 / ✏️) según el filtro
+        // activo: solo visible para "Maquillaje" o "Perfumes", nunca para
+        // "Todos". Se posiciona arriba de la grilla, sutil, sin amontonar
+        // los botones de filtro.
+        function actualizarToolbarSubBelleza(sub) {
+            const toolbar = document.getElementById('belleza-sub-toolbar');
+            const label = document.getElementById('belleza-sub-toolbar-label');
+            const btnLink = document.getElementById('belleza-sub-btn-link');
+            const btnEdit = document.getElementById('belleza-sub-btn-edit');
+            if (!toolbar) return;
+            if (sub === 'maquillaje' || sub === 'perfume') {
+                toolbar.style.display = 'flex';
+                if (label) label.textContent = 'Solo ' + (sub === 'maquillaje' ? 'Maquillaje' : 'Perfumes') + ':';
+                if (btnLink) btnLink.onclick = () => compartirEnlaceSubBelleza(sub);
+                if (btnEdit) btnEdit.onclick = () => abrirEditarMargenSubBelleza(sub);
+            } else {
+                toolbar.style.display = 'none';
+            }
         }
 
         async function compartirEnlaceSubBelleza(sub) {
+            const btn = document.getElementById('belleza-sub-btn-link');
+            const original = btn ? btn.innerHTML : null;
+            if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
             try {
                 const catConfig = 'belleza_' + sub;
                 const url = await generarEnlaceCorto(catConfig);
@@ -5416,15 +5469,67 @@
                 alert('Enlace de ' + (sub === 'maquillaje' ? 'Maquillaje' : 'Perfumes') + ' copiado ✓');
             } catch(e) {
                 alert('No se pudo generar el enlace. Intentá de nuevo.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.style.opacity = '1'; if (original) btn.innerHTML = original; }
             }
         }
 
-        // Abre el modal de "Configurar mi tienda" pero acotado a la
-        // sub-categoría elegida: solo modifica los márgenes de esa opción.
         function abrirEditarMargenSubBelleza(sub) {
-            window._catalogRealAntesDeSub = window.currentCatalog;
-            window.currentCatalog = 'belleza_' + sub;
-            openConfigTiendaModal();
+            const catConfig = 'belleza_' + sub;
+            window._editandoMargenSub = catConfig;
+            const title = document.getElementById('editarMargenSubTitle');
+            if (title) title.textContent = 'Editar precios — ' + (sub === 'maquillaje' ? 'Maquillaje' : 'Perfumes');
+
+            const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+            const config = allConfig[catConfig] || null;
+            const container = document.getElementById('margen-sub-rangos-container');
+            container.innerHTML = '';
+            if (config && Array.isArray(config.rangos) && config.rangos.length > 0) {
+                config.rangos.forEach(r => agregarRangoConfig(r.de, r.hasta, r.porcentaje, 'margen-sub-rangos-container'));
+            } else {
+                agregarRangoConfig('', '', '', 'margen-sub-rangos-container');
+            }
+            document.getElementById('editarMargenSubModal').classList.add('active');
+        }
+
+        function cerrarEditarMargenSubModal() {
+            document.getElementById('editarMargenSubModal').classList.remove('active');
+            window._editandoMargenSub = null;
+        }
+
+        async function guardarMargenSubBelleza() {
+            const catConfig = window._editandoMargenSub;
+            if (!catConfig) return;
+
+            const rangos = [];
+            document.querySelectorAll('#margen-sub-rangos-container .rango-config-row').forEach(row => {
+                const de = row.querySelector('.rango-de').value;
+                const hasta = row.querySelector('.rango-hasta').value;
+                const pct = row.querySelector('.rango-pct').value;
+                if (de !== '' && hasta !== '' && pct !== '') {
+                    rangos.push({ de: Number(de), hasta: Number(hasta), porcentaje: Number(pct) });
+                }
+            });
+
+            const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+            allConfig[catConfig] = { ...(allConfig[catConfig] || {}), rangos };
+            localStorage.setItem('configTiendaAll', JSON.stringify(allConfig));
+
+            // Mismo mecanismo genérico de guardado por categoría (dot-path),
+            // así tienda.html lee este margen exactamente igual que cualquier
+            // otra categoría — sin tocar Perfumes ni el resto de Belleza.
+            _guardarEnFirestore({ [`configTiendaAll.${catConfig}`]: allConfig[catConfig] });
+
+            cerrarEditarMargenSubModal();
+            const toast = document.getElementById('wa-toast');
+            if (toast) {
+                toast.textContent = '✅ Precios guardados';
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 3000);
+            }
+            if (window.currentCatalog === 'belleza' && typeof renderBellezaProducts === 'function') {
+                renderBellezaProducts();
+            }
         }
 
         function renderBellezaProducts() {
@@ -7167,6 +7272,48 @@
             }
         }
 
+        // ── Filtro de código de revendedor antes de ir a la comunidad ──
+        const COMUNIDAD_URL = 'https://chat.whatsapp.com/KxzwYYIhFHqKe2zCoPRhmj?s=cl&p=a&ilr=2&amv=3';
+
+        function abrirGateComunidad() {
+            const input = document.getElementById('comunidad-gate-input');
+            const error = document.getElementById('comunidad-gate-error');
+            if (input) input.value = window.currentUser && window.currentUser.codigoVendedor ? window.currentUser.codigoVendedor : '';
+            if (error) error.style.display = 'none';
+            document.getElementById('comunidadGateModal').classList.add('active');
+        }
+
+        function cerrarGateComunidad() {
+            document.getElementById('comunidadGateModal').classList.remove('active');
+        }
+
+        async function validarYAbrirComunidad() {
+            const input = document.getElementById('comunidad-gate-input');
+            const error = document.getElementById('comunidad-gate-error');
+            const btn = document.getElementById('comunidad-gate-btn');
+            const codigo = (input.value || '').trim();
+            if (!codigo) {
+                if (error) { error.textContent = 'Ingresá tu código de revendedor.'; error.style.display = 'block'; }
+                return;
+            }
+            btn.disabled = true;
+            btn.textContent = 'Verificando...';
+            try {
+                const valido = await validarCodigoRevendedorEnFirestore(codigo);
+                if (valido) {
+                    cerrarGateComunidad();
+                    window.open(COMUNIDAD_URL, '_blank');
+                } else {
+                    if (error) { error.textContent = 'Código inválido. Verificalo e intentá de nuevo.'; error.style.display = 'block'; }
+                }
+            } catch(e) {
+                if (error) { error.textContent = 'No se pudo verificar el código. Intentá de nuevo.'; error.style.display = 'block'; }
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Continuar';
+            }
+        }
+
         // MODAL ESTADÍSTICAS
         function openStatisticsModal() {
             document.getElementById('statisticsModal').classList.add('active');
@@ -8828,6 +8975,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 const paginationSection = document.getElementById('pagination-section');
                 const portadaDosSection = document.getElementById('portada-dos-section');
                 const revendSection = document.querySelector('.revend-section');
+                const _tb = document.getElementById('belleza-sub-toolbar');
+                if (_tb) _tb.style.display = 'none';
                 const shoesCategorySection = document.getElementById('shoes-category-section');
 
                 if (nichosSection) nichosSection.classList.add('hide');
@@ -8925,8 +9074,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     }
 
                     const filterBtns = document.querySelectorAll('.filter-btn');
-                    // Limpiar íconos de una render anterior antes de re-agregarlos
-                    document.querySelectorAll('.belleza-sub-icons').forEach(el => el.remove());
 
                     // Filtros pedidos: Todos / Maquillaje / Perfumes
                     filterBtns.forEach((btn, idx) => {
@@ -8939,12 +9086,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                             btn.textContent = 'Maquillaje';
                             btn.style.display = 'inline-block';
                             btn.onclick = () => filterBellezaProducts('maquillaje');
-                            insertarIconosSubBelleza(btn, 'maquillaje');
                         } else if (idx === 2) {
                             btn.textContent = 'Perfumes';
                             btn.style.display = 'inline-block';
                             btn.onclick = () => filterBellezaProducts('perfume');
-                            insertarIconosSubBelleza(btn, 'perfume');
                         } else {
                             btn.style.display = 'none';
                             btn.onclick = null;
@@ -8957,6 +9102,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     }
 
                     window.currentBellezaFilter = window.currentBellezaFilter || 'todos';
+                    actualizarToolbarSubBelleza(window.currentBellezaFilter);
                     renderBellezaProducts();
                 }
                 
@@ -9275,7 +9421,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // 🔧 Guardar también en el Worker de datos del revendedor, que es
             // de donde tienda.html lo termina leyendo para el botón de WhatsApp.
             try {
-                const codigoVend = getCodigoVendedor();
+                const codigoVend = window.getCodigoVendedor();
                 if (codigoVend) {
                     fetch('https://datosderevendedor.tuweb.workers.dev', {
                         method: 'POST',
@@ -9344,7 +9490,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // 🔧 Guardar también en el Worker de datos del revendedor, que es
             // de donde tienda.html lo termina leyendo para el botón de WhatsApp.
             try {
-                const codigoVend = getCodigoVendedor();
+                const codigoVend = window.getCodigoVendedor();
                 if (codigoVend) {
                     fetch('https://datosderevendedor.tuweb.workers.dev', {
                         method: 'POST',
@@ -9450,8 +9596,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
         }
 
-        function agregarRangoConfig(de, hasta, pct) {
-            const container = document.getElementById('config-rangos-container');
+        function agregarRangoConfig(de, hasta, pct, containerId) {
+            const container = document.getElementById(containerId || 'config-rangos-container');
             const row = document.createElement('div');
             row.className = 'rango-config-row';
             row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:center;margin-bottom:8px;';
@@ -9864,6 +10010,18 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (window.currentCatalog === 'calzados') return window.shoes || [];
             if (window.currentCatalog === 'perfumes') return window.products || products || [];
             if (window.currentCatalog === 'belleza') return window.productsBelleza || [];
+            return [];
+        }
+
+        // Igual que arriba pero recibe la categoría/sub-categoría como
+        // parámetro, para usarse fuera de la vista actual (p. ej. el
+        // creador de combos abierto desde "Tiendas Guardadas").
+        function getProductosPorCatalogo(cat) {
+            if (cat === 'calzados') return window.shoes || [];
+            if (cat === 'perfumes') return window.products || [];
+            if (cat === 'belleza') return window.productsBelleza || [];
+            if (cat === 'belleza_maquillaje') return (window.productsBelleza || []).filter(p => p._origin === 'maquillaje');
+            if (cat === 'belleza_perfume') return (window.productsBelleza || []).filter(p => p._origin !== 'maquillaje');
             return [];
         }
 
@@ -10580,9 +10738,9 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
     }
     #misTiendasModal .mt-btn {
         flex: 1;
-        height: 34px;
+        height: 32px;
         padding: 0 8px;
-        border-radius: 8px;
+        border-radius: 7px;
         border: 1px solid var(--border, #e5e5e5);
         font-weight: 600;
         font-size: 12px;
@@ -10600,24 +10758,24 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
     #misTiendasModal .mt-btn-edit { color: #92400e; border-color: #fde68a; background: #fffbeb; }
     #misTiendasModal .mt-btn-copy { color: #0b5fff; border-color: #bfd7ff; background: #eff5ff; }
     #misTiendasModal .mt-btn-del  { color: #b91c1c; border-color: #fecaca; background: #fef2f2; }
-    #misTiendasModal .mt-btn svg { width: 16px; height: 16px; }
+    #misTiendasModal .mt-btn svg { width: 15px; height: 15px; }
     #misTiendasModal .mt-promo-btn {
-        margin-top: 10px;
+        margin-top: 8px;
         width: 100%;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        padding: 12px 14px;
-        border-radius: 10px;
+        gap: 7px;
+        padding: 9px 12px;
+        border-radius: 8px;
         border: none;
         font-family: inherit;
         font-weight: 700;
-        font-size: 13px;
+        font-size: 12.5px;
         cursor: pointer;
         color: #fff;
         background: linear-gradient(135deg, #1B7F3D, #2BA84F);
-        box-shadow: 0 4px 12px rgba(27,127,61,.25);
+        box-shadow: 0 2px 8px rgba(27,127,61,.2);
         transition: transform .1s ease, box-shadow .15s ease;
     }
     #misTiendasModal .mt-promo-btn:hover { box-shadow: 0 6px 16px rgba(27,127,61,.32); }
@@ -10814,8 +10972,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
     #misTiendasModal .mt-promo-edit svg { width: 14px; height: 14px; }
     #misTiendasModal .mt-cinta {
         border: 1px solid var(--border, #e5e5e5);
-        border-radius: 10px;
-        margin-bottom: 10px;
+        border-radius: 8px;
+        margin-bottom: 8px;
         background: #fff;
         overflow: hidden;
     }
@@ -10824,24 +10982,31 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 14px 16px;
-        background: linear-gradient(135deg, #1B7F3D, #2BA84F);
-        color: #fff;
-        font-weight: 700;
-        font-size: 14px;
+        padding: 12px 14px;
+        background: #fafafa;
+        color: var(--text, #222);
+        font-weight: 600;
+        font-size: 13.5px;
         border: none;
         cursor: pointer;
         font-family: inherit;
         text-align: left;
+        transition: background .15s ease;
     }
+    #misTiendasModal .mt-cinta-header:hover { background: #f0f0f0; }
     #misTiendasModal .mt-cinta-arrow {
         transition: transform .2s ease;
-        font-size: 16px;
+        font-size: 14px;
+        color: var(--text-light, #999);
+        flex-shrink: 0;
+        margin-left: 8px;
     }
-    #misTiendasModal .mt-cinta.open .mt-cinta-arrow { transform: rotate(180deg); }
+    #misTiendasModal .mt-cinta.open .mt-cinta-header { background: #eff5ff; }
+    #misTiendasModal .mt-cinta.open .mt-cinta-arrow { transform: rotate(180deg); color: var(--primary); }
     #misTiendasModal .mt-cinta-body {
         padding: 12px 14px;
         display: none;
+        border-top: 1px solid var(--border, #eee);
     }
     #misTiendasModal .mt-cinta.open .mt-cinta-body { display: block; }
 </style>
@@ -10885,6 +11050,11 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 || localStorage.getItem('codigoRevendedorValidado')
                 || '';
         }
+        // 🔧 FIX: esta función se llama desde otros bloques <script> (guardado
+        // de WhatsApp, creación de combos, etc.) que no pueden ver funciones
+        // declaradas dentro de este IIFE. Se expone globalmente para que
+        // esas llamadas dejen de fallar en silencio.
+        window.getCodigoVendedor = getCodigoVendedor;
 
         // 🔧 FIX ENLACE DE TIENDA: dominio personalizado fijo (no depender de
         // window.location.origin, que puede variar según dónde se esté viendo
@@ -11088,18 +11258,34 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             return await acortarEnlace(slugId, codigo, cat, cfgFull, promo, productId, sub);
         }
 
+        // Los botones de "Vista previa" / "Compartir producto" del modal de
+        // precio individual comparten la TIENDA COMPLETA (todos los
+        // productos de la categoría), abierta directamente en ese producto
+        // — no solo la sub-categoría que se estaba editando.
+        function catalogoRutaCompleta(catalogo) {
+            return catalogo && catalogo.indexOf('belleza') === 0 ? 'belleza' : catalogo;
+        }
+
         async function abrirVistaPreviaProducto(catalogo, productId) {
+            const btn = event && event.target ? event.target.closest('button') : null;
+            const textoOriginal = btn ? btn.innerHTML : null;
+            if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generando...'; }
             try {
-                const url = await generarEnlaceProducto(catalogo, productId);
+                const url = await generarEnlaceProducto(catalogoRutaCompleta(catalogo), productId);
                 window.open(url, '_blank');
             } catch(e) {
                 alert('No se pudo generar la vista previa. Intentá de nuevo.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
             }
         }
 
         async function compartirTiendaDesdeProducto(catalogo, productId) {
+            const btn = event && event.target ? event.target.closest('button') : null;
+            const textoOriginal = btn ? btn.innerHTML : null;
+            if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generando...'; }
             try {
-                const url = await generarEnlaceProducto(catalogo, productId);
+                const url = await generarEnlaceProducto(catalogoRutaCompleta(catalogo), productId);
                 if (navigator.share) {
                     try {
                         await navigator.share({ title: 'Mi tienda', url });
@@ -11110,6 +11296,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 alert('Enlace copiado. Ya podés compartirlo con tus clientes.');
             } catch(e) {
                 alert('No se pudo generar el enlace. Intentá de nuevo.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
             }
         }
 
@@ -11165,10 +11353,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     const cfg = tiendas[cat];
                     const label = cat === 'perfumes' ? '🌹 Perfumería'
                                 : cat === 'calzados' ? '👟 Calzados'
+                                : cat === 'belleza_maquillaje' ? '💄 Belleza — Maquillaje'
+                                : cat === 'belleza_perfume' ? '💐 Belleza — Perfumes'
+                                : cat === 'belleza' ? '✨ Belleza y Cuidado Personal'
                                 : '📦 ' + cat;
                     const nombre = (cfg && cfg.nombreTienda) ? cfg.nombreTienda
                                   : (cat === 'perfumes' ? 'Mi tienda de perfumes'
                                   :  cat === 'calzados' ? 'Mi tienda de calzados'
+                                  :  cat === 'belleza_maquillaje' ? 'Mi tienda de Maquillaje'
+                                  :  cat === 'belleza_perfume' ? 'Mi tienda de Perfumes (Belleza)'
+                                  :  cat === 'belleza' ? 'Mi tienda de Belleza y Cuidado Personal'
                                   : 'Mi tienda');
                     let rangosHtml = '';
                     if (cfg.rangos && cfg.rangos.length > 0) {
@@ -11205,7 +11399,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
                                     ${tienePromoCat(cat) ? 'Editar promoción' : 'Crear promoción'}
                                   </button>
+                                  <button type="button" class="mt-promo-btn" style="flex:1;background:linear-gradient(135deg,#7c3aed,#a855f7);box-shadow:0 2px 8px rgba(124,58,237,.2);" onclick="abrirCrearCombo('${safeCat}')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                                    Crear combo
+                                  </button>
                                 </div>
+                                <button type="button" onclick="abrirCombosPromosLista('${safeCat}')" style="width:100%;margin-top:6px;background:none;border:none;color:var(--text-light);font-size:11.5px;text-decoration:underline;cursor:pointer;padding:4px;">Ver combos y promociones guardados</button>
                             </div>
                         </div>`;
                 }).join('');
@@ -11221,6 +11420,14 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         window.editarTiendaGuardada = function(cat) {
             try {
                 document.getElementById('misTiendasModal').classList.remove('active');
+                if (cat === 'belleza_maquillaje' && typeof abrirEditarMargenSubBelleza === 'function') {
+                    abrirEditarMargenSubBelleza('maquillaje');
+                    return;
+                }
+                if (cat === 'belleza_perfume' && typeof abrirEditarMargenSubBelleza === 'function') {
+                    abrirEditarMargenSubBelleza('perfume');
+                    return;
+                }
                 window.currentCatalog = cat;
                 if (typeof window.openConfigTiendaModal === 'function') {
                     window.openConfigTiendaModal();
@@ -11456,6 +11663,45 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
         <button type="button" class="promo-save" onclick="guardarPromocion()">Guardar promoción</button>
         <button type="button" class="promo-cancel" onclick="document.getElementById('promoModal').classList.remove('active')">Cancelar</button>
+    </div>
+</div>
+
+<!-- MODAL: CREAR COMBO -->
+<div class="modal-overlay" id="crearComboModal" onclick="if(event.target.id==='crearComboModal')this.classList.remove('active')">
+    <div class="modal-content" style="max-width:460px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2 class="modal-title">🎁 Crear combo</h2>
+            <button type="button" class="modal-close" onclick="document.getElementById('crearComboModal').classList.remove('active')" aria-label="Cerrar">×</button>
+        </div>
+        <p id="crearComboCatLabel" style="font-size:12.5px;color:var(--text-light);margin:-6px 0 12px;"></p>
+
+        <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">Elegí los productos del combo</label>
+        <div id="crearComboProductos" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px;margin-bottom:14px;"></div>
+
+        <div style="background:var(--gray-light);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;line-height:1.9;">
+            <div>Inversión total: <strong id="combo-inversion">$0</strong></div>
+            <div>Precio de venta (sin descuento): <strong id="combo-precio-venta">$0</strong></div>
+            <div>Ganancia estimada: <strong style="color:var(--primary);" id="combo-ganancia">$0</strong></div>
+        </div>
+
+        <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Descuento a aplicar sobre el combo ($)</label>
+        <input type="number" id="combo-descuento" min="0" placeholder="0" oninput="calcularTotalesCombo()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:var(--font-body);margin-bottom:8px;">
+        <div style="font-size:13px;margin-bottom:16px;">Precio final del combo: <strong style="color:var(--primary);font-size:16px;" id="combo-precio-final">$0</strong></div>
+
+        <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;" onclick="guardarCombo()">Crear</button>
+        <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);" onclick="document.getElementById('crearComboModal').classList.remove('active')">Cancelar</button>
+    </div>
+</div>
+
+<!-- MODAL: COMBOS Y PROMOCIONES GUARDADOS -->
+<div class="modal-overlay" id="combosPromosListaModal" onclick="if(event.target.id==='combosPromosListaModal')this.classList.remove('active')">
+    <div class="modal-content" style="max-width:460px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2 class="modal-title">Combos y Promociones</h2>
+            <button type="button" class="modal-close" onclick="document.getElementById('combosPromosListaModal').classList.remove('active')" aria-label="Cerrar">×</button>
+        </div>
+        <p style="font-size:12px;color:var(--text-light);margin:-6px 0 14px;">Podés tener hasta 5 combos y 5 promociones en total.</p>
+        <div id="combosPromosListaBody"></div>
     </div>
 </div>
 
@@ -11766,6 +12012,282 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (t) t.classList.remove('open');
             if (b) { b.classList.remove('open'); b.innerHTML = ''; }
             document.getElementById('promoModal').classList.add('active');
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // COMBOS Y PROMOCIONES — ahora respaldados por el Worker real
+        // combosydescuentos.tuweb.workers.dev (Firestore como fuente de
+        // verdad). Selección de productos, cálculo de inversión/ganancia,
+        // descuento, ON/OFF de publicación y enlace corto individual.
+        // ═══════════════════════════════════════════════════════════════
+        const COMBO_WORKER = 'https://combosydescuentos.tuweb.workers.dev';
+        window._comboCat = null;
+        window._comboSeleccion = {}; // { productId: true }
+
+        async function comboFetch(path, opts) {
+            const ctrl = new AbortController();
+            const timeoutId = setTimeout(() => ctrl.abort(), 5000);
+            try {
+                const res = await fetch(COMBO_WORKER + path, { ...opts, signal: ctrl.signal });
+                clearTimeout(timeoutId);
+                if (!res.ok) return null;
+                return await res.json();
+            } catch(e) {
+                clearTimeout(timeoutId);
+                return null;
+            }
+        }
+
+        window.abrirCrearCombo = async function(cat) {
+            const codigoVendedor = window.getCodigoVendedor();
+            const existentes = await comboFetch('/combos?codigo=' + encodeURIComponent(codigoVendedor));
+            if (existentes && existentes.items && existentes.items.length >= 5) {
+                alert('Ya tenés el máximo de 5 combos creados. Eliminá uno para crear otro nuevo.');
+                return;
+            }
+            window._comboCat = cat;
+            window._comboSeleccion = {};
+            const label = cat === 'perfumes' ? 'Perfumería' : cat === 'calzados' ? 'Calzados'
+                : cat === 'belleza_maquillaje' ? 'Belleza — Maquillaje' : cat === 'belleza_perfume' ? 'Belleza — Perfumes'
+                : cat === 'belleza' ? 'Belleza y Cuidado Personal' : cat;
+            document.getElementById('crearComboCatLabel').textContent = 'Productos de: ' + label;
+
+            const productos = getProductosPorCatalogo(cat);
+            const cont = document.getElementById('crearComboProductos');
+            if (productos.length === 0) {
+                cont.innerHTML = '<p style="font-size:12.5px;color:var(--text-light);padding:8px;">No hay productos disponibles en esta categoría.</p>';
+            } else {
+                cont.innerHTML = productos.map(p => `
+                    <label style="display:flex;align-items:center;gap:8px;padding:7px 6px;border-bottom:1px solid var(--gray-light);cursor:pointer;font-size:12.5px;">
+                        <input type="checkbox" onchange="toggleComboProducto(${p.id}, this.checked)" style="flex-shrink:0;">
+                        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.nombre}</span>
+                        <span style="color:var(--text-light);flex-shrink:0;">$${p.precio.toLocaleString()}</span>
+                    </label>`).join('');
+            }
+            document.getElementById('combo-descuento').value = '';
+            calcularTotalesCombo();
+            document.getElementById('crearComboModal').classList.add('active');
+        };
+
+        window.toggleComboProducto = function(id, checked) {
+            if (checked) window._comboSeleccion[id] = true;
+            else delete window._comboSeleccion[id];
+            calcularTotalesCombo();
+        };
+
+        window.calcularTotalesCombo = function() {
+            const cat = window._comboCat;
+            const productos = getProductosPorCatalogo(cat);
+            const seleccionados = productos.filter(p => window._comboSeleccion[p.id]);
+
+            const inversion = seleccionados.reduce((s, p) => s + p.precio, 0);
+            const precioVenta = seleccionados.reduce((s, p) => s + getPrecioProductoConfigurado(p, cat), 0);
+            const descuento = Number(document.getElementById('combo-descuento').value) || 0;
+            const precioFinal = Math.max(0, precioVenta - descuento);
+            const ganancia = precioFinal - inversion;
+
+            document.getElementById('combo-inversion').textContent = '$' + inversion.toLocaleString();
+            document.getElementById('combo-precio-venta').textContent = '$' + precioVenta.toLocaleString();
+            document.getElementById('combo-ganancia').textContent = '$' + ganancia.toLocaleString();
+            document.getElementById('combo-precio-final').textContent = '$' + precioFinal.toLocaleString();
+        };
+
+        window.guardarCombo = async function() {
+            const cat = window._comboCat;
+            const idsSeleccionados = Object.keys(window._comboSeleccion).map(Number);
+            if (idsSeleccionados.length < 2) {
+                alert('Elegí al menos 2 productos para armar un combo.');
+                return;
+            }
+            const codigoVendedor = window.getCodigoVendedor();
+            if (!codigoVendedor) {
+                alert('No se pudo identificar tu código de revendedor. Volvé a iniciar sesión e intentá de nuevo.');
+                return;
+            }
+            const productos = getProductosPorCatalogo(cat).filter(p => window._comboSeleccion[p.id]);
+            const inversion = productos.reduce((s, p) => s + p.precio, 0);
+            const precioVenta = productos.reduce((s, p) => s + getPrecioProductoConfigurado(p, cat), 0);
+            const descuento = Number(document.getElementById('combo-descuento').value) || 0;
+            const precioFinal = Math.max(0, precioVenta - descuento);
+
+            const item = {
+                categoria: cat,
+                productos: productos.map(p => ({ id: p.id, nombre: p.nombre, precio: p.precio, imagen: p.imagen })),
+                inversion, precioVenta, descuento, precioFinal,
+                ganancia: precioFinal - inversion,
+            };
+
+            const btn = event && event.target ? event.target.closest('button') : null;
+            if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+            const resultado = await comboFetch('/combo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigoVendedor, item })
+            });
+            if (btn) { btn.disabled = false; btn.textContent = 'Crear'; }
+
+            if (!resultado || !resultado.ok) {
+                alert((resultado && resultado.error) || 'No se pudo guardar el combo. Intentá de nuevo.');
+                return;
+            }
+
+            document.getElementById('crearComboModal').classList.remove('active');
+            mostrarToastOk('Combo creado ✓');
+        };
+
+        window.togglePromoLocal = function(cat, activo) {
+            try {
+                const promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}');
+                if (!promos[cat]) return;
+                promos[cat].activo = activo;
+                localStorage.setItem('promocionesTienda', JSON.stringify(promos));
+                _guardarEnFirestore({ [`promocionesTienda.${cat}`]: promos[cat] });
+            } catch(e) {}
+            abrirCombosPromosLista(cat);
+        };
+
+        window.compartirEnlaceCategoriaConPromo = async function(cat) {
+            const btn = event && event.target ? event.target.closest('button') : null;
+            const original = btn ? btn.innerHTML : null;
+            if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generando...'; }
+            try {
+                const url = await generarEnlaceCorto(cat);
+                if (navigator.share) {
+                    try { await navigator.share({ title: 'Mi tienda', url }); return; } catch(_) {}
+                }
+                await navigator.clipboard.writeText(url);
+                alert('Enlace copiado ✓');
+            } catch(e) {
+                alert('No se pudo generar el enlace. Intentá de nuevo.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = original; }
+            }
+        };
+
+        window.abrirCombosPromosLista = async function(cat) {
+            const codigoVendedor = window.getCodigoVendedor();
+            const body = document.getElementById('combosPromosListaBody');
+            body.innerHTML = '<p style="font-size:12.5px;color:var(--text-light);text-align:center;padding:20px;">Cargando...</p>';
+            document.getElementById('combosPromosListaModal').classList.add('active');
+
+            // Las promociones YA existían antes de los combos y viajan
+            // embebidas en el enlace de la tienda (no en este Worker nuevo)
+            // — se leen del mismo lugar que usa el resto del sitio.
+            let promo = null;
+            try {
+                const promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}');
+                promo = promos[cat] || null;
+            } catch(e) {}
+            const promoActiva = promo ? (promo.activo !== false) : false;
+
+            const combosRes = await comboFetch('/combos?codigo=' + encodeURIComponent(codigoVendedor) + '&categoria=' + encodeURIComponent(cat));
+            const combos = (combosRes && combosRes.items) || [];
+
+            let html = '';
+
+            html += '<div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-bottom:8px;">Promoción</div>';
+            if (!promo) {
+                html += '<p style="font-size:12.5px;color:var(--text-light);margin-bottom:16px;">Sin promoción creada en esta categoría.</p>';
+            } else {
+                html += `
+                    <div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:12.5px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                            <strong>${promo.nombre || 'Promoción'}</strong>
+                            <div style="display:flex;gap:4px;flex-shrink:0;">
+                                <button type="button" onclick="togglePromoLocal('${cat}', true)" style="padding:3px 8px;border-radius:5px;border:1px solid ${promoActiva ? '#22c55e' : 'var(--border)'};background:${promoActiva ? '#22c55e' : '#fff'};color:${promoActiva ? '#fff' : 'var(--text-light)'};font-size:10.5px;font-weight:700;cursor:pointer;">ON</button>
+                                <button type="button" onclick="togglePromoLocal('${cat}', false)" style="padding:3px 8px;border-radius:5px;border:1px solid ${!promoActiva ? '#ef4444' : 'var(--border)'};background:${!promoActiva ? '#ef4444' : '#fff'};color:${!promoActiva ? '#fff' : 'var(--text-light)'};font-size:10.5px;font-weight:700;cursor:pointer;">OFF</button>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:6px;">
+                            <button type="button" onclick="document.getElementById('combosPromosListaModal').classList.remove('active');abrirCrearPromocion('${cat}')" style="flex:1;background:#f5f5f5;border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">✏️ Editar</button>
+                            <button type="button" onclick="compartirEnlaceCategoriaConPromo('${cat}')" style="flex:1;background:#eff5ff;color:var(--primary);border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">🔗 Compartir tienda con la promo</button>
+                        </div>
+                    </div>`;
+            }
+
+            html += '<div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin:14px 0 8px;">Combos (' + combos.length + '/5)</div>';
+            if (combos.length === 0) {
+                html += '<p style="font-size:12.5px;color:var(--text-light);">Todavía no creaste ningún combo en esta categoría.</p>';
+            } else {
+                html += combos.map(c => `
+                    <div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12.5px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                            <span style="font-weight:600;">${c.productos.map(p => p.nombre).join(' + ')}</span>
+                            ${itemOnOffToggleHtml('combo', c.id, c.activo, cat)}
+                        </div>
+                        <div style="color:var(--text-light);margin-bottom:6px;">Precio final: <strong style="color:var(--primary);">$${c.precioFinal.toLocaleString()}</strong> · Ganancia: $${c.ganancia.toLocaleString()}</div>
+                        <div style="display:flex;gap:6px;">
+                            <button type="button" onclick="compartirItemIndividual('combo', '${c.id}', '${cat}')" style="flex:1;background:#eff5ff;color:var(--primary);border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">🔗 Compartir</button>
+                            <button type="button" onclick="eliminarComboOPromo('combo', '${c.id}', '${cat}')" style="flex:1;background:#fef2f2;color:#b91c1c;border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">Eliminar</button>
+                        </div>
+                    </div>`).join('');
+            }
+
+            body.innerHTML = html;
+        };
+
+        function itemOnOffToggleHtml(tipo, id, activo, cat) {
+            const on = activo !== false;
+            return `<div style="display:flex;gap:4px;flex-shrink:0;">
+                <button type="button" onclick="toggleItemPublicado('${tipo}','${id}',true,'${cat}')" style="padding:3px 8px;border-radius:5px;border:1px solid ${on ? '#22c55e' : 'var(--border)'};background:${on ? '#22c55e' : '#fff'};color:${on ? '#fff' : 'var(--text-light)'};font-size:10.5px;font-weight:700;cursor:pointer;">ON</button>
+                <button type="button" onclick="toggleItemPublicado('${tipo}','${id}',false,'${cat}')" style="padding:3px 8px;border-radius:5px;border:1px solid ${!on ? '#ef4444' : 'var(--border)'};background:${!on ? '#ef4444' : '#fff'};color:${!on ? '#fff' : 'var(--text-light)'};font-size:10.5px;font-weight:700;cursor:pointer;">OFF</button>
+            </div>`;
+        }
+
+        window.toggleItemPublicado = async function(tipo, id, activo, cat) {
+            const codigoVendedor = window.getCodigoVendedor();
+            const path = tipo === 'combo' ? '/combo/toggle' : '/promocion/toggle';
+            const resultado = await comboFetch(path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigoVendedor, id, activo })
+            });
+            if (!resultado || !resultado.ok) {
+                alert('No se pudo actualizar. Intentá de nuevo.');
+                return;
+            }
+            abrirCombosPromosLista(cat);
+        };
+
+        window.eliminarComboOPromo = async function(tipo, id, cat) {
+            const codigoVendedor = window.getCodigoVendedor();
+            const path = tipo === 'combo' ? '/combo/eliminar' : '/promocion/eliminar';
+            await comboFetch(path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigoVendedor, id })
+            });
+            abrirCombosPromosLista(cat);
+        };
+
+        // Enlace CORTO para compartir un combo o promoción puntual —
+        // mismo patrón nombre-apellido + código corto que el resto de
+        // los enlaces del sitio, resuelto contra combosydescuentos.
+        window.compartirItemIndividual = async function(tipo, itemId, cat) {
+            const btn = event && event.target ? event.target.closest('button') : null;
+            const original = btn ? btn.innerHTML : null;
+            if (btn) { btn.disabled = true; btn.innerHTML = '⏳...'; }
+            try {
+                const codigoVendedor = window.getCodigoVendedor();
+                const slugId = await armarSlugRevendedor();
+                const guardado = await comboFetch('/slug', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ slugId, codigoVendedor, tipo, itemId, categoria: cat })
+                });
+                const slugFinal = (guardado && guardado.slugId) || slugId;
+                const url = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?cs=' + encodeURIComponent(slugFinal);
+
+                if (navigator.share) {
+                    try { await navigator.share({ title: 'Mi tienda', url }); return; } catch(_) {}
+                }
+                await navigator.clipboard.writeText(url);
+                alert('Enlace copiado ✓');
+            } catch(e) {
+                alert('No se pudo generar el enlace. Intentá de nuevo.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = original; }
+            }
         };
 
         window.guardarPromocion = function() {
