@@ -968,6 +968,8 @@ let _slugPromise = Promise.resolve();
 let codigoParam = urlParams.get('tienda') || '';
 let catParam    = urlParams.get('cat') || 'perfumes';
 let subParam    = urlParams.get('sub') || '';
+let csParam     = urlParams.get('cs') || ''; // enlace corto a un combo/promo puntual
+const COMBO_WORKER = 'https://combosydescuentos.tuweb.workers.dev';
 
 // ── localStorage safe: Safari iOS modo privado lanza excepción ──
 var _lsMem = {};
@@ -1821,24 +1823,36 @@ function formatPrice(n) {
 // ═══════════════════════════════════════════════════════════════
 async function cargarVendedor() {
     if (!codigoParam) {
+        console.warn('[tienda] Sin codigoParam en la URL — urlParams:', urlParams.toString());
         mostrarError('No se encontró el código de vendedor en el enlace.');
         return;
     }
 
     let userData = null;
 
-    // 1. Intentar Worker
-    try {
-        const res = await fetch(WORKER_LOGIN, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ codigo: codigoParam })
-        });
-        if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.vendedor) userData = data.vendedor;
+    // 1. Intentar Worker (con un reintento corto por si es un blip transitorio)
+    for (let intento = 0; intento < 2 && !userData; intento++) {
+        try {
+            const res = await fetch(WORKER_LOGIN, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigo: codigoParam })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.vendedor) {
+                    userData = data.vendedor;
+                } else {
+                    console.warn('[tienda] WORKER_LOGIN respondió pero sin vendedor válido:', data);
+                }
+            } else {
+                console.warn('[tienda] WORKER_LOGIN status', res.status);
+            }
+        } catch (e) {
+            console.warn('[tienda] WORKER_LOGIN falló (intento ' + (intento + 1) + '):', e.message);
+            if (intento === 0) await new Promise(r => setTimeout(r, 600));
         }
-    } catch (e) {}
+    }
 
     // 2. Fallback: buscar en Firestore por codigoVendedor
     if (!userData) {
@@ -1848,10 +1862,14 @@ async function cargarVendedor() {
                 .limit(1)
                 .get();
             if (!snap.empty) userData = snap.docs[0].data();
-        } catch (e) {}
+            else console.warn('[tienda] Firestore: sin resultados para codigoVendedor =', codigoParam);
+        } catch (e) {
+            console.warn('[tienda] Fallback Firestore falló (probablemente reglas de seguridad):', e.message);
+        }
     }
 
     if (!userData) {
+        console.error('[tienda] No se pudo resolver el vendedor. codigoParam =', codigoParam, '| catParam =', catParam, '| urlParams =', urlParams.toString());
         mostrarError('Tienda no encontrada. Verificá el enlace con el vendedor.');
         return;
     }
@@ -2054,8 +2072,12 @@ async function cargarVendedor() {
         try {
             const promos = vendedor.promocionesTienda;
             if (typeof promos === 'object' && Object.keys(promos).length > 0) {
-                const promo = promos[catParam];
-                if (promo && (Array.isArray(promo.rangos) || promo.gift)) {
+                const claveCat = (catParam === 'belleza' && subParam === 'maquillaje') ? 'belleza_maquillaje'
+                                : (catParam === 'belleza' && subParam === 'perfume') ? 'belleza_perfume'
+                                : catParam;
+                const promo = promos[claveCat] || promos[catParam];
+                // Respeta el ON/OFF que el revendedor configuró desde el panel.
+                if (promo && promo.activo !== false && (Array.isArray(promo.rangos) || promo.gift)) {
                     window.promoActiva = promo;
                 }
             }
@@ -2063,6 +2085,7 @@ async function cargarVendedor() {
     }
 
     iniciarTienda();
+    cargarYMostrarCombosPromos();
 
     // ── Disparar modal de promo a los 5 segundos ──
     if (window.promoActiva) {
@@ -2550,13 +2573,107 @@ function mostrarError(msg) {
 // INIT
 // ═══════════════════════════════════════════════════════════════
 window.addEventListener('load', function() {
-    _slugPromise.then(function() {
+    _slugPromise.then(async function() {
         codigoParam = urlParams.get('tienda') || codigoParam;
         catParam    = urlParams.get('cat')    || catParam;
         subParam    = urlParams.get('sub')    || subParam;
+
+        // Enlace a un combo/promoción puntual: resolverlo primero para
+        // saber a qué revendedor/categoría pertenece.
+        if (csParam && !codigoParam) {
+            try {
+                const ctrl = new AbortController();
+                const t = setTimeout(() => ctrl.abort(), 4000);
+                const res = await fetch(COMBO_WORKER + '/slug/' + encodeURIComponent(csParam), { signal: ctrl.signal });
+                clearTimeout(t);
+                if (res.ok) {
+                    const d = await res.json();
+                    if (d && d.ok && d.codigoVendedor) {
+                        codigoParam = d.codigoVendedor;
+                        if (d.categoria === 'belleza_maquillaje') { catParam = 'belleza'; subParam = 'maquillaje'; }
+                        else if (d.categoria === 'belleza_perfume') { catParam = 'belleza'; subParam = 'perfume'; }
+                        else if (d.categoria) { catParam = d.categoria; }
+                        window._comboDestacado = { tipo: d.tipo, item: d.item };
+                    }
+                }
+            } catch(e) { console.warn('[tienda] No se pudo resolver el enlace de combo/promo:', e.message); }
+        }
+
         cargarVendedor();
     });
 });
+
+// ═══════════════════════════════════════════════════════════════
+// COMBOS Y PROMOCIONES ACTIVOS — modal a los 10s de ingresar (o
+// inmediato si el cliente entró por un enlace de un combo/promo
+// puntual vía "cs=").
+// ═══════════════════════════════════════════════════════════════
+function categoriaEfectivaParaCombos() {
+    if (catalogoActual === 'belleza' && subParam === 'maquillaje') return 'belleza_maquillaje';
+    if (catalogoActual === 'belleza' && subParam === 'perfume') return 'belleza_perfume';
+    return catalogoActual;
+}
+
+async function cargarYMostrarCombosPromos() {
+    if (!vendedor || !codigoParam) return;
+
+    // Si el cliente vino de un enlace de combo/promo puntual, mostrar
+    // SOLO ese, de inmediato, sin esperar los 10 segundos.
+    if (window._comboDestacado && window._comboDestacado.item) {
+        mostrarModalCombosPromos([window._comboDestacado.item], window._comboDestacado.tipo === 'combo' ? 'combo' : 'promocion');
+        return;
+    }
+
+    setTimeout(async function() {
+        try {
+            const cat = categoriaEfectivaParaCombos();
+            const [combosRes, promosRes] = await Promise.all([
+                fetch(COMBO_WORKER + '/combos?codigo=' + encodeURIComponent(codigoParam) + '&categoria=' + encodeURIComponent(cat) + '&soloActivos=1').then(r => r.ok ? r.json() : null).catch(() => null),
+                fetch(COMBO_WORKER + '/promociones?codigo=' + encodeURIComponent(codigoParam) + '&categoria=' + encodeURIComponent(cat) + '&soloActivos=1').then(r => r.ok ? r.json() : null).catch(() => null),
+            ]);
+            const combos = (combosRes && combosRes.items) || [];
+            const promos = (promosRes && promosRes.items) || [];
+            if (combos.length === 0 && promos.length === 0) return;
+            mostrarModalCombosPromos(combos.map(c => ({ ...c, _tipo: 'combo' })).concat(promos.map(p => ({ ...p, _tipo: 'promocion' }))));
+        } catch(e) { /* si falla, simplemente no se muestra el modal */ }
+    }, 10000);
+}
+
+function mostrarModalCombosPromos(items, tipoUnico) {
+    if (!items || items.length === 0) return;
+    let modal = document.getElementById('combosPromosClienteModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'combosPromosClienteModal';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+        document.body.appendChild(modal);
+    }
+
+    const cardsHtml = items.map(it => {
+        const tipo = it._tipo || tipoUnico || (it.rangos ? 'promocion' : 'combo');
+        if (tipo === 'combo') {
+            return `<div style="border:1px solid #eee;border-radius:10px;padding:14px;margin-bottom:10px;">
+                <div style="font-weight:700;font-size:14px;margin-bottom:6px;">🎁 ${(it.productos || []).map(p => p.nombre).join(' + ')}</div>
+                <div style="font-size:13px;color:#555;">Precio del combo: <strong style="color:var(--primary,#0b5fff);font-size:16px;">$${(it.precioFinal || 0).toLocaleString('es-AR')}</strong></div>
+            </div>`;
+        }
+        return `<div style="border:1px solid #eee;border-radius:10px;padding:14px;margin-bottom:10px;">
+            <div style="font-weight:700;font-size:14px;margin-bottom:6px;">🔥 ${it.nombre || 'Promoción'}</div>
+            <div style="font-size:12.5px;color:#555;">Descuentos especiales activos en esta tienda.</div>
+        </div>`;
+    }).join('');
+
+    modal.innerHTML = `
+        <div style="background:#fff;border-radius:14px;max-width:400px;width:100%;padding:22px;max-height:80vh;overflow-y:auto;" onclick="event.stopPropagation()">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                <h3 style="margin:0;font-size:17px;">✨ Ofertas especiales</h3>
+                <button type="button" onclick="document.getElementById('combosPromosClienteModal').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;line-height:1;">×</button>
+            </div>
+            ${cardsHtml}
+            <button type="button" onclick="document.getElementById('combosPromosClienteModal').remove()" style="width:100%;margin-top:8px;padding:11px;border:none;border-radius:8px;background:var(--primary,#0b5fff);color:#fff;font-weight:700;font-size:13.5px;cursor:pointer;">Ver tienda</button>
+        </div>`;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // ── NUEVAS FUNCIONES: CHECKOUT CON DATOS DEL CLIENTE ──────────
@@ -2880,7 +2997,7 @@ window.promoGiftElegido = null; // {producto, cat}
         const pUrl = urlParams.get('promo');
         if (!pUrl) return;
         const parsed = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(pUrl)))));
-        if (parsed && (Array.isArray(parsed.rangos) || parsed.gift)) {
+        if (parsed && parsed.activo !== false && (Array.isArray(parsed.rangos) || parsed.gift)) {
             window.promoActiva = parsed;
         }
     } catch(e) {}
@@ -2895,7 +3012,7 @@ function _cargarPromoDesdeVendedor() {
         const promos = vendedor && vendedor.promocionesTienda;
         if (!promos || typeof promos !== 'object' || Object.keys(promos).length === 0) return;
         const promo = promos[catParam];
-        if (promo && (Array.isArray(promo.rangos) || promo.gift)) {
+        if (promo && promo.activo !== false && (Array.isArray(promo.rangos) || promo.gift)) {
             window.promoActiva = promo;
         }
     } catch(e) {}
