@@ -1,0 +1,15 @@
+# Enlaces cortos con ruta limpia — revendeways.shop/tienda/nombre-apellido
+# (y /producto/, /promocion/, /combo/). Cloudflare Pages reescribe estas
+# rutas para servir tienda.html, mientras el navegador sigue mostrando la
+# URL original y corta. tienda.html lee el slug directamente de
+# window.location.pathname (ver el bloque agregado justo después de
+# `const urlParams = ...`).
+#
+# Cómo instalarlo: subí este archivo como "_redirects" (sin extensión) a
+# la RAÍZ del proyecto en Cloudflare Pages, junto a index.html y tienda.html.
+# Cloudflare lo detecta automáticamente en el próximo deploy.
+
+/tienda/*      /tienda.html   200
+/producto/*    /tienda.html   200
+/promocion/*   /tienda.html   200
+/combo/*       /tienda.html   200
