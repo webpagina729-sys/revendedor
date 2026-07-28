@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tienda</title>
     <meta name="description" content="Catálogo de productos con precios personalizados.">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="shortcut icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -921,6 +924,27 @@ let talleSelec     = null;
 // ── Leer URL params ──────────────────────────────────────────
 const urlParams = new URLSearchParams(window.location.search);
 
+// 🔧 ENLACES CORTOS CON RUTA LIMPIA: revendeways.shop/tienda/nombre-apellido
+// (o /producto/, /promocion/, /combo/). El _redirects del hosting reescribe
+// estas rutas hacia este mismo archivo, pero el navegador sigue mostrando
+// la URL original SIN query string — por eso el slug se lee directamente
+// de location.pathname acá, y se vuelca a urlParams como si hubiera venido
+// por "?s=" o "?cs=" para no tener que tocar el resto de la lógica.
+(function() {
+    var m = window.location.pathname.match(/^\/(tienda|producto|promocion|combo)\/([^\/?#]+)\/?$/);
+    if (!m) return;
+    window._rutaLimpiaActiva = true; // no reescribir la URL bonita con query params luego de resolver
+    var tipo = m[1];
+    var slug = decodeURIComponent(m[2]);
+    if (tipo === 'promocion' || tipo === 'combo') {
+        urlParams.set('cs', slug);
+    } else {
+        // "tienda" y "producto" comparten el mismo sistema de slugs
+        // (el "producto" ya viaja embebido dentro del cfg guardado).
+        urlParams.set('s', slug);
+    }
+})();
+
 // ── Slug corto: resuelve ?s=nombre-apellido-XXXXXX SIN reload ──
 // Actualiza urlParams en memoria; window.load espera antes de iniciar.
 // Los enlaces cortos nuevos solo traen "?s=slug" — todo lo demás (código
@@ -959,7 +983,11 @@ let _slugPromise = Promise.resolve();
             if (d.promo && (Array.isArray(d.promo.rangos) || d.promo.gift)) {
                 try { urlParams.set('promo', btoa(unescape(encodeURIComponent(JSON.stringify(d.promo))))); } catch(e) {}
             }
-            try { window.history.replaceState({}, '', window.location.pathname + '?' + urlParams.toString()); } catch(e) {}
+            try {
+                if (!window._rutaLimpiaActiva) {
+                    window.history.replaceState({}, '', window.location.pathname + '?' + urlParams.toString());
+                }
+            } catch(e) {}
         })
         .catch(function() { clearTimeout(timeoutId); });
 })();
