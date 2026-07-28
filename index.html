@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Revende Ways | Tu Tienda Propia</title>
     <meta name="description" content="Revende con nosotros. Te damos tu tienda lista para comenzar con +250 productos. Precio solo para revendedores.">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="shortcut icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -5515,6 +5518,13 @@
             allConfig[catConfig] = { ...(allConfig[catConfig] || {}), rangos };
             localStorage.setItem('configTiendaAll', JSON.stringify(allConfig));
 
+            // 🔧 FIX: invalidar el enlace corto cacheado para que no se siga
+            // repartiendo un link con el margen anterior.
+            if (window._enlacesCortosCache) {
+                delete window._enlacesCortosCache[catConfig];
+                delete window._enlacesCortosCache['belleza'];
+            }
+
             // Mismo mecanismo genérico de guardado por categoría (dot-path),
             // así tienda.html lee este margen exactamente igual que cualquier
             // otra categoría — sin tocar Perfumes ni el resto de Belleza.
@@ -9748,6 +9758,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // También guardar en la clave legacy para compatibilidad
             localStorage.setItem('configTienda', JSON.stringify(config));
 
+            // 🔧 FIX: si había un enlace corto ya generado para esta categoría,
+            // queda VIEJO en cuanto cambian los márgenes — invalidarlo para
+            // que el próximo "Compartir" arme uno nuevo con el precio recién
+            // configurado, en vez de seguir repartiendo el enlace desactualizado.
+            if (window._enlacesCortosCache) delete window._enlacesCortosCache[cat];
+
             // Guardar WhatsApp — misma normalización robusta que aplicarWhatsAppDesdeConfig(),
             // para que el número quede siempre con el prefijo 549 completo sin importar
             // si el revendedor usó el botón "Aplicar" del WhatsApp o solo guardó el formulario general.
@@ -10069,7 +10085,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     <p style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:8px;">${producto.nombre}</p>
                     <div style="background:var(--gray-light);border-radius:var(--radius);padding:12px;margin-bottom:12px;font-size:13px;color:var(--text-light);line-height:1.8;">
                         <div style="display:flex;align-items:center;gap:6px;">Precio base: <strong style="color:var(--text);">$${producto.precio.toLocaleString()}</strong>
-                            <button type="button" onclick="abrirConfigTiendaModal && abrirConfigTiendaModal()" title="Configurar precios" style="margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;color:var(--text-light);">
+                            <button type="button" onclick="openConfigTiendaModal && openConfigTiendaModal()" title="Configurar precios" style="margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;color:var(--text-light);">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                             </button>
                         </div>
@@ -11062,7 +11078,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // categoría, para poder copiarlos de forma SINCRÓNICA (requisito de
         // Safari iOS) sin caer nunca en el enlace largo una vez que ya se
         // generó el corto una vez.
-        const TIENDA_DOMINIO_PERSONALIZADO = 'https://mitienda.revendeways.shop';
+        const TIENDA_DOMINIO_PERSONALIZADO = 'https://revendeways.shop';
         window._enlacesCortosCache = window._enlacesCortosCache || {};
 
         // 🔧 FIX: se eliminó buildEnlaceTienda(), que armaba enlaces del tipo
@@ -11134,9 +11150,13 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // Arma la URL final de tienda.html embebiendo todo lo necesario en
         // los parámetros. Se usa como FALLBACK si el acortado por Worker no
         // está disponible (nunca deja al revendedor sin poder compartir).
+        // Aun en el fallback se mantiene la ruta limpia /tienda/ o
+        // /producto/ + el slug — los datos extra viajan como query string
+        // adicional (el navegador y el _redirects los ignoran para servir
+        // el archivo, pero tienda.html los sigue leyendo si están).
         function construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub) {
+            const prefijo = productoId != null ? '/producto/' : '/tienda/';
             const params = new URLSearchParams();
-            params.set('s', slugId);
             if (codigo) params.set('tienda', codigo);
             if (cat) params.set('cat', cat);
             if (sub) params.set('sub', sub);
@@ -11151,13 +11171,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     params.set('promo', btoa(unescape(encodeURIComponent(JSON.stringify(promo)))));
                 }
             } catch(_) {}
-            return TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?' + params.toString();
+            const qs = params.toString();
+            return TIENDA_DOMINIO_PERSONALIZADO + prefijo + encodeURIComponent(slugId) + (qs ? '?' + qs : '');
         }
 
         // Intenta guardar la configuración en el Worker de slugs para poder
-        // devolver un enlace CORTO (solo dominio + slug). Timeout acotado:
-        // si el Worker no responde a tiempo, se cae al enlace largo embebido
-        // (construirEnlaceTienda) para que compartir NUNCA se rompa.
+        // devolver un enlace CORTO: revendeways.shop/tienda/nombre-apellido
+        // (o /producto/nombre-apellido si es un producto puntual). Timeout
+        // acotado: si el Worker no responde a tiempo, se cae al enlace
+        // largo embebido (construirEnlaceTienda) para que compartir NUNCA
+        // se rompa.
         //
         // 🔧 IMPORTANTE: el Worker real (handleGuardarSlug) solo persiste
         // { slugId, codigoVendedor, cat, cfg, promo } — cualquier otro campo
@@ -11185,7 +11208,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     const data = await res.json();
                     if (data && (data.slugId || data.slug || data.id)) slugFinal = data.slugId || data.slug || data.id;
                 } catch(_) {}
-                return TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?s=' + encodeURIComponent(slugFinal);
+                const prefijo = productoId != null ? '/producto/' : '/tienda/';
+                return TIENDA_DOMINIO_PERSONALIZADO + prefijo + encodeURIComponent(slugFinal);
             } catch(_e) {
                 // Sin red / Worker caído / timeout: enlace largo como respaldo.
                 return construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub);
@@ -11570,6 +11594,24 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             init();
         }
         window.addEventListener('focus', () => window.refrescarMisTiendasFab());
+
+        // 🔧 FIX CRÍTICO: todas estas funciones vivían atrapadas dentro de
+        // este IIFE — invisibles tanto para los onclick="..." en el HTML
+        // como para el resto de <script> del archivo, que se ejecutan en
+        // el scope global. Por eso "Compartir Producto", "Vista previa" y
+        // varios botones de enlaces cortos no hacían nada (tiraban un
+        // ReferenceError silencioso en la consola). Se exponen a window
+        // explícitamente para que funcionen desde cualquier parte.
+        window.armarSlugRevendedor = armarSlugRevendedor;
+        window.construirEnlaceTienda = construirEnlaceTienda;
+        window.acortarEnlace = acortarEnlace;
+        window.armarCfgFullYPromo = armarCfgFullYPromo;
+        window.derivarRutaYSub = derivarRutaYSub;
+        window.generarEnlaceCorto = generarEnlaceCorto;
+        window.generarEnlaceProducto = generarEnlaceProducto;
+        window.catalogoRutaCompleta = catalogoRutaCompleta;
+        window.abrirVistaPreviaProducto = abrirVistaPreviaProducto;
+        window.compartirTiendaDesdeProducto = compartirTiendaDesdeProducto;
     })();
 </script>
 
@@ -11601,11 +11643,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 </div>
 
 <!-- Modal: Crear promoción -->
-<div class="modal-overlay" id="promoModal" onclick="if(event.target.id==='promoModal')this.classList.remove('active')">
-    <div class="modal-content" style="max-width:480px;" onclick="event.stopPropagation()">
+<div class="modal-overlay" id="promoModal">
+    <div class="modal-content" style="max-width:480px;">
         <div class="modal-header">
             <h2 class="modal-title">🎯 Crear promoción</h2>
-            <button type="button" class="modal-close" onclick="document.getElementById('promoModal').classList.remove('active')" aria-label="Cerrar">×</button>
         </div>
 
         <p class="promo-hint">Definí rango de descuento. Misma lógica que los aumentos, pero los % se aplican como descuento sobre el precio final.</p>
@@ -11667,11 +11708,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 </div>
 
 <!-- MODAL: CREAR COMBO -->
-<div class="modal-overlay" id="crearComboModal" onclick="if(event.target.id==='crearComboModal')this.classList.remove('active')">
-    <div class="modal-content" style="max-width:460px;" onclick="event.stopPropagation()">
+<div class="modal-overlay" id="crearComboModal">
+    <div class="modal-content" style="max-width:460px;">
         <div class="modal-header">
             <h2 class="modal-title">🎁 Crear combo</h2>
-            <button type="button" class="modal-close" onclick="document.getElementById('crearComboModal').classList.remove('active')" aria-label="Cerrar">×</button>
         </div>
         <p id="crearComboCatLabel" style="font-size:12.5px;color:var(--text-light);margin:-6px 0 12px;"></p>
 
@@ -12276,7 +12316,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     body: JSON.stringify({ slugId, codigoVendedor, tipo, itemId, categoria: cat })
                 });
                 const slugFinal = (guardado && guardado.slugId) || slugId;
-                const url = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?cs=' + encodeURIComponent(slugFinal);
+                const prefijo = tipo === 'combo' ? '/combo/' : '/promocion/';
+                const url = TIENDA_DOMINIO_PERSONALIZADO + prefijo + encodeURIComponent(slugFinal);
 
                 if (navigator.share) {
                     try { await navigator.share({ title: 'Mi tienda', url }); return; } catch(_) {}
