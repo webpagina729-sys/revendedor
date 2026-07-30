@@ -555,11 +555,44 @@
             border: 1px solid var(--border);
         }
         .promo-float-close {
-            position: absolute; top: 12px; right: 14px;
-            background: none; border: none; font-size: 22px;
-            color: var(--text-light); cursor: pointer; line-height: 1;
+            position: absolute; top: 4px; right: 4px;
+            width: 24px; height: 24px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--gray-light); border: none; border-radius: 50%;
+            font-size: 15px; line-height: 1;
+            color: var(--text-light); cursor: pointer;
+            z-index: 5;
         }
         .promo-float-box { position: relative; }
+
+        /* Carrusel "coverflow": 5 imágenes en fila, la central más grande */
+        .coverflow-title {
+            text-align: center; font-weight: 700; font-size: 14px;
+            margin-bottom: 14px; color: var(--text);
+        }
+        .coverflow-wrap {
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px; overflow: hidden; padding: 10px 0;
+        }
+        .coverflow-item {
+            flex-shrink: 0; border-radius: 10px; overflow: hidden;
+            width: 52px; height: 52px; opacity: .55; filter: grayscale(.15);
+            transition: all .5s ease; box-shadow: 0 2px 6px rgba(0,0,0,.08);
+        }
+        .coverflow-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .coverflow-item.coverflow-center {
+            width: 92px; height: 92px; opacity: 1; filter: none;
+            box-shadow: 0 6px 16px rgba(0,0,0,.18);
+        }
+        .coverflow-item.coverflow-near { width: 68px; height: 68px; opacity: .8; }
+        .coverflow-divider {
+            border: none; border-top: 1px solid var(--border); margin: 22px 0 18px;
+        }
+        .combo-carrusel-block { margin-bottom: 22px; }
+        .combo-carrusel-title {
+            font-size: 13.5px; font-weight: 700; color: var(--text);
+            margin-bottom: 10px; text-align: center;
+        }
 
         /* Detail modal (Ver promoción) */
         .promo-detail-overlay {
@@ -695,7 +728,8 @@
     <div class="tienda-hero-inner">
         <h1 id="hero-title">Tienda</h1>
         <p id="hero-sub">Catálogo con precios personalizados</p>
-        <span class="tienda-hero-badge" id="hero-badge">Hacé tu pedido por WhatsApp</span>
+        <button type="button" class="tienda-hero-badge" id="hero-badge" onclick="abrirVerTiendaDeModal()" style="border:1.5px solid var(--color-contorno, rgba(255,255,255,.6)); cursor:pointer; font:inherit;">Ver combos y descuentos</button>
+        <p id="hero-whatsapp-help" style="font-size:11px;font-weight:300;opacity:.85;margin:8px 0 0;"></p>
     </div>
 </div>
 
@@ -723,6 +757,9 @@
         <div class="icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
         <p>No encontramos productos para esa búsqueda.</p>
     </div>
+
+    <!-- Carrusel "Ver todos los descuentos" + carruseles de combos -->
+    <div id="descuentos-combos-section" style="display:none;padding:20px 16px 8px;"></div>
 </div>
 
 <!-- FOOTER -->
@@ -732,9 +769,8 @@
 </footer>
 
 <!-- ── MODAL PRODUCTO ── -->
-<div class="modal-overlay" id="modal-producto" onclick="if(event.target.id==='modal-producto') cerrarModalProducto()">
+<div class="modal-overlay" id="modal-producto">
     <div class="modal-box" id="modal-producto-box">
-        <button class="modal-close" onclick="cerrarModalProducto()">✕</button>
         <div style="position:relative; border-radius:8px; overflow:hidden;">
             <img class="modal-product-img" id="modal-img" src="" alt="">
             <button type="button" id="modal-img-prev" onclick="irAImagenModalTienda(modalImagenIndex - 1)" title="Anterior" style="display:none; position:absolute; top:50%; left:6px; transform:translateY(-50%); width:26px; height:26px; border-radius:50%; border:none; background:rgba(0,0,0,.35); color:#fff; font-size:16px; line-height:1; align-items:center; justify-content:center; cursor:pointer; z-index:5;">‹</button>
@@ -760,11 +796,12 @@
         <div class="modal-section-title">Momento ideal</div>
         <div class="modal-momento" id="modal-momento"></div>
         <button class="modal-add-btn" onclick="agregarDesdeModal()">Agregar al carrito</button>
+        <button type="button" onclick="cerrarModalProducto()" style="width:100%;margin-top:8px;padding:11px;background:#fff;color:var(--color-contorno, var(--primary));border:1.5px solid var(--color-contorno, var(--primary));box-shadow:inset 0 0 0 1px var(--border);border-radius:var(--radius);font-weight:700;font-size:14px;font-family:var(--font);cursor:pointer;">Cerrar</button>
     </div>
 </div>
 
 <!-- ── MODAL CARRITO ── -->
-<div class="cart-modal-overlay" id="modal-carrito" onclick="if(event.target.id==='modal-carrito') cerrarCarrito()">
+<div class="cart-modal-overlay" id="modal-carrito">
     <div class="cart-modal-box">
         <div class="cart-header">
             <h2>Tu pedido</h2>
@@ -791,7 +828,7 @@
 </div>
 
 <!-- ── MODAL TIPO ENTREGA ── -->
-<div class="entrega-overlay" id="modal-entrega" onclick="if(event.target.id==='modal-entrega') cerrarEntrega()">
+<div class="entrega-overlay" id="modal-entrega">
     <div class="entrega-box">
         <div class="entrega-title">¿Cómo recibís tu pedido?</div>
         <div class="entrega-sub">Elegí la forma de entrega que mejor te quede 🛍️</div>
@@ -814,7 +851,7 @@
 </div>
 
 <!-- ── NUEVO: MODAL CHECKOUT (datos del cliente) ── -->
-<div class="checkout-overlay" id="modal-checkout" onclick="if(event.target.id==='modal-checkout') cerrarCheckout()">
+<div class="checkout-overlay" id="modal-checkout">
     <div class="checkout-box">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
             <h2 style="margin:0;">Datos de entrega</h2>
@@ -936,13 +973,14 @@ const urlParams = new URLSearchParams(window.location.search);
     window._rutaLimpiaActiva = true; // no reescribir la URL bonita con query params luego de resolver
     var tipo = m[1];
     var slug = decodeURIComponent(m[2]);
-    if (tipo === 'promocion' || tipo === 'combo') {
+    if (tipo === 'combo') {
         urlParams.set('cs', slug);
     } else {
-        // "tienda" y "producto" comparten el mismo sistema de slugs
-        // (el "producto" ya viaja embebido dentro del cfg guardado).
+        // "tienda", "producto" y "promocion" comparten el mismo sistema de
+        // slugs (el producto/promo ya viaja embebido dentro del cfg guardado).
         urlParams.set('s', slug);
     }
+    window._tipoEnlaceLimpio = tipo;
 })();
 
 // ── Slug corto: resuelve ?s=nombre-apellido-XXXXXX SIN reload ──
@@ -2114,10 +2152,11 @@ async function cargarVendedor() {
 
     iniciarTienda();
     cargarYMostrarCombosPromos();
+    cargarSeccionDescuentosYCombos();
 
     // ── Disparar modal de promo a los 5 segundos ──
     if (window.promoActiva) {
-        setTimeout(mostrarPromoFloat, 5000);
+        setTimeout(mostrarPromoFloat, window._tipoEnlaceLimpio === 'promocion' ? 300 : 5000);
     }
 }
 
@@ -2182,6 +2221,8 @@ function iniciarTienda() {
         : catalogoActual === 'belleza'
         ? 'PERFUMERÍA + MAQUILLAJE'
         : 'Perfumes árabes importados';
+    const waHelp = document.getElementById('hero-whatsapp-help');
+    if (waHelp) waHelp.textContent = 'Al finalizar tu pedido envíaselo a ' + (nombre || 'el vendedor') + ' por WhatsApp desde tu carrito.';
 
     // Ocultar loading
     document.getElementById('loading-screen').style.display = 'none';
@@ -2310,7 +2351,8 @@ function renderizarProductos() {
 
     grid.innerHTML = visibles.map(p => `
         <div class="product-card" onclick="abrirModal(${p.id})">
-            <div class="product-img-wrap">
+            <div class="product-img-wrap" style="position:relative;">
+                ${badgeDescuentoHtml(p.precioFinal)}
                 <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}"
                      onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-family=%22Arial%22 font-size=%2214%22 fill=%22%23999%22%3EFoto%3C/text%3E%3C/svg%3E'">
             </div>
@@ -2642,65 +2684,98 @@ function categoriaEfectivaParaCombos() {
     return catalogoActual;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Carrusel "coverflow" reutilizable: 5 imágenes, la central más
+// grande, avanza sola cada 2 segundos.
+// ═══════════════════════════════════════════════════════════════
+function crearCoverflow(wrapEl, imagenes) {
+    if (!imagenes || imagenes.length === 0) return;
+    let offset = 0;
+    const total = imagenes.length;
+
+    function render() {
+        wrapEl.innerHTML = '';
+        const visibles = Math.min(5, total);
+        const mitad = Math.floor(visibles / 2);
+        for (let i = -mitad; i <= mitad; i++) {
+            const idx = ((offset + i) % total + total) % total;
+            const div = document.createElement('div');
+            div.className = 'coverflow-item' + (i === 0 ? ' coverflow-center' : (Math.abs(i) === 1 ? ' coverflow-near' : ''));
+            const img = document.createElement('img');
+            img.src = imagenes[idx];
+            img.alt = '';
+            img.onerror = function() { div.style.display = 'none'; };
+            div.appendChild(img);
+            wrapEl.appendChild(div);
+        }
+    }
+    render();
+    if (total > 1) {
+        setInterval(() => { offset = (offset + 1) % total; render(); }, 2000);
+    }
+}
+
+async function cargarSeccionDescuentosYCombos() {
+    const seccion = document.getElementById('descuentos-combos-section');
+    if (!seccion) return;
+
+    const conDescuento = (todosProductos || []).filter(p => getDescuentoPorcentaje(p.precioFinal) > 0);
+
+    let combos = [];
+    try {
+        const cat = categoriaEfectivaParaCombos();
+        const res = await fetch(COMBO_WORKER + '/combos?codigo=' + encodeURIComponent(codigoParam) + '&categoria=' + encodeURIComponent(cat) + '&soloActivos=1').then(r => r.ok ? r.json() : null);
+        combos = ((res && res.items) || []).slice(0, 5);
+    } catch(e) {}
+
+    if (conDescuento.length === 0 && combos.length === 0) return;
+
+    let html = '';
+    if (conDescuento.length > 0) {
+        html += '<div class="coverflow-title">Ver todos los descuentos</div>';
+        html += '<div class="coverflow-wrap" id="coverflow-descuentos"></div>';
+    }
+    if (conDescuento.length > 0 && combos.length > 0) {
+        html += '<hr class="coverflow-divider">';
+    } else if (combos.length > 0) {
+        html += '<hr class="coverflow-divider" style="margin-top:0;">';
+    }
+    combos.forEach((c, i) => {
+        html += `<div class="combo-carrusel-block">
+            <div class="combo-carrusel-title">Combo (${(c.productos || []).map(p => p.nombre).join(' + ')})</div>
+            <div class="coverflow-wrap" id="coverflow-combo-${i}"></div>
+        </div>`;
+    });
+
+    seccion.innerHTML = html;
+    seccion.style.display = 'block';
+
+    if (conDescuento.length > 0) {
+        crearCoverflow(document.getElementById('coverflow-descuentos'), conDescuento.map(p => resolveImgUrl(p.imagen)));
+    }
+    combos.forEach((c, i) => {
+        const el = document.getElementById('coverflow-combo-' + i);
+        if (el) crearCoverflow(el, (c.productos || []).map(p => resolveImgUrl(p.imagen)));
+    });
+}
+
 async function cargarYMostrarCombosPromos() {
     if (!vendedor || !codigoParam) return;
 
-    // Si el cliente vino de un enlace de combo/promo puntual, mostrar
-    // SOLO ese, de inmediato, sin esperar los 10 segundos.
-    if (window._comboDestacado && window._comboDestacado.item) {
-        mostrarModalCombosPromos([window._comboDestacado.item], window._comboDestacado.tipo === 'combo' ? 'combo' : 'promocion');
+    // Enlace directo a un combo puntual (revendeways.shop/combo/...):
+    // mostrar SOLO ese combo, de inmediato.
+    if (window._comboDestacado && window._comboDestacado.item && window._comboDestacado.tipo === 'combo') {
+        window._combosCache = [window._comboDestacado.item];
+        setTimeout(() => verComboDetalle(0), 300);
         return;
     }
 
-    setTimeout(async function() {
-        try {
-            const cat = categoriaEfectivaParaCombos();
-            const [combosRes, promosRes] = await Promise.all([
-                fetch(COMBO_WORKER + '/combos?codigo=' + encodeURIComponent(codigoParam) + '&categoria=' + encodeURIComponent(cat) + '&soloActivos=1').then(r => r.ok ? r.json() : null).catch(() => null),
-                fetch(COMBO_WORKER + '/promociones?codigo=' + encodeURIComponent(codigoParam) + '&categoria=' + encodeURIComponent(cat) + '&soloActivos=1').then(r => r.ok ? r.json() : null).catch(() => null),
-            ]);
-            const combos = (combosRes && combosRes.items) || [];
-            const promos = (promosRes && promosRes.items) || [];
-            if (combos.length === 0 && promos.length === 0) return;
-            mostrarModalCombosPromos(combos.map(c => ({ ...c, _tipo: 'combo' })).concat(promos.map(p => ({ ...p, _tipo: 'promocion' }))));
-        } catch(e) { /* si falla, simplemente no se muestra el modal */ }
-    }, 10000);
-}
-
-function mostrarModalCombosPromos(items, tipoUnico) {
-    if (!items || items.length === 0) return;
-    let modal = document.getElementById('combosPromosClienteModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'combosPromosClienteModal';
-        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
-        modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
-        document.body.appendChild(modal);
+    // Si no hay promo activa, el modal "Promoción Activa" nunca se abre ni
+    // se cierra — así que el combo se dispara con un fallback a los 10s.
+    if (!window.promoActiva && !window._comboTimerDisparado) {
+        window._comboTimerDisparado = true;
+        setTimeout(dispararComboFloatSiHay, 10000);
     }
-
-    const cardsHtml = items.map(it => {
-        const tipo = it._tipo || tipoUnico || (it.rangos ? 'promocion' : 'combo');
-        if (tipo === 'combo') {
-            return `<div style="border:1px solid #eee;border-radius:10px;padding:14px;margin-bottom:10px;">
-                <div style="font-weight:700;font-size:14px;margin-bottom:6px;">🎁 ${(it.productos || []).map(p => p.nombre).join(' + ')}</div>
-                <div style="font-size:13px;color:#555;">Precio del combo: <strong style="color:var(--primary,#0b5fff);font-size:16px;">$${(it.precioFinal || 0).toLocaleString('es-AR')}</strong></div>
-            </div>`;
-        }
-        return `<div style="border:1px solid #eee;border-radius:10px;padding:14px;margin-bottom:10px;">
-            <div style="font-weight:700;font-size:14px;margin-bottom:6px;">🔥 ${it.nombre || 'Promoción'}</div>
-            <div style="font-size:12.5px;color:#555;">Descuentos especiales activos en esta tienda.</div>
-        </div>`;
-    }).join('');
-
-    modal.innerHTML = `
-        <div style="background:#fff;border-radius:14px;max-width:400px;width:100%;padding:22px;max-height:80vh;overflow-y:auto;" onclick="event.stopPropagation()">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                <h3 style="margin:0;font-size:17px;">✨ Ofertas especiales</h3>
-                <button type="button" onclick="document.getElementById('combosPromosClienteModal').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;line-height:1;">×</button>
-            </div>
-            ${cardsHtml}
-            <button type="button" onclick="document.getElementById('combosPromosClienteModal').remove()" style="width:100%;margin-top:8px;padding:11px;border:none;border-radius:8px;background:var(--primary,#0b5fff);color:#fff;font-weight:700;font-size:13.5px;cursor:pointer;">Ver tienda</button>
-        </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3081,6 +3156,156 @@ function mostrarPromoFloat() {
 
 function cerrarPromoFloat() {
     document.getElementById('promoFloatModal').classList.remove('active');
+    // El combo (si hay) se muestra 15s DESPUÉS de cerrar este modal.
+    if (!window._comboTimerDisparado) {
+        window._comboTimerDisparado = true;
+        setTimeout(dispararComboFloatSiHay, 15000);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DESCUENTOS: helper de porcentaje + badge en las tarjetas
+// ═══════════════════════════════════════════════════════════════
+function getDescuentoPorcentaje(precioFinal) {
+    const promo = window.promoActiva;
+    if (!promo || !Array.isArray(promo.rangos)) return 0;
+    let max = 0;
+    promo.rangos.forEach(r => {
+        const de = Number(r.de) || 0;
+        const hasta = Number(r.hasta) || Infinity;
+        const pct = Number(r.porcentaje) || 0;
+        if (precioFinal >= de && precioFinal <= hasta && pct > max) max = pct;
+    });
+    return max;
+}
+
+function badgeDescuentoHtml(precioFinal) {
+    const pct = getDescuentoPorcentaje(precioFinal);
+    if (pct <= 0) return '';
+    return `<div style="position:absolute;top:6px;left:6px;background:#ef4444;color:#fff;font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px;z-index:3;box-shadow:0 1px 4px rgba(0,0,0,.25);">-${pct}%</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FLUJO: Ver Promoción → Ver Productos → En Promoción / Ver Todos
+// ═══════════════════════════════════════════════════════════════
+function abrirVerProductosChooser() {
+    document.getElementById('promoDetailModal').classList.remove('active');
+    document.getElementById('verProductosChooserModal').classList.add('active');
+}
+
+function abrirCatalogoEnPromocion() {
+    document.getElementById('verProductosChooserModal').classList.remove('active');
+    const promo = window.promoActiva;
+    const grid = document.getElementById('catalogoPromoGrid');
+    if (!promo || !Array.isArray(promo.rangos)) {
+        grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-light);padding:20px;">No hay una promoción activa en este momento.</p>';
+        document.getElementById('catalogoPromoModal').classList.add('active');
+        return;
+    }
+    const enPromo = (todosProductos || []).filter(p => getDescuentoPorcentaje(p.precioFinal) > 0);
+    if (enPromo.length === 0) {
+        grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-light);padding:20px;">No hay productos en promoción por ahora.</p>';
+    } else {
+        grid.innerHTML = enPromo.map(p => `
+            <div class="product-card" onclick="abrirModal(${p.id})" style="position:relative;cursor:pointer;">
+                ${badgeDescuentoHtml(p.precioFinal)}
+                <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;">
+                <div style="padding:6px 2px;">
+                    <div style="font-size:12.5px;font-weight:600;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.nombre}</div>
+                    <div style="font-size:14px;font-weight:800;color:var(--primary);">${formatPrice(p.precioFinal)}</div>
+                </div>
+            </div>`).join('');
+    }
+    document.getElementById('catalogoPromoModal').classList.add('active');
+}
+
+function irACatalogoGeneral() {
+    document.getElementById('verProductosChooserModal').classList.remove('active');
+    document.getElementById('verTiendaDeModal').classList.remove('active');
+    const sec = document.getElementById('products-section');
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// "Ver combos y descuentos" (reemplaza el badge de WhatsApp del hero)
+// ═══════════════════════════════════════════════════════════════
+function abrirVerTiendaDeModal() {
+    const titulo = document.getElementById('verTiendaDeTitulo');
+    if (titulo) titulo.textContent = 'Ver tienda de: ' + (nombre || '');
+    document.getElementById('verTiendaDeModal').classList.add('active');
+}
+
+async function abrirCatalogoCombos() {
+    document.getElementById('catalogoCombosModal').classList.add('active');
+    const cont = document.getElementById('catalogoCombosGrid');
+    cont.innerHTML = '<p style="text-align:center;color:var(--text-light);padding:20px;">Cargando...</p>';
+    try {
+        const cat = categoriaEfectivaParaCombos();
+        const res = await fetch(COMBO_WORKER + '/combos?codigo=' + encodeURIComponent(codigoParam) + '&categoria=' + encodeURIComponent(cat) + '&soloActivos=1').then(r => r.ok ? r.json() : null);
+        const combos = (res && res.items) || [];
+        if (combos.length === 0) {
+            cont.innerHTML = '<p style="text-align:center;color:var(--text-light);padding:20px;">No hay combos activos en este momento.</p>';
+            return;
+        }
+        window._combosCache = combos;
+        cont.innerHTML = combos.map((c, i) => `
+            <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer;" onclick="verComboDetalle(${i})">
+                <div style="display:flex;gap:4px;overflow-x:auto;margin-bottom:8px;">
+                    ${(c.productos || []).map(p => `<img src="${resolveImgUrl(p.imagen)}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;flex-shrink:0;">`).join('')}
+                </div>
+                <div style="font-weight:700;font-size:13.5px;margin-bottom:4px;">${(c.productos || []).map(p => p.nombre).join(' + ')}</div>
+                <div style="font-size:13px;color:var(--text-light);">Precio del combo: <strong style="color:var(--primary);font-size:15px;">${formatPrice(c.precioFinal)}</strong></div>
+                <button type="button" style="margin-top:8px;width:100%;padding:8px;border:1.5px solid var(--color-contorno, var(--primary));background:#fff;color:var(--color-contorno, var(--primary));border-radius:6px;font-weight:700;font-size:12.5px;cursor:pointer;">Ver más</button>
+            </div>`).join('');
+    } catch(e) {
+        cont.innerHTML = '<p style="text-align:center;color:var(--text-light);padding:20px;">No se pudieron cargar los combos.</p>';
+    }
+}
+
+function verComboDetalle(index) {
+    const c = (window._combosCache || [])[index];
+    if (!c) return;
+    document.getElementById('comboDetalleTitulo').textContent = (c.productos || []).map(p => p.nombre).join(' + ');
+    document.getElementById('comboDetallePrecio').textContent = formatPrice(c.precioFinal);
+    const cont = document.getElementById('comboDetalleProductos');
+    cont.innerHTML = (c.productos || []).map(p => `
+        <div style="display:flex;gap:10px;align-items:center;border-top:1px solid var(--gray-light);padding:10px 0;">
+            <img src="${resolveImgUrl(p.imagen)}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0;">
+            <div style="flex:1;">
+                <div style="font-size:13px;font-weight:600;">${p.nombre}</div>
+                <div style="font-size:12px;color:var(--text-light);text-decoration:line-through;">${formatPrice(p.precio)}</div>
+            </div>
+        </div>`).join('');
+    document.getElementById('catalogoCombosModal').classList.remove('active');
+    document.getElementById('comboDetalleModal').classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Combo flotante — 15s después de cerrar "Promoción Activa"
+// (o a los 10s de cargar si no hay ninguna promo activa)
+// ═══════════════════════════════════════════════════════════════
+async function dispararComboFloatSiHay() {
+    if (!vendedor || !codigoParam) return;
+    try {
+        const cat = categoriaEfectivaParaCombos();
+        const res = await fetch(COMBO_WORKER + '/combos?codigo=' + encodeURIComponent(codigoParam) + '&categoria=' + encodeURIComponent(cat) + '&soloActivos=1').then(r => r.ok ? r.json() : null);
+        const combos = (res && res.items) || [];
+        if (combos.length === 0) return;
+        window._combosCache = combos;
+        const c = combos[0];
+        document.getElementById('comboFloatTitle').textContent = (c.productos || []).map(p => p.nombre).join(' + ');
+        document.getElementById('comboFloatSub').textContent = 'Precio del combo: ' + formatPrice(c.precioFinal);
+        const imgs = document.getElementById('comboFloatImgs');
+        imgs.innerHTML = '';
+        (c.productos || []).slice(0, 3).forEach(p => {
+            const img = document.createElement('img');
+            img.src = resolveImgUrl(p.imagen);
+            img.alt = p.nombre;
+            img.onerror = () => { img.style.display = 'none'; };
+            imgs.appendChild(img);
+        });
+        document.getElementById('comboFloatModal').classList.add('active');
+    } catch(e) { /* si falla, simplemente no se muestra */ }
 }
 
 function abrirPromoDetail() {
@@ -3316,7 +3541,7 @@ enviarPedidoConDatos = async function() {
 
 
 <!-- Promo float modal (5s después de carga) -->
-<div class="promo-float-overlay" id="promoFloatModal" onclick="if(event.target.id==='promoFloatModal')cerrarPromoFloat()">
+<div class="promo-float-overlay" id="promoFloatModal">
     <div class="promo-float-box">
         <button class="promo-float-close" onclick="cerrarPromoFloat()">×</button>
         <span class="promo-float-tag">🎉 Promoción activa</span>
@@ -3331,18 +3556,84 @@ enviarPedidoConDatos = async function() {
 </div>
 
 <!-- Promo detail modal (Ver promoción) -->
-<div class="promo-detail-overlay" id="promoDetailModal" onclick="if(event.target.id==='promoDetailModal')this.classList.remove('active')">
+<div class="promo-detail-overlay" id="promoDetailModal">
     <div class="promo-detail-box">
         <button class="promo-float-close" onclick="document.getElementById('promoDetailModal').classList.remove('active')">×</button>
         <div class="promo-detail-title" id="promoDetailTitle"></div>
         <div class="promo-detail-sub" id="promoDetailSub"></div>
         <ul class="promo-detail-list" id="promoDetailList"></ul>
-        <button class="promo-float-btn primary" style="width:100%;" onclick="document.getElementById('promoDetailModal').classList.remove('active')">Empezar a comprar</button>
+        <button class="promo-float-btn primary" style="width:100%;" onclick="abrirVerProductosChooser()">Ver Productos</button>
+    </div>
+</div>
+
+<!-- "Ver Productos" chooser: En Promoción / Ver Todos -->
+<div class="promo-detail-overlay" id="verProductosChooserModal">
+    <div class="promo-detail-box" style="text-align:center;">
+        <button class="promo-float-close" onclick="document.getElementById('verProductosChooserModal').classList.remove('active')">×</button>
+        <div class="promo-detail-title" style="margin-bottom:18px;">Ver Productos</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+            <button class="promo-float-btn primary" style="width:100%;" onclick="abrirCatalogoEnPromocion()">En Promoción</button>
+            <button class="promo-float-btn secondary" style="width:100%;" onclick="irACatalogoGeneral()">Ver Todos</button>
+        </div>
+    </div>
+</div>
+
+<!-- Catálogo flotante: solo productos EN PROMOCIÓN -->
+<div class="promo-detail-overlay" id="catalogoPromoModal">
+    <div class="promo-detail-box" style="max-width:640px;width:94%;">
+        <button class="promo-float-close" onclick="document.getElementById('catalogoPromoModal').classList.remove('active')">×</button>
+        <div class="promo-detail-title" style="margin-bottom:12px;">🔥 Productos en Promoción</div>
+        <div id="catalogoPromoGrid" class="products-grid" style="padding:0;max-height:70vh;overflow-y:auto;"></div>
+    </div>
+</div>
+
+<!-- Modal: Ver combos y descuentos ("Ver tienda de:") -->
+<div class="promo-detail-overlay" id="verTiendaDeModal">
+    <div class="promo-detail-box" style="text-align:center;">
+        <button class="promo-float-close" onclick="document.getElementById('verTiendaDeModal').classList.remove('active')">×</button>
+        <div class="promo-detail-title" id="verTiendaDeTitulo" style="margin-bottom:18px;">Ver tienda de:</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+            <button class="promo-float-btn primary" style="width:100%;" onclick="document.getElementById('verTiendaDeModal').classList.remove('active');abrirCatalogoEnPromocion();">Promociones</button>
+            <button class="promo-float-btn secondary" style="width:100%;" onclick="document.getElementById('verTiendaDeModal').classList.remove('active');abrirCatalogoCombos();">Combos</button>
+        </div>
+    </div>
+</div>
+
+<!-- Catálogo flotante: COMBOS activos -->
+<div class="promo-detail-overlay" id="catalogoCombosModal">
+    <div class="promo-detail-box" style="max-width:640px;width:94%;">
+        <button class="promo-float-close" onclick="document.getElementById('catalogoCombosModal').classList.remove('active')">×</button>
+        <div class="promo-detail-title" style="margin-bottom:12px;">🎁 Combos disponibles</div>
+        <div id="catalogoCombosGrid" style="max-height:70vh;overflow-y:auto;"></div>
+    </div>
+</div>
+
+<!-- Modal: detalle de un combo puntual -->
+<div class="promo-detail-overlay" id="comboDetalleModal">
+    <div class="promo-detail-box">
+        <button class="promo-float-close" onclick="document.getElementById('comboDetalleModal').classList.remove('active')">×</button>
+        <div class="promo-detail-title" id="comboDetalleTitulo" style="margin-bottom:6px;">Combo</div>
+        <div style="font-size:13px;color:var(--text-light);margin-bottom:14px;">Precio del combo: <strong style="color:var(--primary);font-size:18px;" id="comboDetallePrecio"></strong></div>
+        <div id="comboDetalleProductos"></div>
+    </div>
+</div>
+
+<!-- Combo activo flotante (15s después de cerrar Promoción Activa) -->
+<div class="promo-float-overlay" id="comboFloatModal">
+    <div class="promo-float-box">
+        <button class="promo-float-close" onclick="document.getElementById('comboFloatModal').classList.remove('active')">×</button>
+        <span class="promo-float-tag">🎁 Combo disponible</span>
+        <div class="promo-float-title" id="comboFloatTitle"></div>
+        <div class="promo-float-sub" id="comboFloatSub"></div>
+        <div class="promo-float-imgs" id="comboFloatImgs"></div>
+        <div class="promo-float-actions">
+            <button class="promo-float-btn primary" style="width:100%;" onclick="document.getElementById('comboFloatModal').classList.remove('active');abrirCatalogoCombos();">Ver combo</button>
+        </div>
     </div>
 </div>
 
 <!-- Gift modal (Elegí tu regalo, con confeti) -->
-<div class="gift-overlay" id="giftModal" onclick="if(event.target.id==='giftModal')this.classList.remove('active')">
+<div class="gift-overlay" id="giftModal">
     <div class="gift-box">
         <button class="promo-float-close" onclick="document.getElementById('giftModal').classList.remove('active')">×</button>
         <div class="gift-title">🎁 ¡Elegí tu regalo!</div>
