@@ -4017,6 +4017,12 @@
                 <small style="display:block;margin-top:6px;color:#777;font-size:12px;">Solo ingresá tu número sin el 0 ni el 15. Le agregamos +54 9 automáticamente.</small>
                 <div id="whatsapp-modal-error" style="display:none;margin-top:10px;padding:10px 14px;background:#fff3f3;border:1px solid #fcc;border-radius:var(--radius);color:#c00;font-size:13px;font-weight:500;"></div>
             </div>
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">CUIT</label>
+                <input type="text" id="cuit-input-modal" placeholder="Ej: 20-12345678-9" inputmode="numeric" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
+                <small style="display:block;margin-top:6px;color:#777;font-size:12px;">Lo usamos para tus datos de facturación.</small>
+                <div id="cuit-modal-error" style="display:none;margin-top:10px;padding:10px 14px;background:#fff3f3;border:1px solid #fcc;border-radius:var(--radius);color:#c00;font-size:13px;font-weight:500;"></div>
+            </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                 <button type="button" class="confirmation-button" style="background:#f5f5f5;color:var(--text);" onclick="document.getElementById('whatsappConfirmModal').classList.remove('active')">Más tarde</button>
                 <button type="button" class="confirmation-button confirmation-button-primary" onclick="guardarWhatsappRevendedor()">Confirmar</button>
@@ -9400,6 +9406,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (saved.startsWith('549')) saved = saved.slice(3);
             else if (saved.startsWith('54')) saved = saved.slice(2);
             document.getElementById('whatsapp-input-modal').value = saved;
+            const cuitInput = document.getElementById('cuit-input-modal');
+            if (cuitInput) cuitInput.value = _lsGet('cuitRevendedor') || '';
             modal.classList.add('active');
         }
         function closeWhatsappConfirmModal(e) {
@@ -9425,21 +9433,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
             const val = '549' + local;
 
-            _lsSet('whatsappRevendedor', val);
-            _guardarEnFirestore({ whatsappRevendedor: val });
+            const cuitErrEl = document.getElementById('cuit-modal-error');
+            const showCuitErr = (msg) => { cuitErrEl.textContent = msg; cuitErrEl.style.display = 'block'; };
+            if (cuitErrEl) cuitErrEl.style.display = 'none';
+            const cuitDigits = (document.getElementById('cuit-input-modal')?.value || '').replace(/\D/g, '');
+            if (!cuitDigits || cuitDigits.length !== 11) {
+                if (cuitErrEl) showCuitErr('Ingresá un CUIT válido (11 dígitos, ej: 20123456789).');
+                return;
+            }
+            const cuitFormateado = cuitDigits.slice(0,2) + '-' + cuitDigits.slice(2,10) + '-' + cuitDigits.slice(10);
 
-            // 🔧 Guardar también en el Worker de datos del revendedor, que es
-            // de donde tienda.html lo termina leyendo para el botón de WhatsApp.
-            try {
-                const codigoVend = window.getCodigoVendedor();
-                if (codigoVend) {
-                    fetch('https://datosderevendedor.tuweb.workers.dev', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codigo: codigoVend, whatsapp: val })
-                    }).catch(() => {});
-                }
-            } catch(_e) {}
+            _lsSet('whatsappRevendedor', val);
+            _lsSet('cuitRevendedor', cuitFormateado);
+            _guardarEnFirestore({ whatsappRevendedor: val, cuitRevendedor: cuitFormateado });
 
             document.getElementById('whatsappConfirmModal').classList.remove('active');
 
@@ -9496,19 +9502,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
             _lsSet('whatsappRevendedor', val);
             _guardarEnFirestore({ whatsappRevendedor: val });
-
-            // 🔧 Guardar también en el Worker de datos del revendedor, que es
-            // de donde tienda.html lo termina leyendo para el botón de WhatsApp.
-            try {
-                const codigoVend = window.getCodigoVendedor();
-                if (codigoVend) {
-                    fetch('https://datosderevendedor.tuweb.workers.dev', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codigo: codigoVend, whatsapp: val })
-                    }).catch(() => {});
-                }
-            } catch(_e) {}
 
             // Reflejar el valor normalizado en el propio input
             if (inputEl) inputEl.value = val;
@@ -10788,6 +10781,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         font-family: inherit;
         font-weight: 700;
         font-size: 12.5px;
+        white-space: nowrap;
         cursor: pointer;
         color: #fff;
         background: linear-gradient(135deg, #1B7F3D, #2BA84F);
@@ -11109,7 +11103,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // revendedor. Para no repetir el bug del enlace colgado, la consulta
         // tiene un timeout corto y acotado: si no responde a tiempo o falla,
         // se usa Firebase Auth (window.currentUser) como respaldo inmediato.
-        const DATOS_REVENDEDOR_WORKER = 'https://datosderevendedor.tuweb.workers.dev';
+        const DATOS_REVENDEDOR_WORKER = 'https://datosderevendedor.tuweb.workers.dev/api/login-vendedor';
         async function obtenerNombreApellidoRevendedor() {
             const user = window.currentUser || {};
             let nombre = user.nombre || user.name || '';
@@ -11118,18 +11112,29 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (codigo) {
                 try {
                     const ctrl = new AbortController();
-                    const timeoutId = setTimeout(() => ctrl.abort(), 2500);
-                    const res = await fetch(DATOS_REVENDEDOR_WORKER + '?codigo=' + encodeURIComponent(codigo), { signal: ctrl.signal });
+                    const timeoutId = setTimeout(() => ctrl.abort(), 4000);
+                    const res = await fetch(DATOS_REVENDEDOR_WORKER, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        signal: ctrl.signal,
+                        body: JSON.stringify({ codigo })
+                    });
                     clearTimeout(timeoutId);
                     if (res.ok) {
                         const data = await res.json();
-                        if (data) {
-                            nombre = data.nombre || data.name || nombre;
-                            apellido = data.apellido || data.lastName || apellido;
+                        const v = (data && data.success && data.vendedor) ? data.vendedor : null;
+                        if (v) {
+                            nombre = v.nombre || v.name || nombre;
+                            apellido = v.apellido || v.lastName || apellido;
+                        } else {
+                            console.warn('[enlace] El Worker de datos del revendedor respondió sin datos válidos:', data);
                         }
+                    } else {
+                        console.warn('[enlace] Worker de datos del revendedor status:', res.status);
                     }
-                } catch(_) {
+                } catch(_e) {
                     // Timeout o error de red: se sigue con los datos de Firebase Auth.
+                    console.warn('[enlace] No se pudo consultar el Worker de datos del revendedor:', _e && _e.message);
                 }
             }
             return { nombre, apellido };
@@ -11147,32 +11152,26 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             return (apellido ? nombre + '-' + apellido : nombre) + '-' + rand6;
         }
 
-        // Arma la URL final de tienda.html embebiendo todo lo necesario en
-        // los parámetros. Se usa como FALLBACK si el acortado por Worker no
-        // está disponible (nunca deja al revendedor sin poder compartir).
-        // Aun en el fallback se mantiene la ruta limpia /tienda/ o
-        // /producto/ + el slug — los datos extra viajan como query string
-        // adicional (el navegador y el _redirects los ignoran para servir
-        // el archivo, pero tienda.html los sigue leyendo si están).
+        // Arma la URL final de tienda.html. Se usa como FALLBACK si el
+        // acortado por Worker no está disponible (nunca deja al revendedor
+        // sin poder compartir). Todo el detalle (código de revendedor
+        // incluido) viaja EMPAQUETADO en un solo bloque opaco en base64
+        // bajo el parámetro "d" — nunca en texto plano, para no exponer el
+        // código del revendedor en la URL.
         function construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub) {
             const prefijo = productoId != null ? '/producto/' : '/tienda/';
-            const params = new URLSearchParams();
-            if (codigo) params.set('tienda', codigo);
-            if (cat) params.set('cat', cat);
-            if (sub) params.set('sub', sub);
-            if (productoId != null) params.set('producto', productoId);
+            const payload = { tienda: codigo || '', cat: cat || '' };
+            if (sub) payload.sub = sub;
+            if (productoId != null) payload.producto = productoId;
+            if (cfgFull && Object.keys(cfgFull).length > 0) payload.cfg = cfgFull;
+            if (promo && (Array.isArray(promo.rangos) || promo.gift)) payload.promo = promo;
+
+            let qs = '';
             try {
-                if (cfgFull && Object.keys(cfgFull).length > 0) {
-                    params.set('cfg', btoa(unescape(encodeURIComponent(JSON.stringify(cfgFull)))));
-                }
+                const blob = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+                qs = '?d=' + blob;
             } catch(_) {}
-            try {
-                if (promo && (Array.isArray(promo.rangos) || promo.gift)) {
-                    params.set('promo', btoa(unescape(encodeURIComponent(JSON.stringify(promo)))));
-                }
-            } catch(_) {}
-            const qs = params.toString();
-            return TIENDA_DOMINIO_PERSONALIZADO + prefijo + encodeURIComponent(slugId) + (qs ? '?' + qs : '');
+            return TIENDA_DOMINIO_PERSONALIZADO + prefijo + encodeURIComponent(slugId) + qs;
         }
 
         // Intenta guardar la configuración en el Worker de slugs para poder
@@ -11190,8 +11189,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // extraen de ahí al resolver el slug del lado de tienda.html.
         async function acortarEnlace(slugId, codigo, cat, cfgFull, promo, productoId, sub) {
             try {
+                if (!codigo) {
+                    console.warn('[enlace] Sin código de revendedor todavía — se usa el enlace largo de respaldo.');
+                    throw new Error('sin codigo');
+                }
                 const ctrl = new AbortController();
-                const timeoutId = setTimeout(() => ctrl.abort(), 3500);
+                const timeoutId = setTimeout(() => ctrl.abort(), 6000);
                 const cfgConExtra = { ...(cfgFull || {}) };
                 if (sub) cfgConExtra._sub = sub;
                 if (productoId != null) cfgConExtra._producto = productoId;
@@ -11202,7 +11205,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     body: JSON.stringify({ slugId, codigoVendedor: codigo, cat, cfg: cfgConExtra, promo })
                 });
                 clearTimeout(timeoutId);
-                if (!res.ok) throw new Error('slug fail');
+                if (!res.ok) {
+                    console.warn('[enlace] El Worker de slugs respondió con error:', res.status, await res.text().catch(()=>'')); 
+                    throw new Error('slug fail: ' + res.status);
+                }
                 let slugFinal = slugId;
                 try {
                     const data = await res.json();
@@ -11212,6 +11218,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 return TIENDA_DOMINIO_PERSONALIZADO + prefijo + encodeURIComponent(slugFinal);
             } catch(_e) {
                 // Sin red / Worker caído / timeout: enlace largo como respaldo.
+                console.warn('[enlace] Cayó al enlace largo de respaldo. Motivo:', _e && _e.message);
                 return construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub);
             }
         }
@@ -11418,12 +11425,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
                                     </button>
                                 </div>
-                                <div style="display:flex;gap:6px;align-items:stretch;">
-                                  <button type="button" class="mt-promo-btn" style="flex:1;" onclick="abrirCrearPromocion('${safeCat}')">
+                                <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch;">
+                                  <button type="button" class="mt-promo-btn" style="width:100%;" onclick="abrirCrearPromocion('${safeCat}')">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
                                     ${tienePromoCat(cat) ? 'Editar promoción' : 'Crear promoción'}
                                   </button>
-                                  <button type="button" class="mt-promo-btn" style="flex:1;background:linear-gradient(135deg,#7c3aed,#a855f7);box-shadow:0 2px 8px rgba(124,58,237,.2);" onclick="abrirCrearCombo('${safeCat}')">
+                                  <button type="button" class="mt-promo-btn" style="width:100%;background:linear-gradient(135deg,#7c3aed,#a855f7);box-shadow:0 2px 8px rgba(124,58,237,.2);" onclick="abrirCrearCombo('${safeCat}')">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
                                     Crear combo
                                   </button>
