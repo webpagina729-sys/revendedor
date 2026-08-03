@@ -574,6 +574,23 @@
             display: flex; align-items: center; justify-content: center;
             gap: 8px; overflow: hidden; padding: 10px 0;
         }
+        .coverflow-nav {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .coverflow-nav .coverflow-wrap { flex: 1; min-width: 0; }
+        .coverflow-arrow {
+            flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+            border: 1px solid var(--border); background: #fff; color: var(--text);
+            font-size: 16px; line-height: 1; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,.10); transition: box-shadow .15s ease, transform .1s ease;
+        }
+        .coverflow-arrow:hover { box-shadow: 0 4px 10px rgba(0,0,0,.16); }
+        .coverflow-arrow:active { transform: scale(.94); }
+        .coverflow-link {
+            text-align: center; margin-top: 8px; font-size: 12.5px; font-weight: 700;
+            color: var(--primary); text-decoration: underline; cursor: pointer;
+        }
         .coverflow-item {
             flex-shrink: 0; border-radius: 10px; overflow: hidden;
             width: 52px; height: 52px; opacity: .55; filter: grayscale(.15);
@@ -608,6 +625,7 @@
         }
         .promo-detail-title {
             font-size: 18px; font-weight: 800; margin-bottom: 4px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .promo-detail-sub {
             font-size: 13px; color: var(--text-light); margin-bottom: 14px;
@@ -702,11 +720,16 @@
             <div class="store-name" id="header-store-name">Cargando...</div>
             <div class="store-sub" id="header-store-sub"></div>
         </div>
-        <button class="cart-btn" onclick="abrirCarrito()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
-            Carrito
-            <span class="cart-count" id="cart-count">0</span>
-        </button>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <button class="cart-btn" onclick="abrirCarrito()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+                Carrito
+                <span class="cart-count" id="cart-count">0</span>
+            </button>
+            <button type="button" onclick="abrirInfoTiendaModal()" aria-label="Datos del revendedor" title="Datos del revendedor" style="flex-shrink:0;width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--gray-light);color:var(--primary);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </button>
+        </div>
     </div>
 </header>
 
@@ -765,7 +788,6 @@
 <!-- FOOTER -->
 <footer class="store-footer" id="store-footer">
     <p>Tienda gestionada por <strong id="footer-vendor-name"></strong></p>
-    <p style="margin-top:4px;">Powered by <strong>Revende Ways</strong></p>
 </footer>
 
 <!-- ── MODAL PRODUCTO ── -->
@@ -847,6 +869,28 @@
             </div>
         </div>
         <button class="entrega-cancel" onclick="cerrarEntrega()">Cancelar</button>
+    </div>
+</div>
+
+<!-- ── Modal: aceptación de Términos y Condiciones / Política de Privacidad ── -->
+<div class="checkout-overlay" id="modal-legales">
+    <div class="checkout-box" style="max-width:420px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h2 style="margin:0;font-size:17px;">Acepta nuestros términos y condiciones para completar los datos</h2>
+        </div>
+        <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;font-size:13.5px;line-height:1.4;cursor:pointer;">
+            <input type="checkbox" id="legal-check-privacidad" onchange="actualizarBotonLegales()" style="margin-top:2px;flex-shrink:0;">
+            <span>Acepto la <a href="https://terminosclientes.tuweb.workers.dev/" target="_blank" rel="noopener" style="color:#0066ff;text-decoration:underline;">política de privacidad</a> — <a href="https://terminosclientes.tuweb.workers.dev/" target="_blank" rel="noopener" style="color:#0066ff;">Ver más</a></span>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:14px;font-size:13.5px;line-height:1.4;cursor:pointer;">
+            <input type="checkbox" id="legal-check-terminos" onchange="actualizarBotonLegales()" style="margin-top:2px;flex-shrink:0;">
+            <span>Acepto los términos y condiciones de compra</span>
+        </label>
+        <button type="button" id="btn-aceptar-legales" class="checkout-submit" disabled style="opacity:.5;cursor:not-allowed;" onclick="aceptarLegales()">Aceptar</button>
+        <button type="button" onclick="cerrarModalLegales()" style="width:100%;margin-top:8px;background:none;border:none;color:var(--text-light);font-size:12.5px;cursor:pointer;padding:4px;">Cancelar</button>
+        <div style="text-align:center;margin-top:6px;">
+            <a href="https://terminosclientes.tuweb.workers.dev/" target="_blank" rel="noopener" style="color:#0066ff;font-size:11.5px;text-decoration:underline;">Ver términos y condiciones</a>
+        </div>
     </div>
 </div>
 
@@ -1028,6 +1072,23 @@ let _slugPromise = Promise.resolve();
             } catch(e) {}
         })
         .catch(function() { clearTimeout(timeoutId); });
+})();
+
+// 🔧 Enlace de respaldo empaquetado: todo el detalle (incluido el código
+// de revendedor) viaja en un solo bloque opaco en base64 bajo "d", nunca
+// en parámetros de texto plano — se desempaqueta acá antes de leerlos.
+(function() {
+    var d = urlParams.get('d');
+    if (!d) return;
+    try {
+        var payload = JSON.parse(decodeURIComponent(escape(atob(d))));
+        if (payload.tienda) urlParams.set('tienda', payload.tienda);
+        if (payload.cat) urlParams.set('cat', payload.cat);
+        if (payload.sub) urlParams.set('sub', payload.sub);
+        if (payload.producto != null) urlParams.set('producto', payload.producto);
+        if (payload.cfg) urlParams.set('cfg', btoa(unescape(encodeURIComponent(JSON.stringify(payload.cfg)))));
+        if (payload.promo) urlParams.set('promo', btoa(unescape(encodeURIComponent(JSON.stringify(payload.promo)))));
+    } catch(e) {}
 })();
 
 // let para que window.load los actualice tras resolver el slug
@@ -2088,13 +2149,19 @@ async function cargarVendedor() {
     if (!vendedor.whatsappRevendedor && codigoParam) {
         try {
             const ctrl = new AbortController();
-            const timeoutId = setTimeout(() => ctrl.abort(), 3000);
-            const res = await fetch('https://datosderevendedor.tuweb.workers.dev?codigo=' + encodeURIComponent(codigoParam), { signal: ctrl.signal });
+            const timeoutId = setTimeout(() => ctrl.abort(), 4000);
+            const res = await fetch(WORKER_LOGIN, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: ctrl.signal,
+                body: JSON.stringify({ codigo: codigoParam })
+            });
             clearTimeout(timeoutId);
             if (res.ok) {
                 const data = await res.json();
-                if (data && (data.whatsapp || data.whatsappRevendedor)) {
-                    vendedor.whatsappRevendedor = data.whatsapp || data.whatsappRevendedor;
+                const v = (data && data.success && data.vendedor) ? data.vendedor : null;
+                if (v && (v.whatsapp || v.whatsappRevendedor)) {
+                    vendedor.whatsappRevendedor = v.whatsapp || v.whatsappRevendedor;
                 }
             }
         } catch(_e) {
@@ -2154,9 +2221,13 @@ async function cargarVendedor() {
     cargarYMostrarCombosPromos();
     cargarSeccionDescuentosYCombos();
 
-    // ── Disparar modal de promo a los 5 segundos ──
-    if (window.promoActiva) {
-        setTimeout(mostrarPromoFloat, window._tipoEnlaceLimpio === 'promocion' ? 300 : 5000);
+    // ── Bienvenida a los 5 segundos → Aceptar → 5s → Promoción activa ──
+    // Excepción: si el cliente llegó por un enlace directo de promoción,
+    // la promo se muestra casi inmediata (sin bienvenida), como ya estaba.
+    if (window._tipoEnlaceLimpio === 'promocion' && window.promoActiva) {
+        setTimeout(mostrarPromoFloat, 300);
+    } else {
+        setTimeout(mostrarBienvenidaModal, 5000);
     }
 }
 
@@ -2692,6 +2763,7 @@ function crearCoverflow(wrapEl, imagenes) {
     if (!imagenes || imagenes.length === 0) return;
     let offset = 0;
     const total = imagenes.length;
+    let timer = null;
 
     function render() {
         wrapEl.innerHTML = '';
@@ -2709,10 +2781,27 @@ function crearCoverflow(wrapEl, imagenes) {
             wrapEl.appendChild(div);
         }
     }
-    render();
-    if (total > 1) {
-        setInterval(() => { offset = (offset + 1) % total; render(); }, 2000);
+    function reiniciarAuto() {
+        if (timer) clearInterval(timer);
+        if (total > 1) timer = setInterval(() => { offset = (offset + 1) % total; render(); }, 2000);
     }
+    function avanzar(dir) {
+        offset = ((offset + dir) % total + total) % total;
+        render();
+        reiniciarAuto();
+    }
+    render();
+    reiniciarAuto();
+    // Se exponen para los botones de navegación manual (‹ ›) del carrusel.
+    wrapEl._coverflowNext = () => avanzar(1);
+    wrapEl._coverflowPrev = () => avanzar(-1);
+}
+
+function navegarCoverflow(id, dir) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (dir > 0 && el._coverflowNext) el._coverflowNext();
+    else if (dir < 0 && el._coverflowPrev) el._coverflowPrev();
 }
 
 async function cargarSeccionDescuentosYCombos() {
@@ -2733,7 +2822,12 @@ async function cargarSeccionDescuentosYCombos() {
     let html = '';
     if (conDescuento.length > 0) {
         html += '<div class="coverflow-title">Ver todos los descuentos</div>';
+        html += '<div class="coverflow-nav">';
+        html += '<button type="button" class="coverflow-arrow" aria-label="Anterior" onclick="navegarCoverflow(\'coverflow-descuentos\',-1)">‹</button>';
         html += '<div class="coverflow-wrap" id="coverflow-descuentos"></div>';
+        html += '<button type="button" class="coverflow-arrow" aria-label="Siguiente" onclick="navegarCoverflow(\'coverflow-descuentos\',1)">›</button>';
+        html += '</div>';
+        html += '<div class="coverflow-link" onclick="abrirCatalogoEnPromocion()">Ver todos los productos en Promoción</div>';
     }
     if (conDescuento.length > 0 && combos.length > 0) {
         html += '<hr class="coverflow-divider">';
@@ -2743,9 +2837,16 @@ async function cargarSeccionDescuentosYCombos() {
     combos.forEach((c, i) => {
         html += `<div class="combo-carrusel-block">
             <div class="combo-carrusel-title">Combo (${(c.productos || []).map(p => p.nombre).join(' + ')})</div>
-            <div class="coverflow-wrap" id="coverflow-combo-${i}"></div>
+            <div class="coverflow-nav">
+                <button type="button" class="coverflow-arrow" aria-label="Anterior" onclick="navegarCoverflow('coverflow-combo-${i}',-1)">‹</button>
+                <div class="coverflow-wrap" id="coverflow-combo-${i}"></div>
+                <button type="button" class="coverflow-arrow" aria-label="Siguiente" onclick="navegarCoverflow('coverflow-combo-${i}',1)">›</button>
+            </div>
         </div>`;
     });
+    if (combos.length > 0) {
+        html += '<div class="coverflow-link" onclick="abrirCatalogoCombos()">Ver Combos</div>';
+    }
 
     seccion.innerHTML = html;
     seccion.style.display = 'block';
@@ -2771,11 +2872,8 @@ async function cargarYMostrarCombosPromos() {
     }
 
     // Si no hay promo activa, el modal "Promoción Activa" nunca se abre ni
-    // se cierra — así que el combo se dispara con un fallback a los 10s.
-    if (!window.promoActiva && !window._comboTimerDisparado) {
-        window._comboTimerDisparado = true;
-        setTimeout(dispararComboFloatSiHay, 10000);
-    }
+    // se cierra — el combo se dispara igual, pero encadenado a la bienvenida
+    // (ver cerrarBienvenidaModal) para no superponerse con ese modal.
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2785,6 +2883,8 @@ async function cargarYMostrarCombosPromos() {
 
 const WORKER_CLIENTE = 'https://workerwebcliente.tuweb.workers.dev/pedido';
 const WORKER_DELIVERY = 'https://workerdelibery.tuweb.workers.dev/';
+const WORKER_LEGALES = 'https://legales.tuweb.workers.dev/';
+const VERSION_DOCUMENTO_LEGAL = 'v1.0';
 const COSTO_RETIRO = 1000;
 const COSTO_DOMICILIO = 12000;
 
@@ -2821,6 +2921,48 @@ function cerrarEntrega() {
 function elegirEntrega(tipo) {
     cerrarEntrega();
     window._tipoEntregaElegido = tipo;
+    if (_lsGet && _lsGet('legalesAceptados') === '1') {
+        abrirCheckout();
+    } else {
+        abrirModalLegales();
+    }
+}
+
+// ── Modal: aceptación de Términos y Condiciones / Política de Privacidad ──
+function abrirModalLegales() {
+    const chkP = document.getElementById('legal-check-privacidad');
+    const chkT = document.getElementById('legal-check-terminos');
+    if (chkP) chkP.checked = false;
+    if (chkT) chkT.checked = false;
+    actualizarBotonLegales();
+    document.getElementById('modal-legales').classList.add('active');
+}
+
+function cerrarModalLegales() {
+    document.getElementById('modal-legales').classList.remove('active');
+}
+
+function actualizarBotonLegales() {
+    const chkP = document.getElementById('legal-check-privacidad');
+    const chkT = document.getElementById('legal-check-terminos');
+    const btn  = document.getElementById('btn-aceptar-legales');
+    if (!btn) return;
+    const habilitado = !!(chkP && chkP.checked && chkT && chkT.checked);
+    btn.disabled = !habilitado;
+    btn.style.opacity = habilitado ? '1' : '.5';
+    btn.style.cursor = habilitado ? 'pointer' : 'not-allowed';
+}
+
+function aceptarLegales() {
+    const chkP = document.getElementById('legal-check-privacidad');
+    const chkT = document.getElementById('legal-check-terminos');
+    if (!chkP || !chkP.checked || !chkT || !chkT.checked) return;
+    // Solo queda registrada la aceptación en el frontend acá; el envío real
+    // al worker de legales ocurre recién cuando el pedido se guarda con
+    // éxito (ver enviarPedidoConDatos), para que quede vinculada al pedidoId.
+    _lsSet('legalesAceptados', '1');
+    window._legalesAceptadosEnEstaSesion = true;
+    cerrarModalLegales();
     abrirCheckout();
 }
 
@@ -2934,12 +3076,15 @@ async function enviarPedidoConDatos() {
     // espera la confirmación del envío (con un límite de 6s para no trabar
     // al cliente si el servidor tarda o está caído) y recién después se abre
     // WhatsApp.
+    let _pedidoIdConfirmado = null;
     const _registrarPedido = function() {
         const p1 = fetch(WORKER_CLIENTE, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
-        }).catch(function() {});
+        }).then(function(r) { return r.ok ? r.json() : null; })
+          .then(function(data) { if (data && data.pedidoId) _pedidoIdConfirmado = data.pedidoId; })
+          .catch(function() {});
         const p2 = esRetiro ? Promise.resolve() : fetch(WORKER_DELIVERY, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2957,6 +3102,11 @@ async function enviarPedidoConDatos() {
         await _conLimiteDeTiempo(_registrarPedido(), 6000);
         document.getElementById('co-status').style.display = 'block';
         btn.textContent = '✓ Pedido confirmado';
+        // El pedido quedó guardado correctamente (tenemos pedidoId): recién
+        // acá se registra la aceptación de legales, vinculada a ese pedido.
+        if (_pedidoIdConfirmado) {
+            registrarAceptacionLegales(_pedidoIdConfirmado, nombre, apellido, telefono, payload.codigoVendedor, fecha, hora);
+        }
         setTimeout(function() {
             cerrarCheckout();
             cerrarCarrito();
@@ -2966,6 +3116,43 @@ async function enviarPedidoConDatos() {
         cerrarCheckout();
         cerrarCarrito();
         _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, total);
+    }
+}
+
+// ── Registrar la aceptación de Términos y Condiciones / Política de ──
+// Privacidad, vinculada al pedido ya confirmado. No bloquea el flujo de
+// compra: si falla, sólo queda un log en consola.
+function registrarAceptacionLegales(pedidoId, nombre, apellido, telefono, codigoVendedor, fecha, hora) {
+    try {
+        let clienteUid = _lsGet('clienteUid');
+        if (!clienteUid) {
+            clienteUid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('cli-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+            _lsSet('clienteUid', clienteUid);
+        }
+        const aceptacionId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('acept-' + Date.now());
+        const body = {
+            aceptacionId,
+            uid: clienteUid,
+            pedidoId,
+            nombre: nombre || '',
+            apellido: apellido || '',
+            telefono: telefono || '',
+            codigoVendedor: codigoVendedor || '',
+            aceptado: true,
+            versionDocumento: VERSION_DOCUMENTO_LEGAL,
+            fecha: fecha || '',
+            hora: hora || '',
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent || '',
+            checkbox: true,
+        };
+        fetch(WORKER_LEGALES, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        }).catch(function(e) { console.error('No se pudo registrar la aceptación de legales:', e); });
+    } catch (e) {
+        console.error('Error preparando la aceptación de legales:', e);
     }
 }
 
@@ -3121,6 +3308,29 @@ function _cargarPromoDesdeVendedor() {
     } catch(e) {}
 }
 
+function mostrarBienvenidaModal() {
+    const modal = document.getElementById('bienvenidaModal');
+    if (!modal) return;
+    const nombreRevendedor = (vendedor && vendedor.nombre) ? vendedor.nombre : '';
+    document.getElementById('bienvenidaTexto').textContent =
+        'Soy ' + (nombreRevendedor || 'tu revendedor/a') + '. Ojalá encuentres justo lo que venís buscando. Y si tenés alguna duda, hablame sin drama.';
+    modal.classList.add('active');
+}
+
+function cerrarBienvenidaModal() {
+    const modal = document.getElementById('bienvenidaModal');
+    if (modal) modal.classList.remove('active');
+    if (window.promoActiva) {
+        // 5 segundos después de aceptar la bienvenida, se muestra la promoción activa.
+        setTimeout(mostrarPromoFloat, 5000);
+    } else if (!window._comboTimerDisparado) {
+        // Sin promo activa, el modal de Promoción nunca se abre/cierra, así que
+        // el combo (si el revendedor lo configuró) se dispara 15s después de aceptar.
+        window._comboTimerDisparado = true;
+        setTimeout(dispararComboFloatSiHay, 15000);
+    }
+}
+
 function mostrarPromoFloat() {
     if (!window.promoActiva) return;
     const promo = window.promoActiva;
@@ -3206,15 +3416,23 @@ function abrirCatalogoEnPromocion() {
     if (enPromo.length === 0) {
         grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-light);padding:20px;">No hay productos en promoción por ahora.</p>';
     } else {
-        grid.innerHTML = enPromo.map(p => `
+        grid.innerHTML = enPromo.map(p => {
+            const pct = getDescuentoPorcentaje(p.precioFinal);
+            const precioAntes = pct > 0 ? Math.round(p.precioFinal / (1 - pct / 100)) : p.precioFinal;
+            return `
             <div class="product-card" onclick="abrirModal(${p.id})" style="position:relative;cursor:pointer;">
                 ${badgeDescuentoHtml(p.precioFinal)}
                 <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;">
                 <div style="padding:6px 2px;">
                     <div style="font-size:12.5px;font-weight:600;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.nombre}</div>
-                    <div style="font-size:14px;font-weight:800;color:var(--primary);">${formatPrice(p.precioFinal)}</div>
+                    <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
+                        <span style="font-size:12px;color:var(--text-light);text-decoration:line-through;">${formatPrice(precioAntes)}</span>
+                        <span style="font-size:14px;font-weight:800;color:var(--color-precio, var(--primary));">${formatPrice(p.precioFinal)}</span>
+                    </div>
+                    <button type="button" class="add-btn" style="width:100%;margin-top:6px;" onclick="event.stopPropagation();agregarAlCarrito(${p.id})">Agregar al carrito</button>
                 </div>
-            </div>`).join('');
+            </div>`;
+        }).join('');
     }
     document.getElementById('catalogoPromoModal').classList.add('active');
 }
@@ -3233,6 +3451,24 @@ function abrirVerTiendaDeModal() {
     const titulo = document.getElementById('verTiendaDeTitulo');
     if (titulo) titulo.textContent = 'Ver tienda de: ' + (nombre || '');
     document.getElementById('verTiendaDeModal').classList.add('active');
+}
+
+// ── Modal de datos del revendedor (ícono de usuario del header) ──
+function abrirInfoTiendaModal() {
+    const nombreCompleto = (vendedor && vendedor.nombre) ? (vendedor.nombre + ' ' + (vendedor.apellido || '')).trim() : '';
+    const titulo = document.getElementById('infoTiendaTitulo');
+    if (titulo) titulo.textContent = 'Tienda de: ' + nombreCompleto;
+    document.getElementById('infoTiendaModal').classList.add('active');
+}
+
+function contactarRevendedorDesdeInfo() {
+    const wa = vendedor && vendedor.whatsappRevendedor;
+    if (!wa) {
+        alert('Este vendedor aún no configuró su número de WhatsApp.');
+        return;
+    }
+    const msg = '¡Hola! Tengo una consulta sobre tu tienda.';
+    window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
 async function abrirCatalogoCombos() {
@@ -3541,6 +3777,17 @@ enviarPedidoConDatos = async function() {
 
 
 <!-- Promo float modal (5s después de carga) -->
+<!-- Modal de bienvenida — primero que ve el cliente al entrar a la tienda -->
+<div class="promo-float-overlay" id="bienvenidaModal">
+    <div class="promo-float-box" style="text-align:center;">
+        <span class="promo-float-tag">💙 ¡Bienvenidos a Mi Tienda!</span>
+        <div class="promo-float-sub" id="bienvenidaTexto" style="margin-top:10px;font-size:14px;line-height:1.5;"></div>
+        <div class="promo-float-actions">
+            <button class="promo-float-btn primary" style="width:100%;" onclick="cerrarBienvenidaModal()">Aceptar</button>
+        </div>
+    </div>
+</div>
+
 <div class="promo-float-overlay" id="promoFloatModal">
     <div class="promo-float-box">
         <button class="promo-float-close" onclick="cerrarPromoFloat()">×</button>
@@ -3596,6 +3843,15 @@ enviarPedidoConDatos = async function() {
             <button class="promo-float-btn primary" style="width:100%;" onclick="document.getElementById('verTiendaDeModal').classList.remove('active');abrirCatalogoEnPromocion();">Promociones</button>
             <button class="promo-float-btn secondary" style="width:100%;" onclick="document.getElementById('verTiendaDeModal').classList.remove('active');abrirCatalogoCombos();">Combos</button>
         </div>
+    </div>
+</div>
+
+<!-- Modal: datos del revendedor (ícono de usuario del header) -->
+<div class="promo-detail-overlay" id="infoTiendaModal">
+    <div class="promo-detail-box" style="text-align:center;">
+        <button class="promo-float-close" onclick="document.getElementById('infoTiendaModal').classList.remove('active')">×</button>
+        <div class="promo-detail-title" id="infoTiendaTitulo" style="margin-bottom:18px;">Tienda de:</div>
+        <button type="button" class="promo-float-btn primary" style="width:100%;" onclick="contactarRevendedorDesdeInfo()">📲 Contactar por WhatsApp</button>
     </div>
 </div>
 
