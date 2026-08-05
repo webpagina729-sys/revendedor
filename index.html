@@ -4055,13 +4055,17 @@
             <div id="promedio-ganancia-config" style="margin-bottom:16px;padding:10px 12px;background:#ecfdf3;border:1px solid #bbf7d0;border-radius:var(--radius);color:#166534;font-size:13px;font-weight:600;">Promedio de ganancia por venta: $0</div>
 
             <div style="background:var(--gray-light);border-radius:var(--radius);padding:12px;margin-bottom:16px;">
-                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">📱 Tu número de WhatsApp de revendedor</label>
-                <div style="display:flex;gap:8px;align-items:stretch;">
-                    <input type="tel" id="config-whatsapp" placeholder="Ej: 5491112345678" style="flex:1;min-width:0;padding:9px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:var(--font-body);">
-                    <button type="button" id="btn-aplicar-whatsapp-config" onclick="aplicarWhatsAppDesdeConfig()" style="padding:9px 14px;background:var(--text);color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Aplicar</button>
-                </div>
-                <div id="config-whatsapp-aplicar-error" style="display:none;margin-top:6px;font-size:11px;color:#c00;font-weight:500;"></div>
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">📱 Tu número de WhatsApp de revendedor</label>
+                <div class="dato-seguro-row" data-campo="whatsapp" style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:9px 10px;min-height:38px;"></div>
+                <input type="hidden" id="config-whatsapp" value="">
                 <div style="font-size:11px;color:var(--text-light);margin-top:4px;">Los pedidos de tus clientes llegarán a este número</div>
+            </div>
+
+            <div style="background:var(--gray-light);border-radius:var(--radius);padding:12px;margin-bottom:16px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">🧾 CUIT</label>
+                <div class="dato-seguro-row" data-campo="cuit" style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:9px 10px;min-height:38px;"></div>
+                <input type="hidden" id="config-cuit" value="">
+                <div style="font-size:11px;color:var(--text-light);margin-top:4px;">Usado para tus datos de facturación</div>
             </div>
 
             <div style="background:var(--gray-light);border-radius:var(--radius);padding:12px;margin-bottom:16px;">
@@ -4152,6 +4156,41 @@
             <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;padding:10px;font-size:13px;" onclick="guardarConfigTienda()">Guardar configuración</button>
             <button type="button" class="confirmation-button" style="width:100%;background:#fee2e2;color:#b91c1c;margin-bottom:8px;font-weight:700;padding:10px;font-size:13px;" onclick="eliminarConfigTienda()">♻️ Reiniciar configuración</button>
             <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);padding:10px;font-size:13px;" onclick="document.getElementById('configTiendaModal').classList.remove('active'); restaurarCatalogTrasSubBelleza();">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MODAL CONTRASEÑA DE SEGURIDAD (para editar WhatsApp / CUIT) -->
+    <div class="modal-overlay" id="claveSeguridadModal" onclick="if(event.target.id==='claveSeguridadModal') cerrarClaveSeguridadModal()">
+        <div class="modal-content" style="max-width:400px;" onclick="event.stopPropagation()">
+            <div class="modal-header" style="flex-direction:column;align-items:center;text-align:center;gap:8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <h2 class="modal-title" id="claveSeguridadTitulo">Contraseña de seguridad</h2>
+            </div>
+            <p id="claveSeguridadTexto" style="font-size:13px;color:var(--text-light);text-align:center;line-height:1.6;margin-bottom:16px;"></p>
+            <div class="password-input-wrapper">
+                <input type="password" id="clave-seguridad-input" placeholder="Contraseña de seguridad" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
+                <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('clave-seguridad-input', this)" tabindex="-1" aria-label="Mostrar contraseña">
+                    <svg class="eye-show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg class="eye-hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+            </div>
+            <div id="clave-seguridad-error" style="display:none;margin-top:10px;padding:10px 14px;background:#fff3f3;border:1px solid #fcc;border-radius:var(--radius);color:#c00;font-size:13px;font-weight:500;"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+                <button type="button" class="confirmation-button" style="background:#f5f5f5;color:var(--text);" onclick="cerrarClaveSeguridadModal()">Cancelar</button>
+                <button type="button" class="confirmation-button confirmation-button-primary" id="btn-confirmar-clave-seguridad" onclick="confirmarClaveSeguridad()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRMACIÓN: DATOS GUARDADOS -->
+    <div class="modal-overlay" id="datosGuardadosOkModal" onclick="if(event.target.id==='datosGuardadosOkModal') document.getElementById('datosGuardadosOkModal').classList.remove('active')">
+        <div class="modal-content" style="max-width:360px;text-align:center;" onclick="event.stopPropagation()">
+            <div style="display:flex;justify-content:center;margin:6px 0 10px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
+            </div>
+            <h2 class="modal-title" style="margin-bottom:8px;">¡Listo!</h2>
+            <p id="datosGuardadosOkTexto" style="font-size:13px;color:var(--text-light);margin-bottom:18px;line-height:1.6;">Tus datos se guardaron correctamente.</p>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="document.getElementById('datosGuardadosOkModal').classList.remove('active')">Aceptar</button>
         </div>
     </div>
 
@@ -9446,6 +9485,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             _lsSet('whatsappRevendedor', val);
             _lsSet('cuitRevendedor', cuitFormateado);
             _guardarEnFirestore({ whatsappRevendedor: val, cuitRevendedor: cuitFormateado });
+            // Guardado confiable vía Worker (con cuenta de servicio): no depende
+            // de si el vendedor tiene sesión de Firebase Auth activa, así que
+            // funciona también para quienes entraron con código de revendedor.
+            _guardarWhatsappCuitEnWorker(val, cuitFormateado);
 
             document.getElementById('whatsappConfirmModal').classList.remove('active');
 
@@ -9516,6 +9559,290 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         // ═══════════════════════════════════════════════════════════════
+        // GUARDADO INICIAL DE WHATSAPP/CUIT EN EL WORKER (sin contraseña)
+        // ═══════════════════════════════════════════════════════════════
+        function _guardarWhatsappCuitEnWorker(whatsappRevendedor, cuit) {
+            const uid = _getUidParaFirestore();
+            const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                || localStorage.getItem('codigoVendedorLocal')
+                || localStorage.getItem('codigoRevendedorValidado')
+                || '';
+            if (!uid && !codigo) return;
+            const body = {};
+            if (uid) body.uid = uid;
+            if (codigo) body.codigoVendedor = codigo;
+            if (whatsappRevendedor) body.whatsappRevendedor = whatsappRevendedor;
+            if (cuit) body.cuit = cuit;
+            fetch('https://datosderevendedor.tuweb.workers.dev/api/guardar-whatsapp-inicial', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            }).catch(() => {});
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // WHATSAPP / CUIT — VISTA ENMASCARADA CON OJITO Y LÁPIZ
+        // (dentro del modal "Configurar mi tienda")
+        // ═══════════════════════════════════════════════════════════════
+        const _ICONO_OJO_ABIERTO = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+        const _ICONO_OJO_CERRADO = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.62 21.62 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+        const _ICONO_LAPIZ = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
+        const _ICONO_CHECK = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        const _ICONO_X = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+        window._datoSeguroState = {
+            whatsapp: { valor: '', masked: true, editing: false, valorEdit: '' },
+            cuit:     { valor: '', masked: true, editing: false, valorEdit: '' }
+        };
+        window._tieneClaveSeguridad = false;
+        window._pendingDatoSeguro = null;
+
+        function _formatearParaMostrar(campo, valor) {
+            if (!valor) return '';
+            if (campo === 'whatsapp') {
+                let local = valor.replace(/\D/g, '');
+                if (local.startsWith('549')) local = local.slice(3);
+                else if (local.startsWith('54')) local = local.slice(2);
+                return '+54 9 ' + local;
+            }
+            return valor;
+        }
+
+        function renderDatoSeguro(campo) {
+            const st = window._datoSeguroState[campo];
+            const cont = document.querySelector('.dato-seguro-row[data-campo="' + campo + '"]');
+            if (!st || !cont) return;
+
+            if (st.editing) {
+                cont.innerHTML = `
+                    <input type="text" class="dato-seguro-input" id="seg-${campo}-input"
+                        value="${(st.valorEdit != null ? st.valorEdit : _formatearParaMostrar(campo, st.valor)).replace(/"/g,'&quot;')}"
+                        placeholder="${campo === 'whatsapp' ? 'Ej: 5491112345678' : 'Ej: 20-12345678-9'}"
+                        inputmode="${campo === 'whatsapp' ? 'tel' : 'numeric'}"
+                        style="flex:1;min-width:0;padding:7px 8px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:var(--font-body);">
+                    <button type="button" class="dato-seguro-btn" onclick="guardarEdicionDatoSeguro('${campo}')" title="Guardar" style="background:none;border:none;cursor:pointer;padding:6px;color:#16a34a;display:flex;">${_ICONO_CHECK}</button>
+                    <button type="button" class="dato-seguro-btn" onclick="cancelarEdicionDatoSeguro('${campo}')" title="Cancelar" style="background:none;border:none;cursor:pointer;padding:6px;color:#dc2626;display:flex;">${_ICONO_X}</button>
+                `;
+                return;
+            }
+
+            let displayValue;
+            if (!st.valor) {
+                displayValue = 'No configurado';
+            } else if (st.masked) {
+                const len = Math.max(6, Math.min((st.valor.replace(/\D/g, '') || '').length, 12));
+                displayValue = '•'.repeat(len);
+            } else {
+                displayValue = _formatearParaMostrar(campo, st.valor);
+            }
+
+            cont.innerHTML = `
+                <span class="dato-seguro-valor" style="flex:1;min-width:0;font-size:14px;font-family:var(--font-body);color:var(--text);letter-spacing:${st.masked && st.valor ? '2px' : '0'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${displayValue}</span>
+                <button type="button" class="dato-seguro-btn" onclick="toggleMostrarDatoSeguro('${campo}')" title="Mostrar/ocultar" aria-label="Mostrar u ocultar" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--text-light);display:flex;flex-shrink:0;">${st.masked ? _ICONO_OJO_CERRADO : _ICONO_OJO_ABIERTO}</button>
+                <button type="button" class="dato-seguro-btn" onclick="activarEdicionDatoSeguro('${campo}')" title="Editar" aria-label="Editar" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--text-light);display:flex;flex-shrink:0;">${_ICONO_LAPIZ}</button>
+            `;
+        }
+
+        function toggleMostrarDatoSeguro(campo) {
+            const st = window._datoSeguroState[campo];
+            if (!st) return;
+            st.masked = !st.masked;
+            renderDatoSeguro(campo);
+        }
+
+        function activarEdicionDatoSeguro(campo) {
+            const st = window._datoSeguroState[campo];
+            if (!st) return;
+            st.editing = true;
+            st.valorEdit = _formatearParaMostrar(campo, st.valor);
+            renderDatoSeguro(campo);
+            setTimeout(() => {
+                const input = document.getElementById('seg-' + campo + '-input');
+                if (input) { input.focus(); input.select(); }
+            }, 10);
+        }
+
+        function cancelarEdicionDatoSeguro(campo) {
+            const st = window._datoSeguroState[campo];
+            if (!st) return;
+            st.editing = false;
+            renderDatoSeguro(campo);
+        }
+
+        function guardarEdicionDatoSeguro(campo) {
+            const input = document.getElementById('seg-' + campo + '-input');
+            if (!input) return;
+            let nuevoValor = (input.value || '').trim();
+
+            if (campo === 'whatsapp') {
+                let local = nuevoValor.replace(/\D/g, '');
+                if (local.startsWith('549')) local = local.slice(3);
+                else if (local.startsWith('54')) local = local.slice(2);
+                if (local.startsWith('0')) local = local.replace(/^0+/, '');
+                if (local.length >= 4 && local.charAt(2) === '1' && local.charAt(3) === '5') {
+                    local = local.slice(0, 2) + local.slice(4);
+                }
+                if (!local || local.length < 8) { alert('Ingresá un número de WhatsApp válido (mínimo 8 dígitos, sin el 0 ni el 15).'); return; }
+                nuevoValor = '549' + local;
+            } else if (campo === 'cuit') {
+                const digits = nuevoValor.replace(/\D/g, '');
+                if (digits.length !== 11) { alert('Ingresá un CUIT válido (11 dígitos, ej: 20123456789).'); return; }
+                nuevoValor = digits.slice(0, 2) + '-' + digits.slice(2, 10) + '-' + digits.slice(10);
+            }
+
+            window._pendingDatoSeguro = { campo, valor: nuevoValor };
+            abrirClaveSeguridadModal();
+        }
+
+        // ─── Carga de datos frescos desde el Worker al abrir "Configurar mi tienda" ───
+        async function cargarDatosSeguridadVendedor() {
+            const uid = _getUidParaFirestore();
+            const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                || localStorage.getItem('codigoVendedorLocal')
+                || localStorage.getItem('codigoRevendedorValidado')
+                || '';
+            let data = null;
+            try {
+                if (uid) {
+                    const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor-uid', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid })
+                    });
+                    if (res.ok) { const j = await res.json(); if (j.success && j.vendedor) data = j.vendedor; }
+                }
+                if (!data && codigo) {
+                    const res2 = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codigo })
+                    });
+                    if (res2.ok) { const j2 = await res2.json(); if (j2.success && j2.vendedor) data = j2.vendedor; }
+                }
+            } catch (e) { /* se mantiene lo que ya había en localStorage */ }
+
+            const wa = (data && data.whatsappRevendedor) || _lsGet('whatsappRevendedor') || '';
+            const cuit = (data && data.cuitRevendedor) || _lsGet('cuitRevendedor') || '';
+            window._tieneClaveSeguridad = !!(data && data.tieneClaveSeguridad);
+
+            window._datoSeguroState.whatsapp.valor = wa;
+            window._datoSeguroState.cuit.valor = cuit;
+            const waHidden = document.getElementById('config-whatsapp');
+            const cuitHidden = document.getElementById('config-cuit');
+            if (waHidden) waHidden.value = wa;
+            if (cuitHidden) cuitHidden.value = cuit;
+            if (wa) _lsSet('whatsappRevendedor', wa);
+            if (cuit) _lsSet('cuitRevendedor', cuit);
+
+            if (!window._datoSeguroState.whatsapp.editing) renderDatoSeguro('whatsapp');
+            if (!window._datoSeguroState.cuit.editing) renderDatoSeguro('cuit');
+        }
+
+        // ─── Modal de "Contraseña de seguridad" ───
+        function abrirClaveSeguridadModal() {
+            const titulo = document.getElementById('claveSeguridadTitulo');
+            const texto = document.getElementById('claveSeguridadTexto');
+            if (window._tieneClaveSeguridad) {
+                titulo.textContent = 'Contraseña de seguridad';
+                texto.textContent = 'Ingresá tu contraseña de seguridad para confirmar el cambio.';
+            } else {
+                titulo.textContent = 'Creá tu contraseña de seguridad';
+                texto.textContent = 'Es la primera vez que editás estos datos. Guardá bien esta contraseña: la vas a necesitar más adelante para hacer cambios.';
+            }
+            const input = document.getElementById('clave-seguridad-input');
+            if (input) input.value = '';
+            const errEl = document.getElementById('clave-seguridad-error');
+            if (errEl) errEl.style.display = 'none';
+            document.getElementById('claveSeguridadModal').classList.add('active');
+            setTimeout(() => { if (input) input.focus(); }, 100);
+        }
+
+        function cerrarClaveSeguridadModal() {
+            document.getElementById('claveSeguridadModal').classList.remove('active');
+            if (window._pendingDatoSeguro) {
+                const campo = window._pendingDatoSeguro.campo;
+                window._datoSeguroState[campo].editing = false;
+                renderDatoSeguro(campo);
+                window._pendingDatoSeguro = null;
+            }
+        }
+
+        async function confirmarClaveSeguridad() {
+            const pending = window._pendingDatoSeguro;
+            if (!pending) { cerrarClaveSeguridadModal(); return; }
+
+            const errEl = document.getElementById('clave-seguridad-error');
+            const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+            errEl.style.display = 'none';
+
+            const pass = (document.getElementById('clave-seguridad-input').value || '').trim();
+            if (!pass || pass.length < 4) {
+                showErr('Ingresá una contraseña de al menos 4 caracteres.');
+                return;
+            }
+
+            const btn = document.getElementById('btn-confirmar-clave-seguridad');
+            const textoOriginal = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Guardando...';
+
+            try {
+                const uid = _getUidParaFirestore();
+                const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                    || localStorage.getItem('codigoVendedorLocal')
+                    || localStorage.getItem('codigoRevendedorValidado')
+                    || '';
+
+                const body = { contraseñaSeguridad: pass };
+                if (uid) body.uid = uid;
+                if (codigo) body.codigoVendedor = codigo;
+                if (pending.campo === 'whatsapp') body.whatsappRevendedor = pending.valor;
+                if (pending.campo === 'cuit') body.cuit = pending.valor;
+
+                const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/actualizar-datos-vendedor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.ok) {
+                    showErr(data.error || 'No se pudo guardar. Probá de nuevo.');
+                    btn.disabled = false; btn.textContent = textoOriginal;
+                    return;
+                }
+
+                window._tieneClaveSeguridad = true;
+                window._datoSeguroState[pending.campo].valor = pending.valor;
+                window._datoSeguroState[pending.campo].editing = false;
+                window._datoSeguroState[pending.campo].masked = true;
+
+                if (pending.campo === 'whatsapp') {
+                    _lsSet('whatsappRevendedor', pending.valor);
+                    const h = document.getElementById('config-whatsapp'); if (h) h.value = pending.valor;
+                }
+                if (pending.campo === 'cuit') {
+                    _lsSet('cuitRevendedor', pending.valor);
+                    const h = document.getElementById('config-cuit'); if (h) h.value = pending.valor;
+                }
+
+                renderDatoSeguro(pending.campo);
+                window._pendingDatoSeguro = null;
+                document.getElementById('claveSeguridadModal').classList.remove('active');
+
+                const okTexto = document.getElementById('datosGuardadosOkTexto');
+                if (okTexto) {
+                    okTexto.textContent = data.primeraVezPassword
+                        ? 'Tu contraseña de seguridad quedó creada y tus datos se guardaron correctamente. ¡No la pierdas, la vas a necesitar más adelante!'
+                        : 'Tus datos se guardaron correctamente.';
+                }
+                document.getElementById('datosGuardadosOkModal').classList.add('active');
+
+            } catch (e) {
+                showErr('Error de conexión. Probá de nuevo.');
+            } finally {
+                btn.disabled = false; btn.textContent = textoOriginal;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
         // MODAL CONFIGURAR MI TIENDA
         // ═══════════════════════════════════════════════════════════════
 
@@ -9562,7 +9889,17 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
                     agregarRangoConfig('', '', '');
                 }
-                document.getElementById('config-whatsapp').value = _lsGet('whatsappRevendedor') || '';
+                // WhatsApp / CUIT: pintar de inmediato con lo que haya en caché
+                // (rápido) y refrescar en segundo plano desde el Worker (confiable).
+                window._datoSeguroState.whatsapp.valor = _lsGet('whatsappRevendedor') || '';
+                window._datoSeguroState.cuit.valor = _lsGet('cuitRevendedor') || '';
+                window._datoSeguroState.whatsapp.editing = false;
+                window._datoSeguroState.cuit.editing = false;
+                document.getElementById('config-whatsapp').value = window._datoSeguroState.whatsapp.valor;
+                document.getElementById('config-cuit').value = window._datoSeguroState.cuit.valor;
+                renderDatoSeguro('whatsapp');
+                renderDatoSeguro('cuit');
+                cargarDatosSeguridadVendedor();
                 // Cargar color de tienda (por categoría)
                 let savedColor = '#0066FF';
                 try {
