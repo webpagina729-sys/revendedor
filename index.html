@@ -3244,8 +3244,8 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 22V12h6v10"/></svg>
                     <svg id="config-gear-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;margin-left:2px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 </button>
-                <button class="cart-btn" id="btn-gestion-header" onclick="window.open('https://gestion.revendeways.shop','_blank')" title="Gestión" aria-label="Gestión" style="padding:6px 10px;background:#23B8CC;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <button class="cart-btn" id="btn-gestion-header" onclick="window.open('https://gestion.revendeways.shop','_blank')" title="Gestión" aria-label="Gestión" style="padding:6px 10px;background:#16a34a;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 </button>
             </div>
         </div>
@@ -4104,7 +4104,7 @@
                         <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Color de fondo</label>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <div id="preview-fondo" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:#f9fafb;flex-shrink:0;"></div>
-                            <input type="range" id="cp-fondo-hue" min="0" max="360" value="0" oninput="actualizarColorExtra('fondo',this.value)" style="flex:1;height:4px;border-radius:2px;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,hsl(0,30%,95%),hsl(60,30%,95%),hsl(120,30%,95%),hsl(180,30%,95%),hsl(240,30%,95%),hsl(300,30%,95%),hsl(360,30%,95%));cursor:pointer;outline:none;" class="cp-range-slim">
+                            <input type="range" id="cp-fondo-hue" min="0" max="360" value="0" oninput="actualizarColorExtra('fondo',this.value)" style="flex:1;height:4px;border-radius:2px;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,hsl(0,45%,88%),hsl(60,45%,88%),hsl(120,45%,88%),hsl(180,45%,88%),hsl(240,45%,88%),hsl(300,45%,88%),hsl(360,45%,88%));cursor:pointer;outline:none;" class="cp-range-slim">
                             <input type="text" id="cp-fondo-hex" value="#F9FAFB" maxlength="7" oninput="aplicarHexExtra('fondo',this.value)" style="width:76px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font-body);text-transform:uppercase;">
                         </div>
                         <div style="font-size:10px;color:var(--text-light);margin-top:3px;">Cambia el tono del fondo de la tienda</div>
@@ -4115,7 +4115,7 @@
                         <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Contorno de productos</label>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <div id="preview-contorno" style="width:24px;height:24px;border-radius:50%;border:2px solid #e5e5e5;background:#fff;flex-shrink:0;"></div>
-                            <input type="range" id="cp-contorno-hue" min="0" max="360" value="220" oninput="actualizarColorExtra('contorno',this.value)" style="flex:1;height:4px;border-radius:2px;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,hsl(0,60%,70%),hsl(60,60%,70%),hsl(120,60%,70%),hsl(180,60%,70%),hsl(240,60%,70%),hsl(300,60%,70%),hsl(360,60%,70%));cursor:pointer;outline:none;" class="cp-range-slim">
+                            <input type="range" id="cp-contorno-hue" min="0" max="360" value="220" oninput="actualizarColorExtra('contorno',this.value)" style="flex:1;height:4px;border-radius:2px;appearance:none;-webkit-appearance:none;background:linear-gradient(to right,hsl(0,65%,62%),hsl(60,65%,62%),hsl(120,65%,62%),hsl(180,65%,62%),hsl(240,65%,62%),hsl(300,65%,62%),hsl(360,65%,62%));cursor:pointer;outline:none;" class="cp-range-slim">
                             <input type="text" id="cp-contorno-hex" value="#E5E5E5" maxlength="7" oninput="aplicarHexExtra('contorno',this.value)" style="width:76px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font-body);text-transform:uppercase;">
                         </div>
                         <div style="font-size:10px;color:var(--text-light);margin-top:3px;">Línea fina y elegante alrededor de cada producto</div>
@@ -6391,9 +6391,27 @@
             }
         }
 
-        function toggleCart() {
-            // Validar que hay sesión activa
-            const currentUser = firebase.auth().currentUser || window.currentUser;
+        async function toggleCart() {
+            // Validar que hay sesión activa. Justo al entrar a Inicio, Firebase
+            // puede tardar un instante en restaurar la sesión — antes, tocar el
+            // carrito en ese momento mostraba "sin sesión" aunque el usuario
+            // estuviera logueado. Ahora esperamos brevemente (máx. 2.5s) a que
+            // se resuelva, así el carrito abre siempre, no solo después de
+            // entrar a una categoría (que da tiempo de sobra a que resuelva).
+            let currentUser = firebase.auth().currentUser || window.currentUser;
+            if (!currentUser) {
+                currentUser = await new Promise(resolve => {
+                    const maxEspera = 2500;
+                    const inicio = Date.now();
+                    const check = () => {
+                        const u = firebase.auth().currentUser || window.currentUser;
+                        if (u) return resolve(u);
+                        if (Date.now() - inicio >= maxEspera) return resolve(null);
+                        setTimeout(check, 100);
+                    };
+                    check();
+                });
+            }
             if (!currentUser) {
                 showSessionRequiredModal();
                 return;
@@ -7629,18 +7647,49 @@
             // Actualizar interfaz
             updateUIForAuthentication(true);
             
-            // Mostrar guía rápida en los primeros 3 inicios de sesión/recargas
-            setTimeout(() => {
+            // Mostrar guía rápida en los primeros 3 inicios de sesión/recargas —
+            // 20s después de que se cierre el último modal, y solo una vez que
+            // el usuario esté en Inicio (no en medio de un catálogo).
+            (function programarGuiaRapida() {
                 const vecesVista = parseInt(localStorage.getItem('guiaRapidaVeces') || '0');
-                if (vecesVista < 3) {
+                if (vecesVista >= 3) return;
+
+                // Observador global: cada vez que CUALQUIER modal pierde la
+                // clase "active" (se cierra), reiniciamos el contador de 20s.
+                if (!window._modalCierreObserverInit) {
+                    window._modalCierreObserverInit = true;
+                    window._ultimoCierreModal = Date.now();
+                    const selectorModales = '.modal-overlay, .modal-cart, .codigo-modal, .proximamente-modal, .session-required-modal';
+                    document.querySelectorAll(selectorModales).forEach(modalEl => {
+                        new MutationObserver(muts => {
+                            muts.forEach(m => {
+                                if (m.attributeName === 'class' && !modalEl.classList.contains('active')) {
+                                    window._ultimoCierreModal = Date.now();
+                                }
+                            });
+                        }).observe(modalEl, { attributes: true, attributeFilter: ['class'] });
+                    });
+                }
+
+                const intentarMostrarGuiaRapida = () => {
                     const modal = document.getElementById('emailConfirmationModal');
-                    if (modal && !modal.classList.contains('active')) {
+                    if (!modal || modal.classList.contains('active')) return;
+
+                    const pasaron20sDesdeUltimoModal = (Date.now() - (window._ultimoCierreModal || 0)) >= 20000;
+                    const estaEnInicio = !window.currentCatalog;
+                    const hayOtroModalAbierto = !!document.querySelector('.modal-overlay.active, .modal-cart.active, .codigo-modal.active, .proximamente-modal.active, .session-required-modal.active');
+
+                    if (pasaron20sDesdeUltimoModal && estaEnInicio && !hayOtroModalAbierto) {
                         modal.classList.add('active');
                         preventBodyScroll(true);
                         localStorage.setItem('guiaRapidaVeces', String(vecesVista + 1));
+                    } else {
+                        setTimeout(intentarMostrarGuiaRapida, 1000);
                     }
-                }
-            }, 5000);
+                };
+
+                setTimeout(intentarMostrarGuiaRapida, 20000);
+            })();
             
             // ⚠️ VERIFICACIÓN CRÍTICA: Si codigoVendedor está vacío, intentar cargar de nuevo
             if (!window.currentUser?.codigoVendedor || window.currentUser.codigoVendedor === '') {
@@ -9382,6 +9431,28 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         // ════════════════════════════════════════════════
+        // RENDIMIENTO: pausar carruseles cuando la pestaña no está
+        // visible (pantalla quieta / cambiaste de pestaña). Evita que
+        // el navegador acumule trabajo en segundo plano y la app se
+        // sienta "congelada" al volver.
+        // ════════════════════════════════════════════════
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                if (window.carruselAutoplay) { clearInterval(window.carruselAutoplay); window.carruselAutoplay = null; }
+                if (window.carruselAutoplayShoesPreview) { clearInterval(window.carruselAutoplayShoesPreview); window.carruselAutoplayShoesPreview = null; }
+                if (window.carruselInterval) { clearInterval(window.carruselInterval); window.carruselInterval = null; }
+            } else {
+                // Reanudar solo si el carrusel correspondiente ya estaba inicializado
+                if (window.currentCatalog === null || window.currentCatalog === undefined) {
+                    if (typeof iniciarAutoDesliz === 'function' && document.getElementById('carrusel-wrapper')) iniciarAutoDesliz();
+                }
+                if (window.currentCatalog === 'calzados' && typeof inicializarCarruselShoesPreview === 'function') {
+                    inicializarCarruselShoesPreview();
+                }
+            }
+        });
+
+        // ════════════════════════════════════════════════
         // SCRIPT DE VERIFICACIÓN PARA USUARIO
         // ════════════════════════════════════════════════
         
@@ -9829,9 +9900,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
                 const okTexto = document.getElementById('datosGuardadosOkTexto');
                 if (okTexto) {
-                    okTexto.textContent = data.primeraVezPassword
-                        ? 'Tu contraseña de seguridad quedó creada y tus datos se guardaron correctamente. ¡No la pierdas, la vas a necesitar más adelante!'
-                        : 'Tus datos se guardaron correctamente.';
+                    okTexto.textContent = 'Cambios guardados con éxito';
                 }
                 document.getElementById('datosGuardadosOkModal').classList.add('active');
 
@@ -13202,10 +13271,10 @@ function mostrarToastOk(msg) {
     function hueToHex(key, hue) {
         const h = Number(hue);
         let s, l;
-        if (key === 'fondo')    { s = 18; l = 96; }
-        else if (key === 'contorno') { s = 40; l = 75; }
-        else if (key === 'nombre')   { s = 55; l = 25; }
-        else                          { s = 90; l = 50; }
+        if (key === 'fondo')    { s = 45; l = 88; }
+        else if (key === 'contorno') { s = 65; l = 62; }
+        else if (key === 'nombre')   { s = 65; l = 30; }
+        else                          { s = 85; l = 50; }
         // HSL to hex
         const hslToHex = (h,s,l) => {
             s/=100; l/=100;
