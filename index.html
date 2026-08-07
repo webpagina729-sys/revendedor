@@ -6392,21 +6392,36 @@
         }
 
         async function toggleCart() {
-            // Validar que hay sesión activa. Justo al entrar a Inicio, Firebase
-            // puede tardar un instante en restaurar la sesión — antes, tocar el
-            // carrito en ese momento mostraba "sin sesión" aunque el usuario
-            // estuviera logueado. Ahora esperamos brevemente (máx. 2.5s) a que
-            // se resuelva, así el carrito abre siempre, no solo después de
-            // entrar a una categoría (que da tiempo de sobra a que resuelva).
-            let currentUser = firebase.auth().currentUser || window.currentUser;
+            // Validar que hay sesión activa. Se reconoce por cualquiera de:
+            // 1) UID de Firebase Auth (login con Google, como en stock.html)
+            // 2) window.currentUser ya cargado
+            // 3) código de revendedor validado y guardado en localStorage
+            // Antes esto fallaba porque, justo al entrar a Inicio, Firebase
+            // puede tardar un instante en restaurar la sesión — se esperaba
+            // un tiempo fijo sin chequear el estado real de autenticación.
+            const haySesion = () => {
+                const codigoSesion = (window.currentUser && window.currentUser.codigoVendedor)
+                    || localStorage.getItem('codigoVendedorLocal')
+                    || localStorage.getItem('codigoRevendedorValidado')
+                    || '';
+                return firebase.auth().currentUser || window.currentUser || (codigoSesion ? { codigoVendedor: codigoSesion } : null);
+            };
+
+            let currentUser = haySesion();
             if (!currentUser) {
                 currentUser = await new Promise(resolve => {
                     const maxEspera = 2500;
                     const inicio = Date.now();
+                    let unsub = null;
+                    const terminar = (u) => {
+                        if (unsub) unsub();
+                        resolve(u ? (u.uid ? u : (haySesion() || u)) : haySesion());
+                    };
+                    try { unsub = firebase.auth().onAuthStateChanged(terminar); } catch(_e) {}
                     const check = () => {
-                        const u = firebase.auth().currentUser || window.currentUser;
-                        if (u) return resolve(u);
-                        if (Date.now() - inicio >= maxEspera) return resolve(null);
+                        const u = haySesion();
+                        if (u) return terminar(u);
+                        if (Date.now() - inicio >= maxEspera) return terminar(null);
                         setTimeout(check, 100);
                     };
                     check();
@@ -11510,12 +11525,47 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // tiene un timeout corto y acotado: si no responde a tiempo o falla,
         // se usa Firebase Auth (window.currentUser) como respaldo inmediato.
         const DATOS_REVENDEDOR_WORKER = 'https://datosderevendedor.tuweb.workers.dev/api/login-vendedor';
+        const DATOS_REVENDEDOR_WORKER_UID = 'https://datosderevendedor.tuweb.workers.dev/api/login-vendedor-uid';
         async function obtenerNombreApellidoRevendedor() {
             const user = window.currentUser || {};
             let nombre = user.nombre || user.name || '';
             let apellido = user.apellido || user.lastName || '';
+
+            // Prioridad 1: si ya hay sesión de Firebase Auth (login con Google,
+            // como el que se hace en stock.html), buscar por UID — es el dato
+            // más confiable de "ya estoy logueado", no depende de que el
+            // código de revendedor esté cacheado/actualizado en este momento.
+            const fbUser = firebase.auth().currentUser;
+            let encontradoPorUid = false;
+            if (fbUser && fbUser.uid) {
+                try {
+                    const ctrl = new AbortController();
+                    const timeoutId = setTimeout(() => ctrl.abort(), 4000);
+                    const res = await fetch(DATOS_REVENDEDOR_WORKER_UID, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        signal: ctrl.signal,
+                        body: JSON.stringify({ uid: fbUser.uid })
+                    });
+                    clearTimeout(timeoutId);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const v = (data && data.success && data.vendedor) ? data.vendedor : null;
+                        if (v) {
+                            nombre = v.nombre || v.name || nombre;
+                            apellido = v.apellido || v.lastName || apellido;
+                            encontradoPorUid = true;
+                        }
+                    }
+                } catch(_e) {
+                    console.warn('[enlace] No se pudo consultar el Worker por UID:', _e && _e.message);
+                }
+            }
+
+            // Prioridad 2: si no se encontró por UID (sin sesión de Google, o
+            // el Worker no respondió), se intenta por código como antes.
             const codigo = getCodigoVendedor();
-            if (codigo) {
+            if (!encontradoPorUid && codigo) {
                 try {
                     const ctrl = new AbortController();
                     const timeoutId = setTimeout(() => ctrl.abort(), 4000);
