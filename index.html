@@ -8907,7 +8907,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         // Abrir modal de validación de código
-        function abrirModalCodigo(catalogo = 'perfumes') {
+        async function abrirModalCodigo(catalogo = 'perfumes') {
             // Evitar llamadas concurrentes
             if (window.isChangingCatalog) return;
             
@@ -8920,8 +8920,18 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 return;
             }
             
-            // Si NO está logueado (ni Firebase ni código vendedor), abrir login
-            if (!firebase.auth().currentUser && !window.currentUser) {
+            // Si NO está logueado (ni Firebase ni código vendedor), abrir login.
+            // Antes esto se decidía al toque, sin esperar a que Firebase termine
+            // de restaurar la sesión por UID — por eso, justo después de entrar
+            // con Google en stock.html, acá todavía podía verse "sin sesión"
+            // aunque el usuario ya estuviera logueado. Ahora se espera esa
+            // resolución (por UID) antes de mostrar el aviso.
+            const codigoGuardado = localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado');
+            let sesionActiva = firebase.auth().currentUser || window.currentUser || codigoGuardado;
+            if (!sesionActiva) {
+                sesionActiva = await esperarUsuarioFirebaseActual();
+            }
+            if (!sesionActiva) {
                 alert('Debes iniciar sesión primero para acceder al catálogo de revendedor.');
                 abrirLogin();
                 return;
@@ -9472,53 +9482,13 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // ════════════════════════════════════════════════
         
         // DOMContentLoaded único y consolidado
-        // Restaura la sesión de un revendedor que ya inició sesión con
-        // CÓDIGO (no con Google/email) en una visita anterior. Sin esto,
-        // window.currentUser quedaba vacío en cada recarga de página para
-        // este tipo de login, así que la cinta negra (Inicio/Perfil/Guía
-        // rápida) y el resto de la UI de "logueado" no aparecían hasta
-        // volver a validar el código a mano.
-        async function restaurarSesionPorCodigoGuardado() {
-            if (window.currentUser || firebase.auth().currentUser) return;
-            const codigoGuardado = localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado');
-            if (!codigoGuardado) return;
-            try {
-                const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ codigo: codigoGuardado })
-                });
-                if (!res.ok) return;
-                const data = await res.json();
-                if (!data.success || !data.vendedor) return;
-                const v = data.vendedor;
-                window.currentUser = {
-                    uid: v.uid, codigoVendedor: v.codigoVendedor,
-                    nombre: v.nombre, apellido: v.apellido, email: v.email, telefono: v.telefono,
-                    nivel: v.nivel, descuentoNivel: v.descuentoNivel,
-                    whatsappRevendedor: v.whatsappRevendedor, cuitRevendedor: v.cuitRevendedor,
-                    configTienda: v.configTienda, configTiendaAll: v.configTiendaAll,
-                };
-                window.codigoValidado = true;
-                console.log('[APP] Sesión restaurada por código guardado:', v.codigoVendedor);
-                updateUIForAuthentication(true);
-            } catch (_e) {
-                console.warn('[APP] No se pudo restaurar la sesión por código guardado:', _e && _e.message);
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', function(event) {
             // Ejecutar solo una vez
             if (window.domLoaded) return;
             window.domLoaded = true;
             
             // Esperar a que Firebase esté listo
-            setTimeout(async () => {
-                // Restaurar sesión por código guardado ANTES de decidir qué
-                // pantalla mostrar, para que la cinta y el catálogo salgan
-                // correctos desde el primer render.
-                await restaurarSesionPorCodigoGuardado();
-
+            setTimeout(() => {
                 // Cargar imágenes de portadas con BASE_IMAGE_URL
                 const portadaUnoImg = document.getElementById('portada-uno-img');
                 if (portadaUnoImg) {
