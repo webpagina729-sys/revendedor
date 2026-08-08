@@ -8874,7 +8874,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // Agregar listeners para pausar en hover - Se agregará en el DOMContentLoaded consolidado
 
         // Verificar si ya está logueado y mostrar sección de nichos
-        function actualizarVistaNichos() {
+        async function actualizarVistaNichos() {
             const nichosSection = document.getElementById('nichos-section');
             
             // Limpiar intervalos antes de reinicializar (solo si no hay cambio en progreso)
@@ -8888,6 +8888,58 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 // Verificar si ya validó el código (localStorage)
                 const codigoEnSesion = localStorage.getItem('codigoRevendedorValidado');
                 if (codigoEnSesion) {
+                    // Antes de confiar en el flag guardado, se revalida contra el
+                    // Worker — si el código ya no existe en la base de datos (por
+                    // ejemplo, se borró la cuenta), no hay que seguir mostrando el
+                    // catálogo ni la config de tienda vieja que quedó en caché.
+                    let codigoSigueValido = true;
+                    try {
+                        const ctrl = new AbortController();
+                        const timeoutId = setTimeout(() => ctrl.abort(), 4000);
+                        const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            signal: ctrl.signal,
+                            body: JSON.stringify({ codigo: codigoEnSesion })
+                        });
+                        clearTimeout(timeoutId);
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (!data || !data.success || !data.vendedor) {
+                                codigoSigueValido = false;
+                            } else {
+                                // Refrescar la config con lo que realmente hay ahora
+                                // en la base, no lo que quedó viejo en caché.
+                                const v = data.vendedor;
+                                if (v.configTienda) localStorage.setItem('configTienda', JSON.stringify(v.configTienda));
+                                if (v.configTiendaAll) localStorage.setItem('configTiendaAll', JSON.stringify(v.configTiendaAll));
+                            }
+                        }
+                        // Si la red falla o da timeout, no se toca nada (se sigue
+                        // confiando en la caché para no dejar a alguien afuera por
+                        // un problema de conexión pasajero).
+                    } catch (_e) {
+                        console.warn('[APP] No se pudo revalidar el código guardado:', _e && _e.message);
+                    }
+
+                    if (!codigoSigueValido) {
+                        // El código ya no existe en la base: limpiar todo lo
+                        // guardado localmente para que no vuelva a aparecer una
+                        // tienda que ya no existe.
+                        localStorage.removeItem('codigoRevendedorValidado');
+                        localStorage.removeItem('codigoRevendedorValidadoFecha');
+                        localStorage.removeItem('codigoVendedorLocal');
+                        localStorage.removeItem('configTienda');
+                        localStorage.removeItem('configTiendaAll');
+                        window.codigoValidado = false;
+                        if (window.currentUser) window.currentUser.codigoVendedor = '';
+                        if (nichosSection) nichosSection.classList.remove('hide');
+                        setTimeout(inicializarCarrusel, 50);
+                        setTimeout(inicializarCarruselShoesPreview, 100);
+                        setTimeout(inicializarCarruselBelleza, 50);
+                        return;
+                    }
+
                     // Usuario logueado y código validado: mostrar catálogo
                     window.codigoValidado = true;
                     mostrarCatalogo();
@@ -9035,50 +9087,70 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     }
                 }
 
-                // ESTRATEGIA 2: Buscar en Firestore (para usuarios no logueados o código no coincide)
-                let resultado = await firebase.firestore()
-                    .collection('usuarios')
-                    .where('codigoVendedor', '==', codigo)
-                    .get();
+                // ESTRATEGIA 2: Validar contra el Worker (para usuarios no logueados
+                // con Google, o cuyo código no coincidió en la Estrategia 1). Antes
+                // esto consultaba Firestore directo desde el navegador, lo que fallaba
+                // por permisos; ahora pasa por el mismo Worker que ya usa el resto de
+                // la app, y además vincula el UID real del vendedor a window.currentUser.
+                const candidatos = new Set([codigo, codigo.toLowerCase()]);
+                if (codigo.startsWith('RW-')) candidatos.add(codigo.substring(3));
 
-                // Si no encuentra, intentar búsquedas alternativas
-                if (resultado.empty) {
-                    // Intentar búsqueda 2: convertir a minúsculas
-                    resultado = await firebase.firestore()
-                        .collection('usuarios')
-                        .where('codigoVendedor', '==', codigo.toLowerCase())
-                        .get();
+                let vendedorEncontrado = null;
+                for (const candidato of candidatos) {
+                    try {
+                        const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ codigo: candidato })
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data && data.success && data.vendedor) {
+                                vendedorEncontrado = data.vendedor;
+                                break;
+                            }
+                        }
+                    } catch (_e) { /* se prueba el siguiente candidato */ }
                 }
 
-                // Intentar búsqueda 3: sin el prefijo "RW-" por si acaso
-                if (resultado.empty && codigo.startsWith('RW-')) {
-                    const codigoSinPrefijo = codigo.substring(3);
-                    
-                    resultado = await firebase.firestore()
-                        .collection('usuarios')
-                        .where('codigoVendedor', '==', codigoSinPrefijo)
-                        .get();
-                }
-
-                if (resultado.empty) {
+                if (!vendedorEncontrado) {
                     // Código NO válido
                     error.textContent = 'Código de revendedor inválido. Verifica que sea exacto (sin espacios extras) e intenta de nuevo.';
                     error.classList.add('show');
                 } else {
-                    const usuarioDoc = resultado.docs[0];
-                    
-                    // Código VÁLIDO
+                    // Código VÁLIDO — vincular el UID real del vendedor
                     error.classList.remove('show');
-                    
+
+                    window.currentUser = {
+                        uid: vendedorEncontrado.uid,
+                        codigoVendedor: vendedorEncontrado.codigoVendedor || codigo,
+                        nombre: vendedorEncontrado.nombre || '',
+                        apellido: vendedorEncontrado.apellido || '',
+                        email: vendedorEncontrado.email || '',
+                        telefono: vendedorEncontrado.telefono || '',
+                        nivel: vendedorEncontrado.nivel || 1,
+                        descuentoNivel: vendedorEncontrado.descuentoNivel || 0,
+                        whatsappRevendedor: vendedorEncontrado.whatsappRevendedor || '',
+                        cuitRevendedor: vendedorEncontrado.cuitRevendedor || '',
+                        configTienda: vendedorEncontrado.configTienda || null,
+                        configTiendaAll: vendedorEncontrado.configTiendaAll || null,
+                    };
+
                     // Guardar en localStorage por 30 días
-                    localStorage.setItem('codigoRevendedorValidado', codigo);
+                    localStorage.setItem('codigoRevendedorValidado', vendedorEncontrado.codigoVendedor || codigo);
                     localStorage.setItem('codigoRevendedorValidadoFecha', new Date().getTime());
-                    
+                    localStorage.setItem('codigoVendedorLocal', vendedorEncontrado.codigoVendedor || codigo);
+                    if (vendedorEncontrado.configTienda) localStorage.setItem('configTienda', JSON.stringify(vendedorEncontrado.configTienda));
+                    if (vendedorEncontrado.configTiendaAll) localStorage.setItem('configTiendaAll', JSON.stringify(vendedorEncontrado.configTiendaAll));
+
                     window.codigoValidado = true;
-                    
+
                     // Cerrar modal
                     cerrarModalCodigo();
-                    
+
+                    // Actualizar UI de "logueado" (cinta, etc.)
+                    if (typeof updateUIForAuthentication === 'function') updateUIForAuthentication(true);
+
                     // Mostrar catálogo
                     mostrarCatalogo();
                 }
