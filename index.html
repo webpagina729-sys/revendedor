@@ -7686,9 +7686,16 @@
                     });
                 }
 
+                const _guiaRapidaInicioEspera = Date.now();
                 const intentarMostrarGuiaRapida = () => {
                     const modal = document.getElementById('emailConfirmationModal');
                     if (!modal || modal.classList.contains('active')) return;
+
+                    // Límite de seguridad: si pasaron más de 10 minutos sin que
+                    // se den las condiciones (usuario nunca vuelve a Inicio),
+                    // se deja de sondear en vez de quedar corriendo para
+                    // siempre en segundo plano durante toda la sesión.
+                    if (Date.now() - _guiaRapidaInicioEspera > 10 * 60 * 1000) return;
 
                     const pasaron20sDesdeUltimoModal = (Date.now() - (window._ultimoCierreModal || 0)) >= 20000;
                     const estaEnInicio = !window.currentCatalog;
