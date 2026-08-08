@@ -3102,17 +3102,18 @@ async function enviarPedidoConDatos() {
         await _conLimiteDeTiempo(_registrarPedido(), 6000);
         document.getElementById('co-status').style.display = 'block';
         btn.textContent = '✓ Pedido confirmado';
-        // El pedido quedó guardado correctamente (tenemos pedidoId): recién
-        // acá se registra la aceptación de legales, vinculada a ese pedido.
-        if (_pedidoIdConfirmado) {
-            registrarAceptacionLegales(_pedidoIdConfirmado, nombre, apellido, telefono, payload.codigoVendedor, fecha, hora);
-        }
+        // La aceptación de términos se manda siempre, haya llegado o no a
+        // confirmarse el pedidoId dentro del límite de tiempo — es un
+        // registro legal del consentimiento del cliente, no debe depender
+        // de la latencia del servidor de pedidos.
+        registrarAceptacionLegales(_pedidoIdConfirmado || '', nombre, apellido, telefono, payload.codigoVendedor, fecha, hora);
         setTimeout(function() {
             cerrarCheckout();
             cerrarCarrito();
             _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, total);
         }, 400);
     } catch(e) {
+        registrarAceptacionLegales('', nombre, apellido, telefono, payload.codigoVendedor, fecha, hora);
         cerrarCheckout();
         cerrarCarrito();
         _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, total);
@@ -3133,6 +3134,7 @@ function registrarAceptacionLegales(pedidoId, nombre, apellido, telefono, codigo
         const body = {
             aceptacionId,
             uid: clienteUid,
+            tipo: 'cliente',
             pedidoId,
             nombre: nombre || '',
             apellido: apellido || '',
