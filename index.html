@@ -8649,6 +8649,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 
                 if (user) {
                     
+                    // 🔧 FIX ENLACE: se guarda el UID apenas hay sesión, para que
+                    // los enlaces de tienda que se generen más tarde SIEMPRE
+                    // puedan incluirlo (ver getUidVendedorActual()), incluso si
+                    // window.currentUser todavía no terminó de poblarse.
+                    try { localStorage.setItem('uidVendedorLocal', user.uid); } catch(_e) {}
+
                     // Intentar cargar datos de Firestore CON REINTENTOS
                     const userData = await loadUserDataFromFirestoreWithRetry(user.uid);
                     
@@ -11576,6 +11582,21 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // esas llamadas dejen de fallar en silencio.
         window.getCodigoVendedor = getCodigoVendedor;
 
+        // 🔧 FIX TIENDA NO ENCONTRADA: el UID de Firebase es el ID real del
+        // documento del revendedor en Firestore ("usuarios/{uid}"). A
+        // diferencia de codigoVendedor (un campo dentro del documento, que
+        // puede llegar a desincronizarse), el UID SIEMPRE identifica al
+        // documento correcto. Por eso los enlaces de tienda ahora viajan
+        // con el UID embebido, y tienda.html lo usa como método principal
+        // para encontrar al revendedor.
+        function getUidVendedorActual() {
+            return (window.currentUser && window.currentUser.uid)
+                || (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser && firebase.auth().currentUser.uid)
+                || localStorage.getItem('uidVendedorLocal')
+                || '';
+        }
+        window.getUidVendedorActual = getUidVendedorActual;
+
         // 🔧 FIX ENLACE DE TIENDA: dominio personalizado fijo (no depender de
         // window.location.origin, que puede variar según dónde se esté viendo
         // el panel) + caché en memoria de los enlaces cortos ya generados por
@@ -11703,9 +11724,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // incluido) viaja EMPAQUETADO en un solo bloque opaco en base64
         // bajo el parámetro "d" — nunca en texto plano, para no exponer el
         // código del revendedor en la URL.
-        function construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub) {
+        function construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub, uid) {
             const prefijo = productoId != null ? '/producto/' : '/tienda/';
             const payload = { tienda: codigo || '', cat: cat || '' };
+            if (uid) payload.uid = uid;
             if (sub) payload.sub = sub;
             if (productoId != null) payload.producto = productoId;
             if (cfgFull && Object.keys(cfgFull).length > 0) payload.cfg = cfgFull;
@@ -11733,6 +11755,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // Worker guarda y devuelve tal cual, sin validar su forma), y se
         // extraen de ahí al resolver el slug del lado de tienda.html.
         async function acortarEnlace(slugId, codigo, cat, cfgFull, promo, productoId, sub) {
+            // El UID viaja SIEMPRE que esté disponible — es el método
+            // principal y más confiable con el que tienda.html encuentra
+            // al revendedor (ver getUidVendedorActual()).
+            const uid = (typeof getUidVendedorActual === 'function') ? getUidVendedorActual() : '';
             try {
                 if (!codigo) {
                     console.warn('[enlace] Sin código de revendedor todavía — se usa el enlace largo de respaldo.');
@@ -11747,7 +11773,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     signal: ctrl.signal,
-                    body: JSON.stringify({ slugId, codigoVendedor: codigo, cat, cfg: cfgConExtra, promo })
+                    body: JSON.stringify({ slugId, codigoVendedor: codigo, uid, cat, cfg: cfgConExtra, promo })
                 });
                 clearTimeout(timeoutId);
                 if (!res.ok) {
@@ -11764,7 +11790,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             } catch(_e) {
                 // Sin red / Worker caído / timeout: enlace largo como respaldo.
                 console.warn('[enlace] Cayó al enlace largo de respaldo. Motivo:', _e && _e.message);
-                return construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub);
+                return construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub, uid);
             }
         }
 
