@@ -972,6 +972,11 @@ const db = firebase.firestore();
 // WORKER  (para leer datos del vendedor por código)
 // ═══════════════════════════════════════════════════════════════
 const WORKER_LOGIN = 'https://datosderevendedor.tuweb.workers.dev/api/login-vendedor';
+// 🔧 FIX TIENDA NO ENCONTRADA: login por UID — lee el documento del
+// revendedor DIRECTO por su ID (usuarios/{uid}), sin depender de que el
+// campo codigoVendedor esté sincronizado. Es el método principal para
+// encontrar al revendedor cuando el enlace trae "?uid=".
+const WORKER_LOGIN_UID = 'https://datosderevendedor.tuweb.workers.dev/api/login-vendedor-uid';
 
 // ═══════════════════════════════════════════════════════════════
 // BASE URL IMÁGENES  (misma carpeta que index)
@@ -1048,6 +1053,10 @@ let _slugPromise = Promise.resolve();
         .then(function(d) {
             if (!d || !d.codigoVendedor) return;
             urlParams.set('tienda', d.codigoVendedor);
+            // 🔧 FIX TIENDA NO ENCONTRADA: el UID es el ID real del
+            // documento del revendedor en Firestore — es el dato más
+            // confiable para encontrarlo (ver cargarVendedor() más abajo).
+            if (d.uid) urlParams.set('uid', d.uid);
             if (d.cat) urlParams.set('cat', d.cat);
             // 🔧 El Worker real (handleGuardarSlug) solo persiste
             // { codigoVendedor, cat, cfg, promo } — "sub" y "producto" no
@@ -1083,6 +1092,7 @@ let _slugPromise = Promise.resolve();
     try {
         var payload = JSON.parse(decodeURIComponent(escape(atob(d))));
         if (payload.tienda) urlParams.set('tienda', payload.tienda);
+        if (payload.uid) urlParams.set('uid', payload.uid);
         if (payload.cat) urlParams.set('cat', payload.cat);
         if (payload.sub) urlParams.set('sub', payload.sub);
         if (payload.producto != null) urlParams.set('producto', payload.producto);
@@ -1093,6 +1103,7 @@ let _slugPromise = Promise.resolve();
 
 // let para que window.load los actualice tras resolver el slug
 let codigoParam = urlParams.get('tienda') || '';
+let uidParam    = urlParams.get('uid') || '';
 let catParam    = urlParams.get('cat') || 'perfumes';
 let subParam    = urlParams.get('sub') || '';
 let csParam     = urlParams.get('cs') || ''; // enlace corto a un combo/promo puntual
@@ -1949,16 +1960,67 @@ function formatPrice(n) {
 // CARGA DE DATOS DEL VENDEDOR
 // ═══════════════════════════════════════════════════════════════
 async function cargarVendedor() {
-    if (!codigoParam) {
-        console.warn('[tienda] Sin codigoParam en la URL — urlParams:', urlParams.toString());
+    if (!codigoParam && !uidParam) {
+        console.warn('[tienda] Sin codigoParam ni uidParam en la URL — urlParams:', urlParams.toString());
         mostrarError('No se encontró el código de vendedor en el enlace.');
         return;
     }
 
     let userData = null;
 
-    // 1. Intentar Worker (con un reintento corto por si es un blip transitorio)
-    for (let intento = 0; intento < 2 && !userData; intento++) {
+    // 0. MÉTODO PRINCIPAL: por UID, si el enlace lo trae. Es una lectura
+    //    directa del documento del revendedor (usuarios/{uid}) — no
+    //    depende de que el campo codigoVendedor esté bien sincronizado
+    //    en el documento ni de ningún índice/query de Firestore, así que
+    //    es el método más confiable para no mostrar "tienda no encontrada"
+    //    quando el revendedor sí existe.
+    if (uidParam) {
+        // 0a. Vía Worker (usa credenciales de servicio, no depende de
+        //     reglas de seguridad del cliente).
+        try {
+            const ctrl = new AbortController();
+            const timeoutId = setTimeout(() => ctrl.abort(), 5000);
+            const res = await fetch(WORKER_LOGIN_UID, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: ctrl.signal,
+                body: JSON.stringify({ uid: uidParam })
+            });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.vendedor) userData = data.vendedor;
+                else console.warn('[tienda] WORKER_LOGIN_UID respondió pero sin vendedor válido:', data);
+            } else {
+                console.warn('[tienda] WORKER_LOGIN_UID status', res.status);
+            }
+        } catch (e) {
+            console.warn('[tienda] WORKER_LOGIN_UID falló:', e.message);
+        }
+
+        // 0b. Vía Firestore directo (lectura por ID de documento — funciona
+        //     aunque las reglas de seguridad no permitan hacer queries).
+        if (!userData) {
+            try {
+                const docSnap = await db.collection('usuarios').doc(uidParam).get();
+                if (docSnap.exists) userData = docSnap.data();
+                else console.warn('[tienda] Firestore: no existe usuarios/' + uidParam);
+            } catch (e) {
+                console.warn('[tienda] Lectura directa por UID falló:', e.message);
+            }
+        }
+
+        // Si se resolvió por UID, aseguramos que codigoParam quede seteado
+        // (el resto del flujo de abajo — precios, promos, whatsapp — sigue
+        // usando codigoParam como venía funcionando).
+        if (userData && userData.codigoVendedor && !codigoParam) {
+            codigoParam = userData.codigoVendedor;
+        }
+    }
+
+    // 1. Intentar Worker por código (compatibilidad con enlaces viejos sin
+    //    uid, y respaldo si el UID no resolvió por algún motivo).
+    for (let intento = 0; intento < 2 && !userData && codigoParam; intento++) {
         try {
             const res = await fetch(WORKER_LOGIN, {
                 method: 'POST',
@@ -1981,8 +2043,9 @@ async function cargarVendedor() {
         }
     }
 
-    // 2. Fallback: buscar en Firestore por codigoVendedor
-    if (!userData) {
+    // 2. Fallback: buscar en Firestore por codigoVendedor (enlaces viejos
+    //    sin uid, o si los métodos por UID de arriba no encontraron nada)
+    if (!userData && codigoParam) {
         try {
             const snap = await db.collection('usuarios')
                 .where('codigoVendedor', '==', codigoParam)
@@ -2005,11 +2068,23 @@ async function cargarVendedor() {
 
     // ── Leer siempre desde Firestore: color, config y PROMOCIONES (fuente de verdad) ──
     try {
-        const snapFs = await db.collection('usuarios')
-            .where('codigoVendedor', '==', codigoParam)
-            .limit(1).get();
-        if (!snapFs.empty) {
-            const fsData = snapFs.docs[0].data();
+        // Preferimos leer directo por UID (mismo motivo que en cargarVendedor:
+        // no depende de queries ni de que codigoVendedor esté sincronizado).
+        const _uidParaFs = uidParam || userData.uid || null;
+        let fsData = null;
+        if (_uidParaFs) {
+            try {
+                const docSnap = await db.collection('usuarios').doc(_uidParaFs).get();
+                if (docSnap.exists) fsData = docSnap.data();
+            } catch(_e) {}
+        }
+        if (!fsData && codigoParam) {
+            const snapFs = await db.collection('usuarios')
+                .where('codigoVendedor', '==', codigoParam)
+                .limit(1).get();
+            if (!snapFs.empty) fsData = snapFs.docs[0].data();
+        }
+        if (fsData) {
             if (!vendedor.colorTienda && fsData.colorTienda) vendedor.colorTienda = fsData.colorTienda;
             if (!vendedor.coloresTiendaPorCat && fsData.coloresTiendaPorCat) vendedor.coloresTiendaPorCat = fsData.coloresTiendaPorCat;
             if (!vendedor.coloresExtraTienda && fsData.coloresExtraTienda) vendedor.coloresExtraTienda = fsData.coloresExtraTienda;
