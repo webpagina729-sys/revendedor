@@ -11806,6 +11806,17 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 const extraAll = JSON.parse(localStorage.getItem('coloresExtraTienda') || '{}');
                 if (extraAll[catConfig]) cfgFull._coloresExtra = extraAll[catConfig];
             } catch(_) {}
+            // 🔧 Precio individual (manual, por producto): viaja DIRECTO
+            // en el enlace, igual que el resto de la configuración de
+            // precios. tienda.html ya NO lo lee de ningún worker ni de
+            // Firestore — así el enlace muestra siempre exactamente lo
+            // que el revendedor configuró al compartirlo.
+            try {
+                const preciosManual = JSON.parse(localStorage.getItem('preciosManualCat') || '{}');
+                if (preciosManual[catConfig] && Object.keys(preciosManual[catConfig]).length > 0) {
+                    cfgFull._preciosManual = preciosManual[catConfig];
+                }
+            } catch(_) {}
             let promo = null;
             try {
                 const promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}');
