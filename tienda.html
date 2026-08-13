@@ -2066,82 +2066,38 @@ async function cargarVendedor() {
 
     vendedor = userData;
 
-    // ── Leer siempre desde Firestore: color, config y PROMOCIONES (fuente de verdad) ──
+    // ── Stock en tiempo real ──────────────────────────────────────────
+    // Esto es lo ÚNICO que sigue leyéndose de Firestore acá: el
+    // inventario (para no vender algo que el revendedor ya marcó sin
+    // stock). Precios, promociones, combos y colores YA NO se leen de la
+    // base de datos: viajan siempre directo en el enlace que armó y
+    // compartió el revendedor desde index.html (ver más abajo, bloque
+    // "?cfg="), para que nunca se mezclen con ediciones posteriores de
+    // otra categoría o de otro dispositivo.
     try {
-        // Preferimos leer directo por UID (mismo motivo que en cargarVendedor:
-        // no depende de queries ni de que codigoVendedor esté sincronizado).
-        const _uidParaFs = uidParam || userData.uid || null;
-        let fsData = null;
-        if (_uidParaFs) {
-            try {
-                const docSnap = await db.collection('usuarios').doc(_uidParaFs).get();
-                if (docSnap.exists) fsData = docSnap.data();
-            } catch(_e) {}
+        const _uidParaStock = uidParam || userData.uid || null;
+        let fsStock = null;
+        if (_uidParaStock) {
+            const docSnap = await db.collection('usuarios').doc(_uidParaStock).get();
+            if (docSnap.exists) fsStock = docSnap.data();
         }
-        if (!fsData && codigoParam) {
+        if (!fsStock && codigoParam) {
             const snapFs = await db.collection('usuarios')
                 .where('codigoVendedor', '==', codigoParam)
                 .limit(1).get();
-            if (!snapFs.empty) fsData = snapFs.docs[0].data();
+            if (!snapFs.empty) fsStock = snapFs.docs[0].data();
         }
-        if (fsData) {
-            if (!vendedor.colorTienda && fsData.colorTienda) vendedor.colorTienda = fsData.colorTienda;
-            if (!vendedor.coloresTiendaPorCat && fsData.coloresTiendaPorCat) vendedor.coloresTiendaPorCat = fsData.coloresTiendaPorCat;
-            if (!vendedor.coloresExtraTienda && fsData.coloresExtraTienda) vendedor.coloresExtraTienda = fsData.coloresExtraTienda;
-            if (!vendedor.configTiendaAll && fsData.configTiendaAll) vendedor.configTiendaAll = fsData.configTiendaAll;
-            if (!vendedor.preciosManualCat && fsData.preciosManualCat) vendedor.preciosManualCat = fsData.preciosManualCat;
-            if (fsData.stockProductosCat && typeof fsData.stockProductosCat === 'object') vendedor.stockProductosCat = fsData.stockProductosCat;
-            // 🔧 FIX: whatsappRevendedor es el dato crítico para el botón de
-            // "comprar por WhatsApp" en el carrito del cliente. El Worker de
-            // login puede no devolverlo, así que Firestore (fuente de verdad)
-            // siempre tiene prioridad si trae un valor más reciente o si el
-            // Worker no lo trajo en absoluto.
-            if (fsData.whatsappRevendedor) vendedor.whatsappRevendedor = fsData.whatsappRevendedor;
-            // promocionesTienda: siempre usar Firestore como fuente de verdad (ignora objeto vacío del Worker)
-            if (fsData.promocionesTienda && typeof fsData.promocionesTienda === 'object'
-                && Object.keys(fsData.promocionesTienda).length > 0) {
-                vendedor.promocionesTienda = fsData.promocionesTienda;
-            }
-        }
-    } catch(_) {}
-
-    // ── Leer precios manuales y promociones desde worker preciomanual (fuente más fresca) ──
-    try {
-        const wpRes = await fetch('https://preciomanual.tuweb.workers.dev?codigoVendedor=' + encodeURIComponent(codigoParam), { signal: AbortSignal.timeout(5000) });
-        if (wpRes.ok) {
-            const wpData = await wpRes.json();
-            // preciosManualCat: el worker siempre tiene la versión más reciente
-            if (wpData.preciosManualCat && typeof wpData.preciosManualCat === 'object'
-                && Object.keys(wpData.preciosManualCat).length > 0) {
-                vendedor.preciosManualCat = wpData.preciosManualCat;
-            }
-            // promocionesTienda: solo usar worker si Firestore no trajo nada
-            if (wpData.promocionesTienda && typeof wpData.promocionesTienda === 'object'
-                && Object.keys(wpData.promocionesTienda).length > 0
-                && (!vendedor.promocionesTienda || Object.keys(vendedor.promocionesTienda).length === 0)) {
-                vendedor.promocionesTienda = wpData.promocionesTienda;
-            }
+        if (fsStock && fsStock.stockProductosCat && typeof fsStock.stockProductosCat === 'object') {
+            vendedor.stockProductosCat = fsStock.stockProductosCat;
         }
     } catch(_) {}
     // ─────────────────────────────────────────────────────────────────────────────────────
     let cfgAll = null;
 
-    // 1. configTiendaAll del Worker/Firestore
-    if (userData.configTiendaAll && typeof userData.configTiendaAll === 'object'
-        && Object.keys(userData.configTiendaAll).length > 0) {
-        cfgAll = userData.configTiendaAll;
-    }
-
-    // 2. configTienda legacy
-    if (!cfgAll && userData.configTienda && typeof userData.configTienda === 'object') {
-        cfgAll = {
-            perfumes:  userData.configTienda,
-            calzados:  userData.configTienda,
-            general:   userData.configTienda
-        };
-    }
-
-    // 3. Si el vendedor abre su propia tienda desde el mismo navegador, leer localStorage del index
+    // Si el propio revendedor abre su tienda desde el mismo navegador
+    // donde configuró los precios (antes de compartir el primer enlace),
+    // se usa el localStorage del panel como respaldo — no es la base de
+    // datos, es el mismo navegador.
     if (!cfgAll) {
         try {
             const lsAll = localStorage.getItem('configTiendaAll');
@@ -2189,12 +2145,10 @@ async function cargarVendedor() {
 
     configTienda = cfgAll || {};
 
-    // 🔧 FIX: si el enlace trae ?cfg= (config embebida desde index.html),
-    // tiene prioridad. Garantiza que el % de aumento se aplique siempre,
-    // aunque el Worker / Firestore no devuelvan configTiendaAll.
-    // El color de tienda y los colores extra se aplican SIEMPRE que vengan
-    // en el cfg, sin depender de que los rangos sean válidos (categorías
-    // distintas pueden no tener rangos pero sí tener estética configurada).
+    // 🔧 El enlace (?cfg=) es la ÚNICA fuente de precios/promos/colores
+    // para la categoría que se está mostrando — viene directo de
+    // index.html al momento de compartir. Tiene prioridad absoluta,
+    // tenga o no rangos (puede venir sólo con precio individual/manual).
     try {
         const cfgUrl = urlParams.get('cfg');
         if (cfgUrl) {
@@ -2202,14 +2156,22 @@ async function cargarVendedor() {
             if (parsed && typeof parsed === 'object') {
                 if (parsed.colorTienda) cfgUrlColorTienda = parsed.colorTienda;
                 if (parsed._coloresExtra) cfgUrlColoresExtra = parsed._coloresExtra;
-                if (Array.isArray(parsed.rangos)) {
-                    const catKey = (catParam === 'calzados') ? 'calzados'
-                        : (catParam === 'belleza' && subParam === 'maquillaje') ? 'belleza_maquillaje'
-                        : (catParam === 'belleza' && subParam === 'perfume') ? 'belleza_perfume'
-                        : (catParam === 'belleza') ? 'belleza'
-                        : 'perfumes';
-                    configTienda[catKey] = parsed;
-                    configTienda['general'] = parsed;
+
+                const catKey = (catParam === 'calzados') ? 'calzados'
+                    : (catParam === 'belleza' && subParam === 'maquillaje') ? 'belleza_maquillaje'
+                    : (catParam === 'belleza' && subParam === 'perfume') ? 'belleza_perfume'
+                    : (catParam === 'belleza') ? 'belleza'
+                    : 'perfumes';
+
+                configTienda[catKey] = parsed;
+                configTienda['general'] = parsed;
+
+                // Precio individual (manual) embebido directo en el enlace
+                // — reemplaza cualquier valor que hubiera quedado de la
+                // rama de respaldo del localStorage de arriba.
+                if (parsed._preciosManual && typeof parsed._preciosManual === 'object') {
+                    vendedor.preciosManualCat = vendedor.preciosManualCat || {};
+                    vendedor.preciosManualCat[catKey] = parsed._preciosManual;
                 }
             }
         }
