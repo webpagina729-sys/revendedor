@@ -744,6 +744,10 @@
     <div class="icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
     <h2 id="error-titulo">Tienda no encontrada</h2>
     <p id="error-msg">El enlace que usaste no es válido o la tienda no existe. Pedile al vendedor que te comparta el enlace correcto.</p>
+    <!-- 🔧 Diagnóstico visible: para poder ver EXACTAMENTE en qué paso
+         falló sin tener que abrir la consola del navegador — alcanza con
+         una captura de esta pantalla. -->
+    <pre id="error-diag" style="margin-top:18px;padding:10px 12px;background:#f4f4f6;border-radius:8px;font-size:10.5px;line-height:1.5;color:#666;text-align:left;max-width:340px;white-space:pre-wrap;word-break:break-all;"></pre>
 </div>
 
 <!-- HERO -->
@@ -1010,6 +1014,14 @@ let talleSelec     = null;
 // ── Leer URL params ──────────────────────────────────────────
 const urlParams = new URLSearchParams(window.location.search);
 
+// 🔧 Diagnóstico visible: registra cada paso de la resolución del
+// revendedor para poder mostrarlo directo en la pantalla de error (ver
+// mostrarError más abajo) sin depender de que alguien sepa abrir la
+// consola del navegador.
+window._diagLog = [];
+function _diag(msg) { window._diagLog.push(msg); try { console.log('[tienda]', msg); } catch(_) {} }
+_diag('URL: ' + window.location.href);
+
 // 🔧 ENLACES CORTOS CON RUTA LIMPIA: revendeways.shop/tienda/nombre-apellido
 // (o /producto/, /promocion/, /combo/). El _redirects del hosting reescribe
 // estas rutas hacia este mismo archivo, pero el navegador sigue mostrando
@@ -1018,6 +1030,7 @@ const urlParams = new URLSearchParams(window.location.search);
 // por "?s=" o "?cs=" para no tener que tocar el resto de la lógica.
 (function() {
     var m = window.location.pathname.match(/^\/(tienda|producto|promocion|combo)\/([^\/?#]+)\/?$/);
+    _diag('pathname: ' + window.location.pathname + ' | regex match: ' + (m ? 'SI' : 'NO'));
     if (!m) return;
     window._rutaLimpiaActiva = true; // no reescribir la URL bonita con query params luego de resolver
     var tipo = m[1];
@@ -1046,6 +1059,7 @@ let _slugPromise = Promise.resolve();
 window._slugFetchOk = true; // se pone en false solo si HUBO slug (?s=) y la resolución falló
 (function() {
     var sp = urlParams.get('s');
+    _diag('slug (?s=): ' + (sp || '(vacío)'));
     if (!sp || urlParams.get('tienda')) return; // ya viene todo en la URL
 
     // 🔧 FIX "tienda no encontrada" intermitente: antes esto se intentaba
@@ -1058,10 +1072,12 @@ window._slugFetchOk = true; // se pone en false solo si HUBO slug (?s=) y la res
     function intentarResolverSlug(intento) {
         var ctrl = new AbortController();
         var timeoutId = setTimeout(function() { ctrl.abort(); }, 7000);
-        return fetch('https://workerwebcliente.tuweb.workers.dev/slug/' + encodeURIComponent(sp), { signal: ctrl.signal })
-            .then(function(r) { clearTimeout(timeoutId); return r.ok ? r.json() : null; })
-            .catch(function() { clearTimeout(timeoutId); return null; })
+        var url = 'https://workerwebcliente.tuweb.workers.dev/slug/' + encodeURIComponent(sp);
+        return fetch(url, { signal: ctrl.signal })
+            .then(function(r) { clearTimeout(timeoutId); _diag('GET /slug intento ' + intento + ': HTTP ' + r.status); return r.ok ? r.json() : null; })
+            .catch(function(e) { clearTimeout(timeoutId); _diag('GET /slug intento ' + intento + ': ERROR - ' + (e && e.message)); return null; })
             .then(function(d) {
+                _diag('GET /slug intento ' + intento + ' resultado: ' + (d ? JSON.stringify(d).slice(0,200) : 'null'));
                 if (d && d.codigoVendedor) return d;
                 if (intento < 2) return intentarResolverSlug(intento + 1);
                 window._slugFetchOk = false; // se agotaron los reintentos: fue un fallo real, no que el link esté mal
@@ -1980,6 +1996,7 @@ function formatPrice(n) {
 // CARGA DE DATOS DEL VENDEDOR
 // ═══════════════════════════════════════════════════════════════
 async function cargarVendedor() {
+    _diag('cargarVendedor() — codigoParam=' + (codigoParam || '(vacío)') + ' | uidParam=' + (uidParam || '(vacío)'));
     if (!codigoParam && !uidParam) {
         console.warn('[tienda] Sin codigoParam ni uidParam en la URL — urlParams:', urlParams.toString());
         if (window._slugFetchOk === false) {
@@ -2018,14 +2035,17 @@ async function cargarVendedor() {
                 body: JSON.stringify({ uid: uidParam })
             });
             clearTimeout(timeoutId);
+            _diag('WORKER_LOGIN_UID: HTTP ' + res.status);
             if (res.ok) {
                 const data = await res.json();
+                _diag('WORKER_LOGIN_UID resultado: ' + JSON.stringify(data).slice(0,200));
                 if (data.success && data.vendedor) userData = data.vendedor;
                 else console.warn('[tienda] WORKER_LOGIN_UID respondió pero sin vendedor válido:', data);
             } else {
                 console.warn('[tienda] WORKER_LOGIN_UID status', res.status);
             }
         } catch (e) {
+            _diag('WORKER_LOGIN_UID ERROR: ' + e.message);
             console.warn('[tienda] WORKER_LOGIN_UID falló:', e.message);
         }
 
@@ -2034,9 +2054,11 @@ async function cargarVendedor() {
         if (!userData) {
             try {
                 const docSnap = await db.collection('usuarios').doc(uidParam).get();
+                _diag('Firestore usuarios/' + uidParam + ': ' + (docSnap.exists ? 'encontrado' : 'NO existe'));
                 if (docSnap.exists) userData = docSnap.data();
                 else console.warn('[tienda] Firestore: no existe usuarios/' + uidParam);
             } catch (e) {
+                _diag('Firestore directo ERROR: ' + e.message);
                 console.warn('[tienda] Lectura directa por UID falló:', e.message);
             }
         }
@@ -2776,6 +2798,8 @@ function mostrarError(msg) {
     const err = document.getElementById('error-screen');
     err.style.display = 'flex';
     if (msg) document.getElementById('error-msg').textContent = msg;
+    const diag = document.getElementById('error-diag');
+    if (diag) diag.textContent = (window._diagLog || []).join('\n');
 }
 
 function mostrarBotonReintentar() {
