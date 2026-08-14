@@ -742,7 +742,7 @@
 <!-- ERROR -->
 <div id="error-screen">
     <div class="icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-    <h2>Tienda no encontrada</h2>
+    <h2 id="error-titulo">Tienda no encontrada</h2>
     <p id="error-msg">El enlace que usaste no es válido o la tienda no existe. Pedile al vendedor que te comparta el enlace correcto.</p>
 </div>
 
@@ -1043,13 +1043,33 @@ const urlParams = new URLSearchParams(window.location.search);
 // Los enlaces viejos que ya traen "tienda"/"cat" embebidos no necesitan
 // esta consulta y se leen al instante.
 let _slugPromise = Promise.resolve();
+window._slugFetchOk = true; // se pone en false solo si HUBO slug (?s=) y la resolución falló
 (function() {
     var sp = urlParams.get('s');
     if (!sp || urlParams.get('tienda')) return; // ya viene todo en la URL
-    var ctrl = new AbortController();
-    var timeoutId = setTimeout(function() { ctrl.abort(); }, 4000);
-    _slugPromise = fetch('https://workerwebcliente.tuweb.workers.dev/slug/' + encodeURIComponent(sp), { signal: ctrl.signal })
-        .then(function(r) { clearTimeout(timeoutId); return r.ok ? r.json() : null; })
+
+    // 🔧 FIX "tienda no encontrada" intermitente: antes esto se intentaba
+    // UNA sola vez con 4s de timeout. Si el Worker estaba "frío" (primer
+    // request luego de un rato sin uso: tiene que autenticarse contra
+    // Google + Firestore antes de poder responder) o hubo un blip de red,
+    // se perdía la única oportunidad y la tienda quedaba en blanco sin
+    // ningún dato de respaldo (el enlace corto no lleva nada más). Ahora
+    // se reintenta hasta 3 veces con más margen de tiempo.
+    function intentarResolverSlug(intento) {
+        var ctrl = new AbortController();
+        var timeoutId = setTimeout(function() { ctrl.abort(); }, 7000);
+        return fetch('https://workerwebcliente.tuweb.workers.dev/slug/' + encodeURIComponent(sp), { signal: ctrl.signal })
+            .then(function(r) { clearTimeout(timeoutId); return r.ok ? r.json() : null; })
+            .catch(function() { clearTimeout(timeoutId); return null; })
+            .then(function(d) {
+                if (d && d.codigoVendedor) return d;
+                if (intento < 2) return intentarResolverSlug(intento + 1);
+                window._slugFetchOk = false; // se agotaron los reintentos: fue un fallo real, no que el link esté mal
+                return null;
+            });
+    }
+
+    _slugPromise = intentarResolverSlug(0)
         .then(function(d) {
             if (!d || !d.codigoVendedor) return;
             urlParams.set('tienda', d.codigoVendedor);
@@ -1962,7 +1982,18 @@ function formatPrice(n) {
 async function cargarVendedor() {
     if (!codigoParam && !uidParam) {
         console.warn('[tienda] Sin codigoParam ni uidParam en la URL — urlParams:', urlParams.toString());
-        mostrarError('No se encontró el código de vendedor en el enlace.');
+        if (window._slugFetchOk === false) {
+            // Había un ?s=slug en el enlace (el enlace SÍ es válido), pero
+            // no se pudo resolver contra el servidor después de reintentar.
+            // Es un problema de carga transitorio, no un enlace roto — no
+            // hay que decirle al cliente que el link está mal.
+            const titulo = document.getElementById('error-titulo');
+            if (titulo) titulo.textContent = 'No pudimos cargar la tienda';
+            mostrarError('Revisá tu conexión y volvé a intentar.');
+            mostrarBotonReintentar();
+        } else {
+            mostrarError('No se encontró el código de vendedor en el enlace.');
+        }
         return;
     }
 
@@ -2747,12 +2778,24 @@ function mostrarError(msg) {
     if (msg) document.getElementById('error-msg').textContent = msg;
 }
 
+function mostrarBotonReintentar() {
+    const err = document.getElementById('error-screen');
+    if (!err || err.querySelector('#btn-reintentar-tienda')) return;
+    const btn = document.createElement('button');
+    btn.id = 'btn-reintentar-tienda';
+    btn.textContent = 'Reintentar';
+    btn.style.cssText = 'margin-top:16px;padding:10px 24px;border:none;border-radius:8px;background:#0066ff;color:#fff;font-size:14px;font-weight:600;cursor:pointer;';
+    btn.onclick = function() { window.location.reload(); };
+    err.appendChild(btn);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
 window.addEventListener('load', function() {
     _slugPromise.then(async function() {
         codigoParam = urlParams.get('tienda') || codigoParam;
+        uidParam    = urlParams.get('uid')    || uidParam;
         catParam    = urlParams.get('cat')    || catParam;
         subParam    = urlParams.get('sub')    || subParam;
 
