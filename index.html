@@ -11080,6 +11080,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
                 var userData = null;
                 var workerRespondio = false;
+                var workerError = null;
 
                 // 1. Intentar via Worker
                 try {
@@ -11094,21 +11095,29 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     if (workerData.success && workerData.vendedor) {
                         userData = workerData.vendedor;
                     } else {
-                        errEl.textContent = workerData.error === 'Código inválido'
-                            ? 'Código no encontrado. Verificá que esté bien escrito.'
-                            : 'Error al validar el código. Intentá de nuevo.';
-                        errEl.classList.add('show');
-                        btn.disabled = false;
-                        lbl.textContent = 'Ingresar a mi tienda';
-                        spin.style.display = 'none';
-                        return;
+                        workerError = workerData.error || 'Código inválido';
                     }
                 } catch(e) {
                     console.error("[LOGIN] Error llamando al Worker:", e);
                 }
 
-                // 2. Si el Worker no respondió en absoluto, mostrar error
-                if (!workerRespondio) {
+                // 2. 🔧 FIX: si el Worker no lo encontró (o directamente no
+                // respondió), se intenta también por Firestore directo antes
+                // de darlo por perdido — el mismo respaldo que ya tiene el
+                // camino de auto-login al recargar la página, pero que acá
+                // faltaba, y por eso un código recién generado podía dar
+                // "Código inválido" aunque el documento ya estuviera guardado.
+                if (!userData) {
+                    try {
+                        await esperarFirebase();
+                        userData = await buscarEnFirestore(codigo);
+                        console.log("[LOGIN] Respaldo Firestore:", userData ? 'encontrado' : 'no encontrado');
+                    } catch(e) {
+                        console.error("[LOGIN] Error en respaldo Firestore:", e);
+                    }
+                }
+
+                if (!userData && !workerRespondio) {
                     errEl.textContent = 'Error de conexión. Revisá tu internet e intentá de nuevo.';
                     errEl.classList.add('show');
                     btn.disabled = false;
