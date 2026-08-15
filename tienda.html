@@ -56,9 +56,11 @@
         }
         .store-brand {
             display: flex; flex-direction: column;
+            min-width: 0; flex: 1 1 auto;
         }
         .store-name {
-            font-size: 18px; font-weight: 700; color: var(--primary);
+            font-size: clamp(13px, 4.2vw, 18px); font-weight: 700; color: #000;
+            white-space: nowrap; overflow: visible;
         }
         .store-sub {
             font-size: 11px; color: var(--text-light);
@@ -258,10 +260,10 @@
             to { transform: translateY(0); opacity: 1; }
         }
         .modal-close {
-            float: right; background: var(--gray-light); border: none;
+            float: right; background: #fff; border: 1px solid #000;
             width: 32px; height: 32px; border-radius: 50%;
-            font-size: 18px; cursor: pointer; line-height: 32px;
-            text-align: center; color: var(--text);
+            font-size: 18px; cursor: pointer; line-height: 30px;
+            text-align: center; color: #000;
         }
         .modal-product-img {
             width: 100%; max-height: 260px; object-fit: contain;
@@ -558,9 +560,9 @@
             position: absolute; top: 4px; right: 4px;
             width: 24px; height: 24px;
             display: flex; align-items: center; justify-content: center;
-            background: var(--gray-light); border: none; border-radius: 50%;
+            background: #fff; border: 1px solid #000; border-radius: 50%;
             font-size: 15px; line-height: 1;
-            color: var(--text-light); cursor: pointer;
+            color: #000; cursor: pointer;
             z-index: 5;
         }
         .promo-float-box { position: relative; }
@@ -822,7 +824,7 @@
         <div class="modal-section-title">Momento ideal</div>
         <div class="modal-momento" id="modal-momento"></div>
         <button class="modal-add-btn" onclick="agregarDesdeModal()">Agregar al carrito</button>
-        <button type="button" onclick="cerrarModalProducto()" style="width:100%;margin-top:8px;padding:11px;background:#fff;color:var(--primary);border:1.5px solid var(--primary);box-shadow:inset 0 0 0 1px var(--border);border-radius:var(--radius);font-weight:700;font-size:14px;font-family:var(--font);cursor:pointer;">Cerrar</button>
+        <button type="button" onclick="cerrarModalProducto()" style="width:100%;margin-top:8px;padding:11px;background:#fff;color:#000;border:1.5px solid #000;border-radius:var(--radius);font-weight:700;font-size:14px;font-family:var(--font);cursor:pointer;">Cerrar</button>
     </div>
 </div>
 
@@ -2367,7 +2369,16 @@ function iniciarTienda() {
     aplicarColorTienda(colorElegido, colorFondo, colorContorno, colorNombre, colorPrecio);
 
     // Header
-    const nombre = vendedor.nombre ? (vendedor.nombre + ' ' + (vendedor.apellido || '')).trim() : 'Tienda';
+    const nombreCompletoVendedor = vendedor.nombre ? (vendedor.nombre + ' ' + (vendedor.apellido || '')).trim() : 'Tienda';
+    // 🔧 El banner principal muestra el "Nombre de tu Tienda" que el
+    // revendedor eligió en index.html (viaja embebido en el cfg del
+    // enlace, igual que precios/promos/colores). El nombre y apellido del
+    // revendedor ya no va acá — se muestra dentro del modal de usuario
+    // ("Tienda de: ...").
+    const nombreTiendaConfigurado = (configTienda && configTienda.general && configTienda.general.nombreTienda)
+        ? configTienda.general.nombreTienda
+        : '';
+    const nombre = nombreTiendaConfigurado || nombreCompletoVendedor;
     document.getElementById('header-store-name').textContent = nombre;
     document.getElementById('header-store-sub').textContent = catalogoActual === 'calzados' ? 'Calzados' : catalogoActual === 'belleza' ? 'Belleza y Cuidado Personal' : 'Perfumería';
     document.getElementById('footer-vendor-name').textContent = nombre;
@@ -2383,7 +2394,7 @@ function iniciarTienda() {
         ? 'PERFUMERÍA + MAQUILLAJE'
         : 'Perfumes árabes importados';
     const waHelp = document.getElementById('hero-whatsapp-help');
-    if (waHelp) waHelp.textContent = 'Al finalizar tu pedido envíaselo a ' + (nombre || 'el vendedor') + ' por WhatsApp desde tu carrito.';
+    if (waHelp) waHelp.textContent = 'Al finalizar tu pedido envíaselo a ' + (nombreCompletoVendedor || 'el vendedor') + ' por WhatsApp desde tu carrito.';
 
     // Ocultar loading
     document.getElementById('loading-screen').style.display = 'none';
@@ -3564,6 +3575,12 @@ function abrirInfoTiendaModal() {
     const nombreCompleto = (vendedor && vendedor.nombre) ? (vendedor.nombre + ' ' + (vendedor.apellido || '')).trim() : '';
     const titulo = document.getElementById('infoTiendaTitulo');
     if (titulo) titulo.textContent = 'Tienda de: ' + nombreCompleto;
+    const cuitEl = document.getElementById('infoTiendaCuit');
+    if (cuitEl) {
+        const cuit = vendedor && vendedor.cuitRevendedor;
+        cuitEl.textContent = cuit ? ('Cuit: ' + cuit) : '';
+        cuitEl.style.display = cuit ? '' : 'none';
+    }
     document.getElementById('infoTiendaModal').classList.add('active');
 }
 
@@ -3957,6 +3974,9 @@ enviarPedidoConDatos = async function() {
     <div class="promo-detail-box" style="text-align:center;">
         <button class="promo-float-close" onclick="document.getElementById('infoTiendaModal').classList.remove('active')">×</button>
         <div class="promo-detail-title" id="infoTiendaTitulo" style="margin-bottom:18px;">Tienda de:</div>
+        <div id="infoTiendaCuit" style="font-size:13px;color:var(--text-light);margin-bottom:4px;"></div>
+        <div style="font-size:13px;color:var(--text-light);margin-bottom:16px;">Categoría: Vendedor</div>
+        <div style="font-size:13px;color:var(--text);margin-bottom:10px;">Cualquier duda acá te dejo mi WhatsApp</div>
         <button type="button" class="promo-float-btn primary" style="width:100%;" onclick="contactarRevendedorDesdeInfo()">📲 Contactar por WhatsApp</button>
     </div>
 </div>
