@@ -11766,7 +11766,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // bajo el parámetro "d" — nunca en texto plano, para no exponer el
         // código del revendedor en la URL.
         function construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub, uid) {
-            const prefijo = productoId != null ? '/producto/' : '/tienda/';
             const payload = { tienda: codigo || '', cat: cat || '' };
             if (uid) payload.uid = uid;
             if (sub) payload.sub = sub;
@@ -11779,7 +11778,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 const blob = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
                 qs = '?d=' + blob;
             } catch(_) {}
-            return TIENDA_DOMINIO_PERSONALIZADO + prefijo + encodeURIComponent(slugId) + qs;
+            // 🔧 Mismo motivo que en acortarEnlace: apuntar directo al
+            // archivo real tienda.html, no a una ruta "linda" que depende
+            // de una reescritura de hosting que no se resuelve bien acá.
+            return TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html' + qs;
         }
 
         // Intenta guardar la configuración en el Worker de slugs para poder
@@ -11826,8 +11828,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     const data = await res.json();
                     if (data && (data.slugId || data.slug || data.id)) slugFinal = data.slugId || data.slug || data.id;
                 } catch(_) {}
-                const prefijo = productoId != null ? '/producto/' : '/tienda/';
-                const urlFinal = TIENDA_DOMINIO_PERSONALIZADO + prefijo + encodeURIComponent(slugFinal);
+                // 🔧 FIX DEFINITIVO "tienda no encontrada": antes se armaba
+                // una URL de ruta "linda" (revendeways.shop/tienda/slug) que
+                // depende de que el _redirects del hosting la reescriba a
+                // tienda.html. En este proyecto esa reescritura no se está
+                // resolviendo bien en producción (comprobado con múltiples
+                // pruebas: index.html generaba el link bien, pero al abrirlo
+                // el navegador terminaba en /tienda pelado, sin el slug).
+                // Se vuelve al formato probado que ya funcionaba antes:
+                // un archivo real (tienda.html) + un parámetro de consulta
+                // común (?s=), que no depende de ninguna reescritura de
+                // hosting — el navegador pide exactamente ese archivo con
+                // exactamente esos parámetros, siempre.
+                const urlFinal = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?s=' + encodeURIComponent(slugFinal);
                 console.log('[enlace] URL CORTA generada:', JSON.stringify(urlFinal), '| slugId original:', JSON.stringify(slugId), '| slugFinal usado:', JSON.stringify(slugFinal));
                 return urlFinal;
             } catch(_e) {
@@ -12827,9 +12840,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generando...'; }
             try {
                 let url = await generarEnlaceCorto(cat);
-                // Mismo sistema de slugs que /tienda/, solo se relabela la
-                // ruta a /promocion/ para que quede claro qué se comparte.
-                url = url.replace(TIENDA_DOMINIO_PERSONALIZADO + '/tienda/', TIENDA_DOMINIO_PERSONALIZADO + '/promocion/');
+                // (el label "/promocion/" en la ruta era solo cosmético;
+                // tienda.html resuelve promociones con el mismo parámetro
+                // "?s=" que usa para la tienda, así que no hace falta nada
+                // más acá — el link ya funciona igual.)
                 if (navigator.share) {
                     try { await navigator.share({ title: 'Mi tienda', url }); return; } catch(_) {}
                 }
@@ -12954,8 +12968,13 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     body: JSON.stringify({ slugId, codigoVendedor, tipo, itemId, categoria: cat })
                 });
                 const slugFinal = (guardado && guardado.slugId) || slugId;
-                const prefijo = tipo === 'combo' ? '/combo/' : '/promocion/';
-                const url = TIENDA_DOMINIO_PERSONALIZADO + prefijo + encodeURIComponent(slugFinal);
+                // 🔧 Mismo motivo que en acortarEnlace/construirEnlaceTienda:
+                // apuntar al archivo real + query param, no a una ruta
+                // "linda" que depende de una reescritura de hosting que acá
+                // no se resuelve de forma confiable. tienda.html ya lee
+                // "cs" (combos) y "s" (promociones) directo del query string.
+                const paramKey = tipo === 'combo' ? 'cs' : 's';
+                const url = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?' + paramKey + '=' + encodeURIComponent(slugFinal);
 
                 if (navigator.share) {
                     try { await navigator.share({ title: 'Mi tienda', url }); return; } catch(_) {}
