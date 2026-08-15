@@ -4069,6 +4069,12 @@
             </div>
 
             <div style="background:var(--gray-light);border-radius:var(--radius);padding:12px;margin-bottom:16px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">🏪 Nombre de tu Tienda</label>
+                <input type="text" id="config-nombre-tienda" maxlength="60" placeholder="Ej: Perfumería Nico" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:14px;box-sizing:border-box;">
+                <div style="font-size:11px;color:var(--text-light);margin-top:4px;">Este nombre es el que van a ver tus clientes al entrar a tu tienda</div>
+            </div>
+
+            <div style="background:var(--gray-light);border-radius:var(--radius);padding:12px;margin-bottom:16px;">
                 <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Color principal de tu tienda</label>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap;">
                     <input type="hidden" id="config-color-tienda" value="#0066ff">
@@ -10095,6 +10101,9 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 renderDatoSeguro('whatsapp');
                 renderDatoSeguro('cuit');
                 cargarDatosSeguridadVendedor();
+                // Prellenar nombre de tienda ya guardado para esta categoría (si hay)
+                const nombreTiendaInput = document.getElementById('config-nombre-tienda');
+                if (nombreTiendaInput) nombreTiendaInput.value = (config && config.nombreTienda) ? config.nombreTienda : '';
                 // Cargar color de tienda (por categoría)
                 let savedColor = '#0066FF';
                 try {
@@ -10261,9 +10270,17 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // Color de tienda (por categoría)
             const colorInputEarly = (document.getElementById('config-color-tienda-hex').value || '#0066FF').toUpperCase();
             const colorTiendaCat = /^#[0-9A-F]{6}$/.test(colorInputEarly) ? colorInputEarly : '#0066FF';
-            // Pedir nombre de la tienda al revendedor
+            // Nombre de la tienda: ahora se pide en el campo visible del
+            // panel, ubicado antes del selector de color. Si por algún
+            // motivo quedó vacío, se usa el modal de respaldo que ya
+            // existía, para no perder nunca la posibilidad de nombrarla.
             const allConfigPrev = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
             const prevNombre = (allConfigPrev[cat] && allConfigPrev[cat].nombreTienda) ? allConfigPrev[cat].nombreTienda : '';
+            const nombreDelCampo = (document.getElementById('config-nombre-tienda')?.value || '').trim();
+            if (nombreDelCampo) {
+                const nombreTienda = nombreDelCampo.slice(0, 60);
+                return Promise.resolve(_finalizarGuardarConfigTienda(cat, rangos, colorTiendaCat, nombreTienda, allConfigPrev));
+            }
             // Pedir nombre con modal profesional (reemplaza prompt)
             return (window.pedirNombreTiendaModal ? window.pedirNombreTiendaModal(prevNombre) : Promise.resolve(prompt('Ponele un nombre a esta tienda:', prevNombre || '')))
                 .then((nombreInput) => {
