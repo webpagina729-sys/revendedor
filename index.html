@@ -11827,11 +11827,15 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     if (data && (data.slugId || data.slug || data.id)) slugFinal = data.slugId || data.slug || data.id;
                 } catch(_) {}
                 const prefijo = productoId != null ? '/producto/' : '/tienda/';
-                return TIENDA_DOMINIO_PERSONALIZADO + prefijo + encodeURIComponent(slugFinal);
+                const urlFinal = TIENDA_DOMINIO_PERSONALIZADO + prefijo + encodeURIComponent(slugFinal);
+                console.log('[enlace] URL CORTA generada:', JSON.stringify(urlFinal), '| slugId original:', JSON.stringify(slugId), '| slugFinal usado:', JSON.stringify(slugFinal));
+                return urlFinal;
             } catch(_e) {
                 // Sin red / Worker caído / timeout: enlace largo como respaldo.
                 console.warn('[enlace] Cayó al enlace largo de respaldo. Motivo:', _e && _e.message);
-                return construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub, uid);
+                const urlRespaldo = construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub, uid);
+                console.log('[enlace] URL LARGA de respaldo generada:', JSON.stringify(urlRespaldo), '| slugId:', JSON.stringify(slugId), '| codigo:', JSON.stringify(codigo));
+                return urlRespaldo;
             }
         }
 
@@ -11940,6 +11944,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generando...'; }
             try {
                 const url = await generarEnlaceProducto(catalogoRutaCompleta(catalogo), productId);
+                console.log('[index] compartirTiendaDesdeProducto — URL a copiar:', JSON.stringify(url), '| productId recibido:', JSON.stringify(productId));
                 if (navigator.share) {
                     try {
                         await navigator.share({ title: 'Mi tienda', url });
