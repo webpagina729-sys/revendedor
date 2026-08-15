@@ -3267,7 +3267,15 @@ function registrarAceptacionLegales(pedidoId, nombre, apellido, telefono, codigo
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
-        }).catch(function(e) { console.error('No se pudo registrar la aceptación de legales:', e); });
+        }).then(function(r) {
+            return r.json().catch(function(){ return null; }).then(function(data) {
+                if (!r.ok) {
+                    console.error('[legales] El worker respondió con error:', r.status, data);
+                } else {
+                    console.log('[legales] Aceptación guardada correctamente:', data);
+                }
+            });
+        }).catch(function(e) { console.error('[legales] No se pudo contactar al worker (red/CORS):', e); });
     } catch (e) {
         console.error('Error preparando la aceptación de legales:', e);
     }
