@@ -10491,6 +10491,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         function vistaPreviaTienda() {
             const inputEl = document.getElementById('verTiendaEnlace');
             if (inputEl.disabled) return;
+            console.log('[index] Abriendo vista previa con esta URL exacta:', JSON.stringify(inputEl.value));
             window.open(inputEl.value, '_blank');
         }
 
