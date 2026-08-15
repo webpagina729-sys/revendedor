@@ -6603,7 +6603,7 @@
                     if (codigo) {
                         localStorage.setItem('codigoVendedorLocal', codigo);
                         window.currentUser = { ...(window.currentUser || {}), uid: uidActual, email: usuarioActual?.email || data.email || window.currentUser?.email || '', ...data, codigoVendedor: codigo };
-                        console.log('✅ Código obtenido desde Firebase UID:', codigo);
+                        console.log('✅ Código de revendedor obtenido desde Firebase UID (oculto por privacidad)');
                         return codigo;
                     }
                 }
@@ -6638,7 +6638,7 @@
                 }
 
                 let codigoRevendedorValido = await getCodigoVendedorActual();
-                console.log('🏷️ [CHECKOUT] Código vendedor:', codigoRevendedorValido);
+                console.log('🏷️ [CHECKOUT] Código de vendedor presente (oculto por privacidad)');
 
                 const checkout = {
                     nombre: document.getElementById('checkout-nombre').value.trim(),
@@ -10904,7 +10904,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
             // Aplica los datos del revendedor a toda la página
             async function bvAplicarDatos(codigo, userData) {
-                console.log("[APP] bvAplicarDatos iniciado", { codigo: codigo, userData: userData });
+                console.log("[APP] bvAplicarDatos iniciado");
 
                 // 🔧 FIX: si el navegador tenía cacheado un código de OTRO
                 // revendedor (ej: se borró la base de datos y se volvió a
@@ -10987,7 +10987,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     configTienda:       userData.configTienda || null,
                 };
                 window.codigoValidado = true;
-                console.log("[APP] window.currentUser seteado:", window.currentUser);
+                console.log("[APP] window.currentUser seteado");
 
                 // FIX: mostrar cinta negra superior tras login con código
                 try {
@@ -11094,7 +11094,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 var lbl    = document.getElementById('bv-btn-lbl');
                 var spin   = document.getElementById('bv-spin');
                 var codigo = (input.value || '').trim().toUpperCase();
-                console.log("[LOGIN] Código ingresado:", codigo);
+                console.log("[LOGIN] Código ingresado (oculto por privacidad)");
 
                 errEl.textContent = '';
                 errEl.classList.remove('show');
@@ -11168,7 +11168,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     return;
                 }
 
-                console.log("[LOGIN] Datos usuario:", userData);
+                console.log("[LOGIN] Datos de usuario recibidos correctamente (oculto por privacidad)");
 
                 // 3. Aplicar datos y cerrar modal
                 console.log("[LOGIN] Ejecutando bvAplicarDatos()");
@@ -11847,7 +11847,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 // Sin red / Worker caído / timeout: enlace largo como respaldo.
                 console.warn('[enlace] Cayó al enlace largo de respaldo. Motivo:', _e && _e.message);
                 const urlRespaldo = construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub, uid);
-                console.log('[enlace] URL LARGA de respaldo generada:', JSON.stringify(urlRespaldo), '| slugId:', JSON.stringify(slugId), '| codigo:', JSON.stringify(codigo));
+                console.log('[enlace] URL LARGA de respaldo generada:', JSON.stringify(urlRespaldo), '| slugId:', JSON.stringify(slugId));
                 return urlRespaldo;
             }
         }
