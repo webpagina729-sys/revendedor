@@ -7564,6 +7564,22 @@
         function initializeUserSession(userData, authUser) {
             if (!authUser) return;
 
+            // 🔧 FIX: mismo problema que en bvAplicarDatos — si este
+            // navegador tenía cacheado el uid de OTRA cuenta (se borró la
+            // base y se volvió a registrar, por ejemplo), el localStorage
+            // de esa cuenta vieja no debe mezclarse con la cuenta
+            // recién autenticada. Sólo se limpia si el uid autenticado
+            // ahora es DISTINTO al último que usó este navegador — el
+            // caso normal (recargar la página con la misma cuenta) no se
+            // toca en absoluto.
+            const uidLocalPrevio = localStorage.getItem('uidVendedorLocal');
+            if (uidLocalPrevio && uidLocalPrevio !== authUser.uid) {
+                ['codigoVendedorLocal','codigoRevendedorValidado','codigoRevendedorValidadoFecha',
+                 'configTiendaAll','configTienda','preciosManualCat','promocionesTienda',
+                 'coloresTiendaPorCat','coloresExtraTienda','whatsappRevendedor'].forEach(k => localStorage.removeItem(k));
+            }
+            localStorage.setItem('uidVendedorLocal', authUser.uid);
+
             // Si no hay datos de Firestore, crear objeto mínimo
             const safeUserData = userData || {
                 nombre: authUser.email.split('@')[0],
@@ -10888,6 +10904,21 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // Aplica los datos del revendedor a toda la página
             async function bvAplicarDatos(codigo, userData) {
                 console.log("[APP] bvAplicarDatos iniciado", { codigo: codigo, userData: userData });
+
+                // 🔧 FIX: si el navegador tenía cacheado un código de OTRO
+                // revendedor (ej: se borró la base de datos y se volvió a
+                // registrar, o alguien más usó este mismo dispositivo antes),
+                // el MERGE de más abajo terminaba arrastrando la configuración
+                // de la cuenta vieja a la cuenta nueva. Antes de aplicar nada,
+                // si el código que se está por loguear no es el mismo que ya
+                // estaba cacheado, se limpia el caché específico de tienda
+                // para que no se mezclen datos de dos cuentas distintas.
+                const codigoCacheadoPrevio = localStorage.getItem('codigoVendedorLocal');
+                if (codigoCacheadoPrevio && codigoCacheadoPrevio.toUpperCase() !== String(codigo).toUpperCase()) {
+                    ['configTiendaAll','configTienda','preciosManualCat','promocionesTienda',
+                     'coloresTiendaPorCat','coloresExtraTienda','whatsappRevendedor'].forEach(k => localStorage.removeItem(k));
+                }
+
                 localStorage.setItem(BV_KEY, codigo);
                 localStorage.setItem(BV_FECHA, Date.now().toString());
                 localStorage.setItem('codigoRevendedorValidado', codigo);
