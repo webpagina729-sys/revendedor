@@ -2685,6 +2685,59 @@
             transform: scale(0.98);
         }
 
+        /* BOTÓN: VER MÁS CATEGORÍAS */
+        .ver-mas-categorias-wrap {
+            width: 100%;
+            margin-top: 8px;
+        }
+        .ver-mas-categorias-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            background: #0a0a0a;
+            color: #ffffff;
+            border: 1px solid #000;
+            border-radius: var(--radius);
+            padding: 14px 20px;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: clamp(14px, 3.6vw, 17px);
+            letter-spacing: .3px;
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            animation: verMasPulse 2.2s ease-in-out infinite;
+            transition: transform .15s ease;
+        }
+        .ver-mas-categorias-btn:hover {
+            transform: translateY(-2px);
+        }
+        .ver-mas-categorias-btn .vm-arrow {
+            display: inline-block;
+            animation: verMasArrow 1.4s ease-in-out infinite;
+        }
+        @keyframes verMasPulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(255,255,255,.35), 0 4px 14px rgba(0,0,0,.35);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(255,255,255,0), 0 4px 20px rgba(0,0,0,.45);
+            }
+        }
+        @keyframes verMasArrow {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(4px); }
+        }
+        @media (max-width: 768px) {
+            .ver-mas-categorias-btn {
+                padding: 13px 16px;
+                font-size: 14px;
+            }
+        }
+
         /* MODAL: VALIDACIÓN CÓDIGO */
         .codigo-modal {
             position: fixed;
@@ -3341,6 +3394,13 @@
                     <div class="nicho-badge">💰 Monto mínimo: 12 productos</div>
                     <button class="nicho-button" onclick="abrirModalCodigoCalzados()">Comenzar próximo pedido en este lugar</button>
                 </div>
+            </div>
+
+            <!-- BOTÓN: VER MÁS CATEGORÍAS -->
+            <div class="ver-mas-categorias-wrap">
+                <a class="ver-mas-categorias-btn" href="mas-categorias.html">
+                    Ver más categorías <span class="vm-arrow">→</span>
+                </a>
             </div>
         </div>
     </section>
