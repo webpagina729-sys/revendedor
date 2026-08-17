@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Más categorías | Revende Ways</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary: #0066ff;
+        --primary-light: #0052cc;
+        --bg: #f9fafb;
+        --surface: #ffffff;
+        --text: #1a1a1a;
+        --text-light: #666;
+        --border: #e5e5e5;
+        --gray-light: #f3f4f6;
+        --success: #00a650;
+        --radius: 8px;
+        --font-display: 'DM Sans', sans-serif;
+        --font-body: 'DM Sans', sans-serif;
+        --shadow: 0 1px 3px rgba(0,0,0,.08);
+        --shadow-lg: 0 4px 12px rgba(0,0,0,.12);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-body);
+        font-size: 15px;
+        line-height: 1.6;
+        overflow-x: hidden;
+    }
+
+    /* HEADER TOP BAR (idéntico a index.html) */
+    .header-top {
+        position: sticky;
+        top: 0;
+        z-index: 900;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 12px 16px;
+        box-shadow: var(--shadow);
+        overflow-x: hidden;
+    }
+    .header-top-inner {
+        max-width: 100%;
+        margin: 0;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .logo {
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 18px;
+        color: var(--text);
+        text-decoration: none;
+    }
+    .top-ribbon {
+        display: block;
+        background: #1a1a1a;
+        padding: 8px 16px;
+        text-align: center;
+    }
+    .ribbon-content {
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        row-gap: 6px;
+    }
+    .ribbon-option {
+        color: #999;
+        font-size: 12px;
+        cursor: pointer;
+        transition: color 0.2s;
+        text-decoration: none;
+        border: none;
+        background: none;
+        padding: 0;
+        font-family: var(--font-body);
+        white-space: nowrap;
+    }
+    .ribbon-option:hover { color: white; }
+    .ribbon-divider { color: #444; font-size: 12px; }
+
+    /* HERO BANNER (idéntico a index.html) */
+    .banner {
+        background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+        padding: 40px 16px;
+        border-bottom: 1px solid var(--border);
+    }
+    .banner-inner {
+        max-width: 100%;
+        margin: 0 16px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        align-items: center;
+        gap: 24px;
+    }
+    .banner-subtitle {
+        font-size: clamp(9px, 2.3vw, 14px);
+        color: var(--text-light);
+        text-align: center;
+        max-width: 100%;
+    }
+    .banner-badge {
+        background: var(--primary);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+        max-width: 300px;
+    }
+
+    /* CARRUSEL (idéntico a index.html) */
+    .carrusel-container {
+        position: relative;
+        width: 100%;
+        height: 220px;
+        margin-bottom: 16px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--gray-light);
+    }
+    .carrusel-wrapper {
+        display: flex;
+        height: 100%;
+        transition: transform 0.5s ease;
+    }
+    .carrusel-slide {
+        min-width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .carrusel-slide img {
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+    }
+    .carrusel-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        font-size: 20px;
+        font-weight: 300;
+        color: #666;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2px 4px;
+        transition: color 0.2s;
+        z-index: 10;
+        background: none !important;
+        border: none !important;
+        outline: 0 !important;
+        box-shadow: none !important;
+    }
+    .carrusel-nav:hover { color: #333; background: none !important; }
+    .carrusel-prev { left: 12px; }
+    .carrusel-next { right: 12px; }
+    .carrusel-dots {
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 4px;
+        z-index: 10;
+    }
+    .carrusel-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        padding: 0;
+    }
+    .carrusel-dot.active {
+        background: white;
+        width: 20px;
+        border-radius: 3px;
+    }
+    @media (max-width: 768px) {
+        .carrusel-container { height: 160px; }
+    }
+
+    .volver-inicio-bar {
+        background: var(--gray-light);
+        border-bottom: 1px solid var(--border);
+        padding: 10px 16px;
+        text-align: center;
+    }
+    .volver-inicio-bar a {
+        color: var(--primary);
+        font-weight: 600;
+        font-size: 14px;
+        text-decoration: none;
+    }
+    .sesion-aviso {
+        max-width: 640px;
+        margin: 14px auto 0;
+        padding: 12px 16px;
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+        border-radius: var(--radius);
+        color: #9a3412;
+        font-size: 13.5px;
+        text-align: center;
+        display: none;
+    }
+    .sesion-aviso a { color: #9a3412; font-weight: 700; }
+
+    /* NICHOS SECTION (mismos nombres de clase que index.html) */
+    .nichos-section {
+        background: var(--surface);
+        padding: 60px 16px;
+        border-bottom: 1px solid var(--border);
+    }
+    .nichos-section-inner {
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 40px;
+    }
+    .nichos-pretitle {
+        text-align: center;
+        font-weight: 600;
+        color: var(--text);
+        max-width: 640px;
+        margin: 0 auto 14px;
+        font-size: clamp(14px,3.6vw,17px);
+        line-height: 1.4;
+    }
+    .nichos-title {
+        background: linear-gradient(135deg,#1B7F3D,#2BA84F);
+        color: #fff;
+        padding: 14px 20px;
+        border-radius: 10px;
+        display: block;
+        box-shadow: 0 4px 12px rgba(27,127,61,.25);
+        text-align: center;
+        max-width: 100%;
+        font-size: clamp(16px,4.5vw,28px);
+        font-family: var(--font-display);
+        margin-bottom: 32px;
+    }
+    .nicho-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 22px;
+        margin-bottom: 28px;
+        box-shadow: var(--shadow);
+    }
+    .nicho-info { margin-bottom: 14px; }
+    .nicho-title {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 6px;
+    }
+    .nicho-subtitle {
+        color: var(--text-light);
+        font-size: 14px;
+    }
+    .nicho-subopciones {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 14px 0;
+    }
+    .nicho-subop-btn {
+        background: var(--gray-light);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all .15s;
+    }
+    .nicho-subop-btn.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: #fff;
+    }
+    .nicho-multishop-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 14px 0;
+    }
+    .nicho-multishop-chip {
+        background: var(--gray-light);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 12.5px;
+        font-weight: 600;
+    }
+    .nicho-footer {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 10px;
+    }
+    .nicho-badge {
+        flex: 0 0 auto;
+        background: var(--primary);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 200px;
+        white-space: nowrap;
+    }
+    .nicho-button {
+        flex: 1;
+        background: #22a34a;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    .nicho-button:hover {
+        background: #1a8539;
+        transform: scale(0.98);
+    }
+
+    @media (max-width: 768px) {
+        .nichos-section { padding: 40px 8px; }
+        .nichos-section-inner { padding: 0 8px; }
+        .nichos-title { font-size: 18px; margin-bottom: 32px; }
+        .nicho-item { margin-bottom: 22px; padding: 16px; }
+        .nicho-title { font-size: 18px; }
+        .nicho-subtitle { font-size: 13px; }
+        .nicho-footer { flex-direction: column; gap: 12px; }
+        .nicho-badge { min-width: auto; width: 100%; }
+        .nicho-button { width: 100%; padding: 12px 16px; font-size: 14px; }
+    }
+
+    /* MODAL simple "Próximamente" (placeholder hasta conectar con tienda.html) */
+    .simple-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.55);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .simple-modal-overlay.active { display: flex; }
+    .simple-modal-box {
+        background: #fff;
+        border-radius: 14px;
+        max-width: 380px;
+        width: 100%;
+        padding: 26px 22px;
+        text-align: center;
+        box-shadow: var(--shadow-lg);
+    }
+    .simple-modal-box h3 {
+        font-family: var(--font-display);
+        margin-bottom: 10px;
+        font-size: 18px;
+    }
+    .simple-modal-box p {
+        color: var(--text-light);
+        font-size: 14px;
+        margin-bottom: 18px;
+    }
+    .simple-modal-box button {
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        padding: 10px 22px;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body>
+
+    <header class="header-top">
+        <div class="header-top-inner">
+            <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+                <img src="logo.png" alt="Logo Revende Ways" onerror="this.style.display='none'" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid var(--primary);box-shadow:0 2px 8px rgba(0,102,255,.18);">
+                <a class="logo" href="index.html">Revende Ways</a>
+            </div>
+            <div id="saludo-revendedor" style="font-size:13px;font-weight:600;color:var(--text-light);"></div>
+        </div>
+    </header>
+
+    <div class="top-ribbon">
+        <div class="ribbon-content">
+            <a class="ribbon-option" href="index.html">Inicio</a>
+            <span class="ribbon-divider">•</span>
+            <a class="ribbon-option" href="index.html">Perfil</a>
+            <span class="ribbon-divider">•</span>
+            <a class="ribbon-option" href="index.html">Guía rápida</a>
+        </div>
+    </div>
+
+    <!-- HERO BANNER (idéntico a index.html) -->
+    <section class="banner">
+        <div class="banner-inner">
+            <p class="banner-subtitle">Revende con nosotros. Te damos tu tienda lista para comenzar con +500 productos.</p>
+            <div class="banner-badge">📦 Pedido mínimo en la categoría- Precio solo para revendedores</div>
+        </div>
+    </section>
+
+    <div id="sesion-aviso" class="sesion-aviso">
+        No encontramos tu sesión de revendedor activa. <a href="index.html">Volvé al inicio para ingresar tu código</a> antes de armar tu próximo pedido.
+    </div>
+
+    <section class="nichos-section" id="nichos-section">
+        <div class="nichos-section-inner">
+            <p class="nichos-pretitle">Más rubros para sumar a tu catálogo de reventa</p>
+            <h2 class="nichos-title">¿Qué categoría querés ver ahora?</h2>
+
+            <!-- NICHO: BAZAR -->
+            <div class="nicho-item">
+                <div class="nicho-info">
+                    <h3 class="nicho-title">Bazar</h3>
+                    <p class="nicho-subtitle">Productos para el hogar, bazar de reventa</p>
+                </div>
+                <div class="carrusel-container" id="carrusel-container-bazar">
+                    <div class="carrusel-wrapper" id="carrusel-wrapper-bazar"></div>
+                    <button class="carrusel-nav carrusel-prev" onclick="carruselAnteriorCat('bazar')" title="Anterior">‹</button>
+                    <button class="carrusel-nav carrusel-next" onclick="carruselSiguienteCat('bazar')" title="Siguiente">›</button>
+                    <div class="carrusel-dots" id="carrusel-dots-bazar"></div>
+                </div>
+                <div class="nicho-subopciones" data-grupo="bazar">
+                    <button class="nicho-subop-btn active" data-valor="todos">Todos</button>
+                    <button class="nicho-subop-btn" data-valor="bazar">Bazar</button>
+                    <button class="nicho-subop-btn" data-valor="melamina">Vajilla de Melamina</button>
+                </div>
+                <div class="nicho-footer">
+                    <div class="nicho-badge">💰 Monto mínimo: $150.000</div>
+                    <button class="nicho-button" onclick="comenzarPedido('bazar')">Comenzar próximo pedido en este lugar</button>
+                </div>
+            </div>
+
+            <!-- NICHO: JUGUETERÍA -->
+            <div class="nicho-item">
+                <div class="nicho-info">
+                    <h3 class="nicho-title">Juguetería</h3>
+                    <p class="nicho-subtitle">Productos de juguetería, reventa</p>
+                </div>
+                <div class="carrusel-container" id="carrusel-container-jugueteria">
+                    <div class="carrusel-wrapper" id="carrusel-wrapper-jugueteria"></div>
+                    <button class="carrusel-nav carrusel-prev" onclick="carruselAnteriorCat('jugueteria')" title="Anterior">‹</button>
+                    <button class="carrusel-nav carrusel-next" onclick="carruselSiguienteCat('jugueteria')" title="Siguiente">›</button>
+                    <div class="carrusel-dots" id="carrusel-dots-jugueteria"></div>
+                </div>
+                <div class="nicho-subopciones" data-grupo="jugueteria">
+                    <button class="nicho-subop-btn active" data-valor="todos">Todos</button>
+                    <button class="nicho-subop-btn" data-valor="juguetes">Juguetes</button>
+                    <button class="nicho-subop-btn" data-valor="peluches">Peluches</button>
+                </div>
+                <div class="nicho-footer">
+                    <div class="nicho-badge">💰 Monto mínimo: $150.000</div>
+                    <button class="nicho-button" onclick="comenzarPedido('jugueteria')">Comenzar próximo pedido en este lugar</button>
+                </div>
+            </div>
+
+            <!-- NICHO: LIBRERÍA -->
+            <div class="nicho-item">
+                <div class="nicho-info">
+                    <h3 class="nicho-title">Librería</h3>
+                    <p class="nicho-subtitle">Artículos de librería, reventa</p>
+                </div>
+                <div class="carrusel-container" id="carrusel-container-libreria">
+                    <div class="carrusel-wrapper" id="carrusel-wrapper-libreria"></div>
+                    <button class="carrusel-nav carrusel-prev" onclick="carruselAnteriorCat('libreria')" title="Anterior">‹</button>
+                    <button class="carrusel-nav carrusel-next" onclick="carruselSiguienteCat('libreria')" title="Siguiente">›</button>
+                    <div class="carrusel-dots" id="carrusel-dots-libreria"></div>
+                </div>
+                <div class="nicho-footer">
+                    <div class="nicho-badge">💰 Monto mínimo: $150.000</div>
+                    <button class="nicho-button" onclick="comenzarPedido('libreria')">Comenzar próximo pedido en este lugar</button>
+                </div>
+            </div>
+
+            <!-- NICHO: MULTISHOP -->
+            <div class="nicho-item">
+                <div class="nicho-info">
+                    <h3 class="nicho-title">Multishop</h3>
+                    <p class="nicho-subtitle">Todo en un solo pedido: Belleza y cuidado personal, Bazar, Juguetería, Librería + Electrónicos</p>
+                </div>
+                <div class="carrusel-container" id="carrusel-container-multishop">
+                    <div class="carrusel-wrapper" id="carrusel-wrapper-multishop"></div>
+                    <button class="carrusel-nav carrusel-prev" onclick="carruselAnteriorCat('multishop')" title="Anterior">‹</button>
+                    <button class="carrusel-nav carrusel-next" onclick="carruselSiguienteCat('multishop')" title="Siguiente">›</button>
+                    <div class="carrusel-dots" id="carrusel-dots-multishop"></div>
+                </div>
+                <div class="nicho-multishop-list">
+                    <span class="nicho-multishop-chip">Belleza y Cuidado Personal</span>
+                    <span class="nicho-multishop-chip">Bazar</span>
+                    <span class="nicho-multishop-chip">Juguetería</span>
+                    <span class="nicho-multishop-chip">Librería</span>
+                    <span class="nicho-multishop-chip">Electrónicos</span>
+                </div>
+                <div class="nicho-footer">
+                    <div class="nicho-badge">💰 Monto mínimo: $250.000</div>
+                    <button class="nicho-button" onclick="comenzarPedido('multishop')">Comenzar próximo pedido en este lugar</button>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- MODAL PLACEHOLDER -->
+    <div class="simple-modal-overlay" id="proximamente-modal">
+        <div class="simple-modal-box">
+            <h3>¡Ya casi está lista! 🛠️</h3>
+            <p>El catálogo de esta categoría se está terminando de conectar con la tienda. Muy pronto vas a poder armar tu pedido acá mismo.</p>
+            <button onclick="document.getElementById('proximamente-modal').classList.remove('active')">Entendido</button>
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        // CARRUSELES (misma lógica/markup que index.html: wrapper + dots +
+        // nav prev/next + autoplay). Un carrusel independiente por nicho.
+        // ═══════════════════════════════════════════════════════════════
+        const BAZAR_REPO_BASE = "https://raw.githubusercontent.com/webpagina729-sys/Bazar/main/";
+        const JUGUETES_REPO_BASE = "https://raw.githubusercontent.com/webpagina729-sys/Juguetes/main/";
+        const LIBRERIA_REPO_BASE = "https://raw.githubusercontent.com/webpagina729-sys/Librer-a/main/";
+        const ELECTRONICO_REPO_BASE = "https://raw.githubusercontent.com/webpagina729-sys/Electronico/main/";
+        const MAQUILLAJE_REPO_BASE = "https://raw.githubusercontent.com/webpagina729-sys/Maquillaje/main/";
+
+        const carruselesConfig = {
+            bazar: {
+                base: BAZAR_REPO_BASE,
+                imagenes: ["bolwcera.png", "cucharagrande.png", "cubeteraparacubitosc.png", "batidor.png", "lamparaspacecapsulec.png"]
+            },
+            jugueteria: {
+                base: JUGUETES_REPO_BASE,
+                imagenes: ["avionlisto.png", "camara.png", "die.png", "beautychildrens.png", "avion.png", "beautypretty.png"]
+            },
+            libreria: {
+                base: LIBRERIA_REPO_BASE,
+                imagenes: ["cuadernowb.png", "arosmetalicos.png", "lapizfaber.png", "lapizcorrector.png", "reglasgeometricasm.png"]
+            },
+            multishop: {
+                // Multishop combina imágenes de varios repos (belleza, bazar, juguetería, electrónicos)
+                imagenes: [
+                    { archivo: "mascarag.png", base: MAQUILLAJE_REPO_BASE },
+                    { archivo: "peluchecande.png", base: JUGUETES_REPO_BASE },
+                    { archivo: "cargadordeauto.png", base: ELECTRONICO_REPO_BASE },
+                    { archivo: "almohadagato.png", base: JUGUETES_REPO_BASE },
+                    { archivo: "delineadorj.png", base: MAQUILLAJE_REPO_BASE },
+                    { archivo: "vasozsb.png", base: BAZAR_REPO_BASE },
+                    { archivo: "humificadorxiaoxuesh.png", base: BAZAR_REPO_BASE }
+                ]
+            }
+        };
+
+        const carruselEstado = {}; // { bazar: {indice, total, timer} }
+
+        function normalizarSlides(cat, cfg) {
+            if (Array.isArray(cfg.imagenes) && cfg.imagenes.length && typeof cfg.imagenes[0] === 'string') {
+                return cfg.imagenes.map(archivo => cfg.base + archivo);
+            }
+            return cfg.imagenes.map(item => item.base + item.archivo);
+        }
+
+        function inicializarCarruselCat(cat) {
+            const cfg = carruselesConfig[cat];
+            if (!cfg) return;
+            const urls = normalizarSlides(cat, cfg);
+            const wrapper = document.getElementById('carrusel-wrapper-' + cat);
+            const dots = document.getElementById('carrusel-dots-' + cat);
+            if (!wrapper || !dots) return;
+
+            wrapper.innerHTML = '';
+            dots.innerHTML = '';
+
+            urls.forEach((url, i) => {
+                const slide = document.createElement('div');
+                slide.className = 'carrusel-slide';
+                slide.innerHTML = `<img src="${url}" alt="${cat}" loading="lazy" onerror="this.parentElement.style.display='none'">`;
+                wrapper.appendChild(slide);
+
+                const dot = document.createElement('button');
+                dot.className = 'carrusel-dot' + (i === 0 ? ' active' : '');
+                dot.onclick = () => irASlideCat(cat, i);
+                dots.appendChild(dot);
+            });
+
+            carruselEstado[cat] = { indice: 0, total: urls.length, timer: null };
+            actualizarCarruselCat(cat);
+
+            // Autoplay, igual que en index.html
+            if (carruselEstado[cat].timer) clearInterval(carruselEstado[cat].timer);
+            carruselEstado[cat].timer = setInterval(() => carruselSiguienteCat(cat), 3500);
+        }
+
+        function actualizarCarruselCat(cat) {
+            const estado = carruselEstado[cat];
+            if (!estado) return;
+            const wrapper = document.getElementById('carrusel-wrapper-' + cat);
+            if (wrapper) wrapper.style.transform = `translateX(${estado.indice * -100}%)`;
+            document.querySelectorAll('#carrusel-dots-' + cat + ' .carrusel-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === estado.indice);
+            });
+        }
+
+        function carruselAnteriorCat(cat) {
+            const estado = carruselEstado[cat];
+            if (!estado || estado.total === 0) return;
+            estado.indice = (estado.indice - 1 + estado.total) % estado.total;
+            actualizarCarruselCat(cat);
+        }
+
+        function carruselSiguienteCat(cat) {
+            const estado = carruselEstado[cat];
+            if (!estado || estado.total === 0) return;
+            estado.indice = (estado.indice + 1) % estado.total;
+            actualizarCarruselCat(cat);
+        }
+
+        function irASlideCat(cat, i) {
+            const estado = carruselEstado[cat];
+            if (!estado) return;
+            estado.indice = i;
+            actualizarCarruselCat(cat);
+        }
+
+        Object.keys(carruselesConfig).forEach(inicializarCarruselCat);
+
+        // Sesión compartida vía localStorage (mismo dominio que index.html)
+        (function () {
+            const codigo = localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado');
+            const saludo = document.getElementById('saludo-revendedor');
+            const aviso = document.getElementById('sesion-aviso');
+            if (codigo) {
+                if (saludo) saludo.textContent = 'Código: ' + codigo;
+            } else {
+                if (aviso) aviso.style.display = 'block';
+            }
+        })();
+
+        // Toggle visual de sub-opciones (Todos / Bazar / Vajilla de Melamina, etc.)
+        document.querySelectorAll('.nicho-subopciones').forEach(function (grupo) {
+            grupo.addEventListener('click', function (e) {
+                const btn = e.target.closest('.nicho-subop-btn');
+                if (!btn) return;
+                grupo.querySelectorAll('.nicho-subop-btn').forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+            });
+        });
+
+        // Punto de entrada al catálogo de cada categoría.
+        // La conexión completa con tienda.html (productos, precios editables
+        // y generación de enlace para compartir) se conecta en el próximo paso.
+        function comenzarPedido(categoria) {
+            const codigo = localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado');
+            if (!codigo) {
+                window.location.href = 'index.html';
+                return;
+            }
+            document.getElementById('proximamente-modal').classList.add('active');
+        }
+    </script>
+
+</body>
+</html>
