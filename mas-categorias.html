@@ -543,15 +543,6 @@
         </div>
     </section>
 
-    <!-- MODAL PLACEHOLDER -->
-    <div class="simple-modal-overlay" id="proximamente-modal">
-        <div class="simple-modal-box">
-            <h3>¡Ya casi está lista! 🛠️</h3>
-            <p>El catálogo de esta categoría se está terminando de conectar con la tienda. Muy pronto vas a poder armar tu pedido acá mismo.</p>
-            <button onclick="document.getElementById('proximamente-modal').classList.remove('active')">Entendido</button>
-        </div>
-    </div>
-
     <script>
         // ═══════════════════════════════════════════════════════════════
         // CARRUSELES (misma lógica/markup que index.html: wrapper + dots +
@@ -685,16 +676,17 @@
             });
         });
 
-        // Punto de entrada al catálogo de cada categoría.
-        // La conexión completa con tienda.html (productos, precios editables
-        // y generación de enlace para compartir) se conecta en el próximo paso.
+        // Punto de entrada al catálogo de cada categoría: abre tienda.html
+        // con el código del revendedor y la categoría elegida, igual que
+        // hace index.html con perfumes/calzados/belleza.
         function comenzarPedido(categoria) {
             const codigo = localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado');
             if (!codigo) {
                 window.location.href = 'index.html';
                 return;
             }
-            document.getElementById('proximamente-modal').classList.add('active');
+            const url = 'tienda.html?tienda=' + encodeURIComponent(codigo) + '&cat=' + encodeURIComponent(categoria);
+            window.open(url, '_blank');
         }
     </script>
 
