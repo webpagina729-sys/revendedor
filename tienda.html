@@ -997,6 +997,192 @@ const BASE_IMAGE_URL = window.location.origin + '/';
         }
 
 const MAQUILLAJE_REPO_BASE = "https://raw.githubusercontent.com/webpagina729-sys/Maquillaje/main/";
+const BAZAR_REPO_BASE = "https://raw.githubusercontent.com/webpagina729-sys/Bazar/main/";
+const JUGUETES_REPO_BASE = "https://raw.githubusercontent.com/webpagina729-sys/Juguetes/main/";
+const LIBRERIA_REPO_BASE = "https://raw.githubusercontent.com/webpagina729-sys/Librer-a/main/";
+const ELECTRONICO_REPO_BASE = "https://raw.githubusercontent.com/webpagina729-sys/Electronico/main/";
+
+const ELECTRONICOS_DATA = [
+{ id: 65000, nombre: "CABLE TYPE C USB PUXIDA E-36 3A", imagen: ELECTRONICO_REPO_BASE + "cabletypecusbpuxidae.png", precio: 3400, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65001, nombre: "3IN1 6A PUXIDA E-50 CABLE", imagen: ELECTRONICO_REPO_BASE + "inapuxidaecable.png", precio: 5800, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65002, nombre: "FAST CHARGER TYPE C PUXIDA DK-30", imagen: ELECTRONICO_REPO_BASE + "puxi.png", precio: 5200, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65003, nombre: "BEST CHARGER IPHONE 4.2A PUXIDA DK-45", imagen: ELECTRONICO_REPO_BASE + "phoneapu.png", precio: 6300, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65004, nombre: "BEST CHARGER MICRO PUXIDA AZUL 2.1A DK-23", imagen: ELECTRONICO_REPO_BASE + "micropuxi.png", precio: 4600, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65005, nombre: "SUPER FAST CHARGER 20W TYPE C TO LIGHT DK-50IP", imagen: ELECTRONICO_REPO_BASE + "superfast.png", precio: 13700, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65006, nombre: "CABLE BOROFONE EXTRA DURABLE 6MM", imagen: ELECTRONICO_REPO_BASE + "cableborofone.png", precio: 3400, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65007, nombre: "DATA CABLE 3A MICRO FAST CHARGE PUXIDA", imagen: ELECTRONICO_REPO_BASE + "datacable.png", precio: 2700, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65008, nombre: "CABLE IP A C LIGHTNING 1M A-1703/PG-52", imagen: ELECTRONICO_REPO_BASE + "ipaclight.png", precio: 5200, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65009, nombre: "SMART CHARGER TYPE C PUXIDA DK-40", imagen: ELECTRONICO_REPO_BASE + "smartcharger.png", precio: 6700, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65010, nombre: "20W POWER ADAPTER USB-C A2247 F24", imagen: ELECTRONICO_REPO_BASE + "rusbcaf.png", precio: 14200, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65011, nombre: "CARGADOR DE AUTO DOBLE USB 3.1A PUXIDA G-20", imagen: ELECTRONICO_REPO_BASE + "cargadordeauto.png", precio: 4200, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65012, nombre: "CABLE TYPE C A TYPE C 1M A-2795/PG-57", imagen: ELECTRONICO_REPO_BASE + "catypecma.png", precio: 4800, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65013, nombre: "BEST CHARGER MICRO PUXIDA DK-35V", imagen: ELECTRONICO_REPO_BASE + "bestcharger.png", precio: 5600, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65014, nombre: "CARGADOR PUXIDA DK-41", imagen: ELECTRONICO_REPO_BASE + "ida.png", precio: 5600, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65015, nombre: "CABLE DATA PUXIDA 60W E-24", imagen: ELECTRONICO_REPO_BASE + "cableda.png", precio: 4200, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65016, nombre: "BEST CHARGER MICRO PUXIDA DK-45", imagen: ELECTRONICO_REPO_BASE + "bestcha.png", precio: 6300, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65017, nombre: "CABLE USB A IP 6MM E-75", imagen: ELECTRONICO_REPO_BASE + "cableusb.png", precio: 2500, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65018, nombre: "CARGADOR TYPE C TO C PUXIDA DK-55", imagen: ELECTRONICO_REPO_BASE + "typecto.png", precio: 16300, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65019, nombre: "FAST CHARGER MICRO PUXIDA DK-30V", imagen: ELECTRONICO_REPO_BASE + "puxidk.png", precio: 5000, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65020, nombre: "TRAVEL CHARGER 3.1A PUXIDA DK-31", imagen: ELECTRONICO_REPO_BASE + "travel.png", precio: 4700, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65021, nombre: "CARGADOR TYPE C TO TYPE C 25W PUXIDA DK-33", imagen: ELECTRONICO_REPO_BASE + "typec.png", precio: 15600, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." },
+{ id: 65022, nombre: "FAST CHARGER MICRO PUXIDA DK-09", imagen: ELECTRONICO_REPO_BASE + "fastcha.png", precio: 8900, categoria: "electronicos", caracteristicas: ["Producto electrónico mayorista"], info: "Producto electrónico mayorista." }
+];
+
+const BAZAR_DATA = [
+{ id: 60001, nombre: "PARAGUA PARA NINO C/SILBAR CHYW1098", imagen: BAZAR_REPO_BASE + "paraguaparanino.png", precio: 6600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60002, nombre: "ANTIFAZ AF-12119", imagen: BAZAR_REPO_BASE + "antifaz.png", precio: 3800, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60003, nombre: "DESPERTADOR BUHO QR1628 AF-12472", imagen: BAZAR_REPO_BASE + "despertadorbuho.png", precio: 13300, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60004, nombre: "TIJERA 9.5 SCISSORS AF1000172", imagen: BAZAR_REPO_BASE + "tijera.png", precio: 3300, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60005, nombre: "BATIDOR AF-1000159", imagen: BAZAR_REPO_BASE + "batidor.png", precio: 2700, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60006, nombre: "TIJERA ZINGER AF-2758", imagen: BAZAR_REPO_BASE + "tijerazinger.png", precio: 8600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60007, nombre: "LAMPARA LED AF-11790", imagen: BAZAR_REPO_BASE + "lamparaled.png", precio: 15600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60008, nombre: "CORTINA METALIZADA TIRAS AF-11910", imagen: BAZAR_REPO_BASE + "cortinametalizadatir.png", precio: 2700, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60009, nombre: "ALMOHADA C-3", imagen: BAZAR_REPO_BASE + "almohada.png", precio: 4500, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60010, nombre: "GLOBOS MATE DE 10\" 25 PIEZAS 1632-5", imagen: BAZAR_REPO_BASE + "globosmatede.png", precio: 2300, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60011, nombre: "TUPPER DE CAPYBARA GK025", imagen: BAZAR_REPO_BASE + "tupperdecapybara.png", precio: 16900, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60012, nombre: "TABLA REDONDA C/MANG BAMBOO 28X40CM C6042", imagen: BAZAR_REPO_BASE + "tablaredondacmangbam.png", precio: 27400, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60013, nombre: "ESPEJO OSO AF-12481", imagen: BAZAR_REPO_BASE + "espejooso.png", precio: 9900, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60014, nombre: "DESPERTADOR PANDA CY2203 AF-12462", imagen: BAZAR_REPO_BASE + "despertadorpandacy.png", precio: 13300, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60015, nombre: "CAKE DECORATION MARIPOSA JK570", imagen: BAZAR_REPO_BASE + "cakedecorationmaripo.png", precio: 2300, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60016, nombre: "CAKE DECORATION ESTRELLA JK434", imagen: BAZAR_REPO_BASE + "cakedecorationestrel.png", precio: 4500, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60017, nombre: "CUTLERY BAINUOSHENG CUCHILLO X6 GK070", imagen: BAZAR_REPO_BASE + "cutlerybainuoshengcu.png", precio: 9200, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60018, nombre: "CUTLERY BAINUOSHENG TENEDOR X6 GK071", imagen: BAZAR_REPO_BASE + "cutlerybainuoshengte.png", precio: 6300, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60019, nombre: "CUERDA + BROCHE X12 GK038", imagen: BAZAR_REPO_BASE + "cuerdabrochex.png", precio: 5200, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60020, nombre: "LUCKY TOAST TUUPER DE TOSTADA GK024", imagen: BAZAR_REPO_BASE + "luckytoasttuuperdeto.png", precio: 18100, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60021, nombre: "DELICIOUS TOAST TUPPER DE PAN GK023", imagen: BAZAR_REPO_BASE + "delicioustoasttupper.png", precio: 18600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60022, nombre: "TUPPER CAPYBARA HI HELLO GK018", imagen: BAZAR_REPO_BASE + "tuppercapybarahihell.png", precio: 21400, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60023, nombre: "BOWL CUADRADO", imagen: BAZAR_REPO_BASE + "bowlcuadrado.png", precio: 5600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60024, nombre: "BOWL CUADRADO #1", imagen: BAZAR_REPO_BASE + "bowlcuadradouno.png", precio: 5600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60025, nombre: "BOWL CUADRADO #2", imagen: BAZAR_REPO_BASE + "bowlcuadradodos.png", precio: 5600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60026, nombre: "BOWL CUADRADO #3", imagen: BAZAR_REPO_BASE + "bowlcuadradotres.png", precio: 5600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60027, nombre: "BOWL CUADRADO #4", imagen: BAZAR_REPO_BASE + "bowlcuadradocuatro.png", precio: 5600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60028, nombre: "BOWL CUADRADO #5", imagen: BAZAR_REPO_BASE + "bowlcuadradocinco.png", precio: 5600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60029, nombre: "LAMPARA OSO POLAR T-512 AF-11789", imagen: BAZAR_REPO_BASE + "lamparaosopolart.png", precio: 15600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60030, nombre: "LAMPARA CONEJO OSO COS606", imagen: BAZAR_REPO_BASE + "lamparaconejoosocos.png", precio: 14700, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60031, nombre: "LAMPARA BANERA COS617", imagen: BAZAR_REPO_BASE + "lamparabaneracos.png", precio: 15600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60032, nombre: "LAMPARA AF-11793", imagen: BAZAR_REPO_BASE + "lampara.png", precio: 14500, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60033, nombre: "CORTINA CORAZON AF-11912", imagen: BAZAR_REPO_BASE + "cortinacorazon.png", precio: 3100, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60034, nombre: "BROCHE MADERA MINI MARRON LFFPEG AF10531", imagen: BAZAR_REPO_BASE + "brochemaderaminimarr.png", precio: 2900, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60035, nombre: "GLOBOS DE MACA DE 10\" 25 PIEZAS 1632-6", imagen: BAZAR_REPO_BASE + "globosdemacade.png", precio: 2300, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60036, nombre: "JUEGUETE PARA GATO", imagen: BAZAR_REPO_BASE + "juegueteparagato.png", precio: 3900, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60037, nombre: "JUGUETE PARA GATO AF-13174", imagen: BAZAR_REPO_BASE + "jugueteparagato.png", precio: 3100, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60038, nombre: "JUGUETE RATON PARA GATO AF-13171", imagen: BAZAR_REPO_BASE + "jugueteratonparagato.png", precio: 3100, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60039, nombre: "PINZA PARA PARRILLA RUNTAI GK052", imagen: BAZAR_REPO_BASE + "pinzaparaparrillarun.png", precio: 5700, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60040, nombre: "MANTEL INDIVIDUAL DE SILICONA GK066", imagen: BAZAR_REPO_BASE + "mantelindividualdesi.png", precio: 2100, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60041, nombre: "XMANTEL INDIVIDUAL GK068 X2UNIDADES", imagen: BAZAR_REPO_BASE + "xmantelindividualxun.png", precio: 3500, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60042, nombre: "ESCARBADIENTES YAYICAI GK085", imagen: BAZAR_REPO_BASE + "escarbadientesyayica.png", precio: 1200, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60043, nombre: "PANO LIMPIEZA SILVER LINE LETE FZ GK031", imagen: BAZAR_REPO_BASE + "panolimpiezasilverli.png", precio: 3100, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60044, nombre: "VELAS DE CUMPLE. DISENO CURVO JK573/JK414", imagen: BAZAR_REPO_BASE + "velasdecumplecondise.png", precio: 1800, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60045, nombre: "PARAGUA MANGO DE BAMBOO CHYW1057", imagen: BAZAR_REPO_BASE + "paraguamangodebamboo.png", precio: 11200, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60046, nombre: "JUGUETE PARA MASCOTA SOGA PELOTA AF-13165", imagen: BAZAR_REPO_BASE + "jugueteparamascotaso.png", precio: 4900, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60047, nombre: "SPACE BEAR TUPPER DE OSITO GK020", imagen: BAZAR_REPO_BASE + "spacebeartupperdeosi.png", precio: 16700, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60048, nombre: "AZUCARERA 4022 176/4022", imagen: BAZAR_REPO_BASE + "azucarera.png", precio: 7900, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60049, nombre: "TIJERA AF-2757", imagen: BAZAR_REPO_BASE + "tijerados.png", precio: 8400, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60050, nombre: "TIJERA 7.5 SCISSORS AF1000170", imagen: BAZAR_REPO_BASE + "tijeratres.png", precio: 2700, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60051, nombre: "TERMO MAB768", imagen: BAZAR_REPO_BASE + "termomab.png", precio: 16300, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60052, nombre: "LAMPARA 622", imagen: BAZAR_REPO_BASE + "lamparados.png", precio: 19600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60053, nombre: "LAMPARA LED AF-11791", imagen: BAZAR_REPO_BASE + "lamparaledsi.png", precio: 13700, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60054, nombre: "ESPUMADERA DE ACERO INOXIDABLE AF1000134", imagen: BAZAR_REPO_BASE + "espumaderadeaceroino.png", precio: 2900, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60055, nombre: "ESPEJO OSO AF-13236", imagen: BAZAR_REPO_BASE + "espejoosodos.png", precio: 4900, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60056, nombre: "CORTINA METALIZADA CUADRADA AF-11914", imagen: BAZAR_REPO_BASE + "cortinametalizadacua.png", precio: 4300, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60057, nombre: "CANDADO BLISTER X12 IRON LOCK XHN207 12000", imagen: BAZAR_REPO_BASE + "candadoblisterxironl.png", precio: 23800, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60058, nombre: "BROCHE LFFPEG MADERA COLOR AF10534", imagen: BAZAR_REPO_BASE + "brochelffpegmaderaco.png", precio: 2900, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60059, nombre: "SET DE GLOBOS DE CORONA 1632-10", imagen: BAZAR_REPO_BASE + "setdeglobosdecorona.png", precio: 3800, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60060, nombre: "MESA BANDEJA PARA CAMA 40X60CM 2265502", imagen: BAZAR_REPO_BASE + "mesabandejaparacamac.png", precio: 25600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60061, nombre: "MESA BANDEJA PARA CAMA 40X60CM 2265503", imagen: BAZAR_REPO_BASE + "mesabandejaparacamacas.png", precio: 26300, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60062, nombre: "PINZA ESPATULA RUNTAI GK050", imagen: BAZAR_REPO_BASE + "pinzaespatularuntai.png", precio: 8600, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60063, nombre: "BATIDOR 20CM GK058", imagen: BAZAR_REPO_BASE + "batidorcm.png", precio: 3900, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60064, nombre: "COLADOR MALLA NINGSHENG 12CM GK059", imagen: BAZAR_REPO_BASE + "coladormallaningshen.png", precio: 4700, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60065, nombre: "GANCHO X3 LINGLIANG GK078", imagen: BAZAR_REPO_BASE + "ganchoxlingliang.png", precio: 3500, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60066, nombre: "MANZANA GANCHO X3 STICK HOOK GK084", imagen: BAZAR_REPO_BASE + "manzanaganchoxstickh.png", precio: 2700, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60067, nombre: "GANCHO X5 LINGLIANG GK079", imagen: BAZAR_REPO_BASE + "ganchoxlingliangdos.png", precio: 5200, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60068, nombre: "GANCHO X5 LINGLIANG GK077", imagen: BAZAR_REPO_BASE + "ganchoxlingliangtres.png", precio: 4900, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60069, nombre: "SUREME GANCHOS X2 GK083", imagen: BAZAR_REPO_BASE + "suremeganchosx.png", precio: 2700, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." },
+{ id: 60070, nombre: "JIAJU XILIE BROCHE X8 GF56126", imagen: BAZAR_REPO_BASE + "jiajuxiliebrochexgf.png", precio: 7900, categoria: "bazar", caracteristicas: ["Producto de bazar mayorista"], info: "Producto de bazar mayorista." }
+];
+
+const MELAMINA_DATA = [
+{ id: 61001, nombre: "100% MELAMINA BANDEJA JAPONES NEGRO PREMIUM 19CM 27224", imagen: BAZAR_REPO_BASE + "bandeja.png", precio: 7300, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61002, nombre: "100% MELAMINA BOWL BAJO MINIMALISTA CREMA 8.8CM 4249", imagen: BAZAR_REPO_BASE + "bowlbajo.png", precio: 5400, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61003, nombre: "100% MELAMINA BOWL CUADRADO COLOR CREMA 9.8CM 4248", imagen: BAZAR_REPO_BASE + "bowlcuadrado.png", precio: 3800, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61004, nombre: "100% MELAMINA PLATO CUADRADO NEGRO MULTIUSO 25.4CM 27228", imagen: BAZAR_REPO_BASE + "plato.png", precio: 20200, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61005, nombre: "100% MELAMINA PLATITO DOBLE PARA SALSAS CON GOTEO 28095", imagen: BAZAR_REPO_BASE + "platito.png", precio: 5600, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61006, nombre: "100% MELAMINA SALSA BOWL CUADRADO BLANCO 20500", imagen: BAZAR_REPO_BASE + "salsa.png", precio: 3600, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61007, nombre: "100% MELAMINA BOWL VERDE CON DETALLE FLORAL 15.5CM 38071", imagen: BAZAR_REPO_BASE + "bowlverde.png", precio: 9300, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61008, nombre: "100% MELAMINA VASO LARGO DISENO OCEANO H14.5CM 40036", imagen: BAZAR_REPO_BASE + "vasolargo.png", precio: 9700, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61009, nombre: "100% MELAMINA BOWL DISENO OCEANO 15CM 223059B", imagen: BAZAR_REPO_BASE + "bowldiseno.png", precio: 8600, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61010, nombre: "100% MELAMINA PLATO REDONDO DISENO OCEANO 28CM 27344", imagen: BAZAR_REPO_BASE + "platodos.png", precio: 16300, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61011, nombre: "100% MELAMINA PLATO REDONDO DISENO OCEANO 22.8CM 27345", imagen: BAZAR_REPO_BASE + "platotres.png", precio: 12500, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61012, nombre: "100% MELAMINA BOWL DEPARTAMENTO ESMALTADO VERDE 25.3CM 37078", imagen: BAZAR_REPO_BASE + "bowldepartam.png", precio: 15200, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61013, nombre: "100% MELAMINA PLATO PLAYO VERDE LAGO 8.5\" 21.5CM 434085", imagen: BAZAR_REPO_BASE + "platocuatro.png", precio: 8700, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61014, nombre: "100% MELAMINA PLATO RECTANGULO C/BORDE DORADO 21.6X14.5 PD210L", imagen: BAZAR_REPO_BASE + "platocinco.png", precio: 8700, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." },
+{ id: 61015, nombre: "100% MELAMINA BOWL DE LA SUERTE LINGOTE C/BORDE DORADO 14.5*13.2CM 38062", imagen: BAZAR_REPO_BASE + "bowlsuerte.png", precio: 5400, categoria: "melamina", caracteristicas: ["Vajilla de Melamina Mayorista (NO SE ROMPE)"], info: "Vajilla de Melamina Mayorista, no se rompe." }
+];
+
+const JUGUETES_DATA = [
+{ id: 62001, nombre: "BOUNCY BALL PELOTITA 25307", imagen: JUGUETES_REPO_BASE + "bouncy.png", precio: 1800, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62002, nombre: "CAJA MISTERIOSA SORPRESA CAPYBARA 2025-3-4", imagen: JUGUETES_REPO_BASE + "caja.png", precio: 11000, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62003, nombre: "LAMPARA NOCTURNA LED SANRIO CON BOLA DE CRISTAL", imagen: JUGUETES_REPO_BASE + "lampara.png", precio: 7900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62004, nombre: "SQUEEZE HAMSTER GRIS/AMARILLO/NARANJA/BLANCO", imagen: JUGUETES_REPO_BASE + "squeeze.png", precio: 3800, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62005, nombre: "SQUEEZE PERRITO NARANJA/NEGRO/MARRON/GRIS", imagen: JUGUETES_REPO_BASE + "squeezeperrito.png", precio: 3500, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62006, nombre: "LLAVERO DE CARICATURA CON LUZ", imagen: JUGUETES_REPO_BASE + "llavero.png", precio: 4500, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62007, nombre: "JUEGO DE MADERA 21149", imagen: JUGUETES_REPO_BASE + "juego.png", precio: 16300, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62008, nombre: "DIAMOND PAINTING DIY TEYOUYIFAN 24029D", imagen: JUGUETES_REPO_BASE + "diamondpainting.png", precio: 8200, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62009, nombre: "ROBOT DANCE ROBOT 22321", imagen: JUGUETES_REPO_BASE + "robot.png", precio: 47500, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62010, nombre: "SNOOKER MINI POOL ZHONGMA 25308-68620", imagen: JUGUETES_REPO_BASE + "snooker.png", precio: 22800, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62011, nombre: "MUEBLES DE MUNECA 22234", imagen: JUGUETES_REPO_BASE + "muebles.png", precio: 14000, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62012, nombre: "LANZA PELOTAS 24090", imagen: JUGUETES_REPO_BASE + "lanza.png", precio: 11400, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62013, nombre: "PIZARRA 12\" LCD PANEL KC84", imagen: JUGUETES_REPO_BASE + "pizarra.png", precio: 10700, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62014, nombre: "AVION XC006 24054", imagen: JUGUETES_REPO_BASE + "avion.png", precio: 14200, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62015, nombre: "AVION 24053", imagen: JUGUETES_REPO_BASE + "avionlisto.png", precio: 13100, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62016, nombre: "CAMARA DIGITAL INFANTIL 24108N", imagen: JUGUETES_REPO_BASE + "camara.png", precio: 34700, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62017, nombre: "DIE-CAST METAL KIMSC ARDI AUTO X4", imagen: JUGUETES_REPO_BASE + "die.png", precio: 18800, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62018, nombre: "CUTE BEAUTY CHILDRENS MAKEUP 24145C", imagen: JUGUETES_REPO_BASE + "beautychildrens.png", precio: 30900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62019, nombre: "BEAUTY PRETTY GIRL LOVE 25266 MUNECA", imagen: JUGUETES_REPO_BASE + "beautypretty.png", precio: 13700, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 62020, nombre: "REGISTRADORA C/LUZ 22316", imagen: JUGUETES_REPO_BASE + "registradora.png", precio: 42700, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." }
+];
+
+const PELUCHES_DATA = [
+{ id: 63001, nombre: "PELUCHE CONEJO CON MONO 2062-11", imagen: JUGUETES_REPO_BASE + "pelucheconejo.png", precio: 8400, categoria: "peluches", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 63002, nombre: "PELUCHE PATO HONDA 2062-12", imagen: JUGUETES_REPO_BASE + "peluchepato.png", precio: 8400, categoria: "peluches", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 63003, nombre: "PELUCHE UNICORNIO 30CM 1389-18", imagen: JUGUETES_REPO_BASE + "pelucheunicornio.png", precio: 12600, categoria: "peluches", caracteristicas: ["30 Centímetros"], info: "Peluche mayorista de 30cm." },
+{ id: 63004, nombre: "ELEFANTE 30CM 1389-25 PELUCHE", imagen: JUGUETES_REPO_BASE + "elefantecm.png", precio: 12400, categoria: "peluches", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 63005, nombre: "PELUCHE UNICORNIO 2062-13", imagen: JUGUETES_REPO_BASE + "pelucheuni.png", precio: 8400, categoria: "peluches", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 63006, nombre: "MUNECO OSO CON MONO TY65 ROSA", imagen: JUGUETES_REPO_BASE + "munecooso.png", precio: 11800, categoria: "peluches", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 63007, nombre: "MUNECO OSO CON MONO TY65 BLANCO", imagen: JUGUETES_REPO_BASE + "munecoosodos.png", precio: 11800, categoria: "peluches", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 63008, nombre: "MUNECO OSO CON MONO TY65 CELESTE", imagen: JUGUETES_REPO_BASE + "munecoosotres.png", precio: 11800, categoria: "peluches", caracteristicas: ["Juguetes mayoristas"], info: "Juguetes mayoristas." },
+{ id: 63009, nombre: "PELUCHE OSO CON MONO 30CM 1389-28", imagen: JUGUETES_REPO_BASE + "pelucheoso.png", precio: 12600, categoria: "peluches", caracteristicas: ["30 Centímetros"], info: "Peluche mayorista de 30cm." },
+{ id: 63010, nombre: "PELUCHE OVEJA 30CM 1389-19", imagen: JUGUETES_REPO_BASE + "pelucheoveja.png", precio: 12800, categoria: "peluches", caracteristicas: ["30 Centímetros"], info: "Peluche mayorista de 30cm." },
+{ id: 63011, nombre: "ALMOHADA GATO NEGRO 90CM MAA40", imagen: JUGUETES_REPO_BASE + "almohadagato.png", precio: 32600, categoria: "peluches", caracteristicas: ["90 Centímetros"], info: "Peluche mayorista de 90cm." },
+{ id: 63012, nombre: "PELUCHE CAPYBARA CON PAPA FRITA 30CM 1389-14", imagen: JUGUETES_REPO_BASE + "peluchecapybara.png", precio: 12400, categoria: "peluches", caracteristicas: ["30 Centímetros"], info: "Peluche mayorista de 30cm." },
+{ id: 63013, nombre: "PELUCHE PANDA DE FRUTILLA 30CM 1389-56", imagen: JUGUETES_REPO_BASE + "peluchecande.png", precio: 12400, categoria: "peluches", caracteristicas: ["30 Centímetros"], info: "Peluche mayorista de 30cm." },
+{ id: 63014, nombre: "KUROMI ALMOHADA LARGA 80CM MAB443", imagen: JUGUETES_REPO_BASE + "kuromialmohada.png", precio: 35700, categoria: "peluches", caracteristicas: ["80 Centímetros"], info: "Peluche mayorista de 80cm." },
+{ id: 63015, nombre: "GATO NEGRO AZUL OJO LARGA 70CM MAB447", imagen: JUGUETES_REPO_BASE + "gatonegro.png", precio: 32000, categoria: "peluches", caracteristicas: ["70 Centímetros"], info: "Peluche mayorista de 70cm." }
+];
+
+const LIBRERIA_DATA = [
+{ id: 64001, nombre: "ACRYLIC MARKER MARCADOR ACRILICO 12C WB102212", imagen: LIBRERIA_REPO_BASE + "marcador.png", precio: 6600, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64002, nombre: "LAPICERA OSO FRUTILLA AF12875", imagen: LIBRERIA_REPO_BASE + "lapicera.png", precio: 2000, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64003, nombre: "LAPIZ HB ESTAMPADO FLORAL X12 WB-9531", imagen: LIBRERIA_REPO_BASE + "lapiz.png", precio: 3400, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64004, nombre: "GOMA DE BORRAR RETRACTIL PATITA WB-3516-4", imagen: LIBRERIA_REPO_BASE + "goma.png", precio: 2300, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64005, nombre: "MARCADOR X4 AF-13072", imagen: LIBRERIA_REPO_BASE + "marcadorxaf.png", precio: 3600, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64006, nombre: "CUADERNITO A-333", imagen: LIBRERIA_REPO_BASE + "cuadernito.png", precio: 3800, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64007, nombre: "COMPAS ESCOLAR PATA DE GATO WB-2635", imagen: LIBRERIA_REPO_BASE + "compas.png", precio: 2300, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64008, nombre: "BOLIGRAFO MULTICOLOR 10COLORS OSITO WB-55638", imagen: LIBRERIA_REPO_BASE + "boligrafo.png", precio: 2800, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64009, nombre: "CUADERNO ESPIRAL CON ASA BOUQUET WB-95469", imagen: LIBRERIA_REPO_BASE + "cuaderno.png", precio: 2700, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64010, nombre: "SET DE CONJUNTO DE REGLAS 4PCS WB-525", imagen: LIBRERIA_REPO_BASE + "conjunto.png", precio: 2800, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64011, nombre: "LAPIZ PASTEL DEGRADADO 12PCS WB-9552", imagen: LIBRERIA_REPO_BASE + "lapizpastel.png", precio: 4300, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64012, nombre: "LAPICERA CRISTAL CON CORAZON WB-55679", imagen: LIBRERIA_REPO_BASE + "lapiceracristal.png", precio: 2500, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64013, nombre: "LAPICERA ARCOIRIS X6 Z-10201", imagen: LIBRERIA_REPO_BASE + "lapiceraarcoiris.png", precio: 5600, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64014, nombre: "LAPIZ DE COLOR FABER CASTELL X12", imagen: LIBRERIA_REPO_BASE + "lapizfaber.png", precio: 3900, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64015, nombre: "LAPIZ CORRECTOR X12 INTRO 7ML 08440", imagen: LIBRERIA_REPO_BASE + "lapizcorrectorintr.png", precio: 6200, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64016, nombre: "SET DE REGLAS GEOMETRICAS MARINO WB-510", imagen: LIBRERIA_REPO_BASE + "reglasgeometricasm.png", precio: 2000, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64017, nombre: "AGENDA SPOLCE A-201982", imagen: LIBRERIA_REPO_BASE + "agenda.png", precio: 12500, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64018, nombre: "CALCULADORA CANODI CA-9633B AF-10283", imagen: LIBRERIA_REPO_BASE + "calculadora.png", precio: 12400, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64019, nombre: "BINDER CLIP COLOR X12 N4 41MM EZCO", imagen: LIBRERIA_REPO_BASE + "binder.png", precio: 10600, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
+{ id: 64020, nombre: "INSPRATION ART SET DE LIBRERIA 106PIECES 25015", imagen: LIBRERIA_REPO_BASE + "inspration.png", precio: 90200, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." }
+];
+
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -1962,11 +2148,25 @@ function aplicarColorTienda(colorHex, colorFondo, colorContorno, colorNombre, co
 // ═══════════════════════════════════════════════════════════════
 // CÁLCULO DE PRECIO CON MARGEN
 // ═══════════════════════════════════════════════════════════════
+const NUEVAS_CATEGORIAS_KEYS = new Set([
+    'bazar_bazar', 'bazar_melamina',
+    'jugueteria_juguetes', 'jugueteria_peluches',
+    'libreria',
+    'electronicos'
+]);
+
 function calcularPrecioConMargen(precioBase, cat) {
     // IMPORTANTE: el precio base de costo siempre es el original del producto.
     const base = Number(precioBase) || 0;
     if (!base) return base;
-    const cfg = configTienda[cat] || configTienda['general'] || configTienda['perfumes'] || configTienda['calzados'];
+    // Para las categorías nuevas (Bazar, Vajilla de Melamina, Juguetería, Peluches,
+    // Librería, Electrónicos) el precio cargado YA es el precio final de venta.
+    // Solo se recalcula si el revendedor configuró explícitamente un margen propio
+    // para esa categoría puntual (sin heredar tablas de perfumes/calzados/general).
+    const esCategoriaNueva = NUEVAS_CATEGORIAS_KEYS.has(cat);
+    const cfg = esCategoriaNueva
+        ? configTienda[cat]
+        : (configTienda[cat] || configTienda['general'] || configTienda['perfumes'] || configTienda['calzados']);
     let precioFinal = base;
     if (cfg) {
         const rangosRaw = Array.isArray(cfg.rangos) ? cfg.rangos : [];
@@ -2216,6 +2416,12 @@ async function cargarVendedor() {
                     : (catParam === 'belleza' && subParam === 'maquillaje') ? 'belleza_maquillaje'
                     : (catParam === 'belleza' && subParam === 'perfume') ? 'belleza_perfume'
                     : (catParam === 'belleza') ? 'belleza'
+                    : (catParam === 'bazar' && subParam === 'melamina') ? 'bazar_melamina'
+                    : (catParam === 'bazar') ? 'bazar_bazar'
+                    : (catParam === 'jugueteria' && subParam === 'peluches') ? 'jugueteria_peluches'
+                    : (catParam === 'jugueteria') ? 'jugueteria_juguetes'
+                    : (catParam === 'libreria') ? 'libreria'
+                    : (catParam === 'multishop' && subParam) ? subParam
                     : 'perfumes';
 
                 configTienda[catKey] = parsed;
@@ -2299,6 +2505,10 @@ async function cargarVendedor() {
             if (typeof promos === 'object' && Object.keys(promos).length > 0) {
                 const claveCat = (catParam === 'belleza' && subParam === 'maquillaje') ? 'belleza_maquillaje'
                                 : (catParam === 'belleza' && subParam === 'perfume') ? 'belleza_perfume'
+                                : (catParam === 'bazar' && subParam === 'melamina') ? 'bazar_melamina'
+                                : (catParam === 'bazar') ? 'bazar_bazar'
+                                : (catParam === 'jugueteria' && subParam === 'peluches') ? 'jugueteria_peluches'
+                                : (catParam === 'jugueteria') ? 'jugueteria_juguetes'
                                 : catParam;
                 const promo = promos[claveCat] || promos[catParam];
                 // Respeta el ON/OFF que el revendedor configuró desde el panel.
@@ -2326,8 +2536,35 @@ async function cargarVendedor() {
 // ═══════════════════════════════════════════════════════════════
 // INICIAR TIENDA TRAS CARGAR DATOS
 // ═══════════════════════════════════════════════════════════════
+function ETIQUETA_CATEGORIA(cat) {
+    return {
+        calzados: 'Calzados',
+        belleza: 'Belleza y Cuidado Personal',
+        bazar: 'Bazar',
+        jugueteria: 'Juguetería',
+        libreria: 'Librería',
+        multishop: 'Multishop'
+    }[cat] || 'Perfumería';
+}
+function SUBTITULO_CATEGORIA(cat) {
+    return {
+        calzados: 'Zapatillas brasileras de calidad premium',
+        belleza: 'PERFUMERÍA + MAQUILLAJE',
+        bazar: 'Productos para el hogar, bazar de reventa',
+        jugueteria: 'Productos de juguetería, reventa',
+        libreria: 'Artículos de librería, reventa',
+        multishop: 'Belleza, Bazar, Juguetería, Librería y Electrónicos en un solo pedido'
+    }[cat] || 'Perfumes árabes importados';
+}
+
 function iniciarTienda() {
-    catalogoActual = (catParam === 'calzados') ? 'calzados' : (catParam === 'belleza') ? 'belleza' : 'perfumes';
+    catalogoActual = (catParam === 'calzados') ? 'calzados'
+        : (catParam === 'belleza') ? 'belleza'
+        : (catParam === 'bazar') ? 'bazar'
+        : (catParam === 'jugueteria') ? 'jugueteria'
+        : (catParam === 'libreria') ? 'libreria'
+        : (catParam === 'multishop') ? 'multishop'
+        : 'perfumes';
 
     // ── Aplicar color personalizado del vendedor (por categoría) ──
     let colorElegido = vendedor.colorTienda;
@@ -2380,19 +2617,15 @@ function iniciarTienda() {
         : '';
     const nombre = nombreTiendaConfigurado || nombreCompletoVendedor;
     document.getElementById('header-store-name').textContent = nombre;
-    document.getElementById('header-store-sub').textContent = catalogoActual === 'calzados' ? 'Calzados' : catalogoActual === 'belleza' ? 'Belleza y Cuidado Personal' : 'Perfumería';
+    document.getElementById('header-store-sub').textContent = ETIQUETA_CATEGORIA(catalogoActual);
     document.getElementById('footer-vendor-name').textContent = nombre;
 
     // Hero
     const hero = document.getElementById('tienda-hero');
     hero.style.display = 'block';
-    const categoriaLabel = catalogoActual === 'calzados' ? 'Calzados' : catalogoActual === 'belleza' ? 'Belleza y Cuidado Personal' : 'Perfumería';
+    const categoriaLabel = ETIQUETA_CATEGORIA(catalogoActual);
     document.getElementById('hero-title').textContent = categoriaLabel;
-    document.getElementById('hero-sub').textContent = catalogoActual === 'calzados'
-        ? 'Zapatillas brasileras de calidad premium'
-        : catalogoActual === 'belleza'
-        ? 'PERFUMERÍA + MAQUILLAJE'
-        : 'Perfumes árabes importados';
+    document.getElementById('hero-sub').textContent = SUBTITULO_CATEGORIA(catalogoActual);
     const waHelp = document.getElementById('hero-whatsapp-help');
     if (waHelp) waHelp.textContent = 'Al finalizar tu pedido envíaselo a ' + (nombreCompletoVendedor || 'el vendedor') + ' por WhatsApp desde tu carrito.';
 
@@ -2413,19 +2646,61 @@ function iniciarTienda() {
             ...MAQUILLAJE_DATA.map(p => ({ ...p, _bellezaCat: 'maquillaje' })),
             ...PERFUMES_DATA.map(p => ({ ...p, _bellezaCat: 'perfume' }))
           ]
+        : catalogoActual === 'bazar'
+        ? [
+            ...BAZAR_DATA.map(p => ({ ...p, _bazarCat: 'bazar' })),
+            ...MELAMINA_DATA.map(p => ({ ...p, _bazarCat: 'melamina' }))
+          ]
+        : catalogoActual === 'jugueteria'
+        ? [
+            ...JUGUETES_DATA.map(p => ({ ...p, _jugueteriaCat: 'juguetes' })),
+            ...PELUCHES_DATA.map(p => ({ ...p, _jugueteriaCat: 'peluches' }))
+          ]
+        : catalogoActual === 'libreria'
+        ? LIBRERIA_DATA
+        : catalogoActual === 'multishop'
+        ? [
+            ...MAQUILLAJE_DATA.map(p => ({ ...p, _multishopCat: 'belleza', _bellezaCat: 'maquillaje' })),
+            ...PERFUMES_DATA.map(p => ({ ...p, _multishopCat: 'belleza', _bellezaCat: 'perfume' })),
+            ...BAZAR_DATA.map(p => ({ ...p, _multishopCat: 'bazar', _bazarCat: 'bazar' })),
+            ...MELAMINA_DATA.map(p => ({ ...p, _multishopCat: 'bazar', _bazarCat: 'melamina' })),
+            ...JUGUETES_DATA.map(p => ({ ...p, _multishopCat: 'jugueteria', _jugueteriaCat: 'juguetes' })),
+            ...PELUCHES_DATA.map(p => ({ ...p, _multishopCat: 'jugueteria', _jugueteriaCat: 'peluches' })),
+            ...LIBRERIA_DATA.map(p => ({ ...p, _multishopCat: 'libreria' })),
+            ...ELECTRONICOS_DATA.map(p => ({ ...p, _multishopCat: 'electronicos' }))
+          ]
         : PERFUMES_DATA;
 
-    // Enlace de una sola sub-categoría (Maquillaje o Perfumes dentro de
-    // Belleza): mostrar SOLO esos productos, con SU margen configurado.
+    // Enlace de una sola sub-categoría: mostrar SOLO esos productos, con SU margen configurado.
     if (catalogoActual === 'belleza' && (subParam === 'maquillaje' || subParam === 'perfume')) {
         raw = raw.filter(p => p._bellezaCat === subParam);
     }
+    if (catalogoActual === 'bazar' && (subParam === 'bazar' || subParam === 'melamina')) {
+        raw = raw.filter(p => p._bazarCat === subParam);
+    }
+    if (catalogoActual === 'jugueteria' && (subParam === 'juguetes' || subParam === 'peluches')) {
+        raw = raw.filter(p => p._jugueteriaCat === subParam);
+    }
 
-    // Cada producto de Belleza usa el margen de SU propia sub-categoría
-    // (belleza_maquillaje / belleza_perfume), no uno compartido.
+    // Cada producto usa el margen de SU propia sub-categoría, no uno compartido.
     function _catalogKeyParaProducto(p) {
-        if (catalogoActual !== 'belleza') return catalogoActual;
-        return p._bellezaCat === 'maquillaje' ? 'belleza_maquillaje' : 'belleza_perfume';
+        if (catalogoActual === 'belleza') {
+            return p._bellezaCat === 'maquillaje' ? 'belleza_maquillaje' : 'belleza_perfume';
+        }
+        if (catalogoActual === 'bazar') {
+            return p._bazarCat === 'melamina' ? 'bazar_melamina' : 'bazar_bazar';
+        }
+        if (catalogoActual === 'jugueteria') {
+            return p._jugueteriaCat === 'peluches' ? 'jugueteria_peluches' : 'jugueteria_juguetes';
+        }
+        if (catalogoActual === 'multishop') {
+            if (p._multishopCat === 'belleza') return p._bellezaCat === 'maquillaje' ? 'belleza_maquillaje' : 'belleza_perfume';
+            if (p._multishopCat === 'bazar') return p._bazarCat === 'melamina' ? 'bazar_melamina' : 'bazar_bazar';
+            if (p._multishopCat === 'jugueteria') return p._jugueteriaCat === 'peluches' ? 'jugueteria_peluches' : 'jugueteria_juguetes';
+            if (p._multishopCat === 'libreria') return 'libreria';
+            if (p._multishopCat === 'electronicos') return 'electronicos';
+        }
+        return catalogoActual;
     }
 
     const _stockCat = (vendedor && vendedor.stockProductosCat && vendedor.stockProductosCat[catalogoActual]) || {};
@@ -2450,6 +2725,14 @@ function iniciarTienda() {
         ? [{val:'todos', label:'Todos'}, {val:'adultos', label:'Adultos'}, {val:'niños', label:'Niños'}]
         : catalogoActual === 'belleza'
         ? [{val:'todos', label:'Todos'}, {val:'maquillaje', label:'Maquillaje'}, {val:'perfume', label:'Perfumes'}]
+        : catalogoActual === 'bazar'
+        ? [{val:'todos', label:'Todos'}, {val:'bazar', label:'Bazar'}, {val:'melamina', label:'Vajilla de Melamina'}]
+        : catalogoActual === 'jugueteria'
+        ? [{val:'todos', label:'Todos'}, {val:'juguetes', label:'Juguetes'}, {val:'peluches', label:'Peluches'}]
+        : catalogoActual === 'libreria'
+        ? [{val:'todos', label:'Todos'}]
+        : catalogoActual === 'multishop'
+        ? [{val:'todos', label:'Todos'}, {val:'belleza', label:'Belleza'}, {val:'bazar', label:'Bazar'}, {val:'jugueteria', label:'Juguetería'}, {val:'libreria', label:'Librería'}, {val:'electronicos', label:'Electrónicos'}]
         : [{val:'todos', label:'Todos'}, {val:'femenino', label:'Mujer'}, {val:'masculino', label:'Hombre'}, {val:'unisex', label:'Unisex'}];
 
     filterBtns.innerHTML = '';
@@ -2489,7 +2772,13 @@ function filtrarProductos() {
     const orden = document.getElementById('sort-select').value;
 
     let lista = todosProductos.filter(p => {
-        const matchCat = filtro === 'todos' || (catalogoActual === 'belleza' ? p._bellezaCat === filtro : p.categoria === filtro);
+        const matchCat = filtro === 'todos'
+            ? true
+            : catalogoActual === 'belleza' ? p._bellezaCat === filtro
+            : catalogoActual === 'bazar' ? p._bazarCat === filtro
+            : catalogoActual === 'jugueteria' ? p._jugueteriaCat === filtro
+            : catalogoActual === 'multishop' ? p._multishopCat === filtro
+            : p.categoria === filtro;
         const matchSearch = !busqueda || p.nombre.toLowerCase().includes(busqueda)
             || (p.info || '').toLowerCase().includes(busqueda)
             || (p.caracteristicas || []).some(c => c.toLowerCase().includes(busqueda));
@@ -2848,6 +3137,10 @@ window.addEventListener('load', function() {
                         codigoParam = d.codigoVendedor;
                         if (d.categoria === 'belleza_maquillaje') { catParam = 'belleza'; subParam = 'maquillaje'; }
                         else if (d.categoria === 'belleza_perfume') { catParam = 'belleza'; subParam = 'perfume'; }
+                        else if (d.categoria === 'bazar_melamina') { catParam = 'bazar'; subParam = 'melamina'; }
+                        else if (d.categoria === 'bazar_bazar') { catParam = 'bazar'; subParam = 'bazar'; }
+                        else if (d.categoria === 'jugueteria_peluches') { catParam = 'jugueteria'; subParam = 'peluches'; }
+                        else if (d.categoria === 'jugueteria_juguetes') { catParam = 'jugueteria'; subParam = 'juguetes'; }
                         else if (d.categoria) { catParam = d.categoria; }
                         window._comboDestacado = { tipo: d.tipo, item: d.item };
                     }
@@ -2867,6 +3160,10 @@ window.addEventListener('load', function() {
 function categoriaEfectivaParaCombos() {
     if (catalogoActual === 'belleza' && subParam === 'maquillaje') return 'belleza_maquillaje';
     if (catalogoActual === 'belleza' && subParam === 'perfume') return 'belleza_perfume';
+    if (catalogoActual === 'bazar' && subParam === 'melamina') return 'bazar_melamina';
+    if (catalogoActual === 'bazar') return 'bazar_bazar';
+    if (catalogoActual === 'jugueteria' && subParam === 'peluches') return 'jugueteria_peluches';
+    if (catalogoActual === 'jugueteria') return 'jugueteria_juguetes';
     return catalogoActual;
 }
 
