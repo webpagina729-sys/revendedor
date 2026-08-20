@@ -6971,15 +6971,23 @@
             const telefono = document.getElementById('register-telefono').value;
             const email = document.getElementById('register-email').value;
             const password = document.getElementById('register-password').value;
-            const codigoVendedor = generarCodigoVendedor();
 
             let userCreatedSuccessfully = false;
+            let codigoVendedor = '';
 
             try {
                 // Crear usuario en Firebase Auth
                 const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
                 userCreatedSuccessfully = true;
+
+                // 🔧 FIX: el código se genera DESPUÉS de crear el usuario, ya con
+                // user.uid disponible, para que sea el mismo código determinista
+                // por UID que después usan Perfil y el login por código (antes
+                // se generaba antes de crear el usuario y caía al formato
+                // basado en email, quedando distinto del que se validaba luego).
+                window.currentUser = { ...(window.currentUser || {}), uid: user.uid };
+                codigoVendedor = generarCodigoVendedor();
 
                 const userData = {
                     uid: user.uid,
@@ -6992,32 +7000,39 @@
                     creado: new Date()
                 };
 
-                // ✅ Guardar código en localStorage PRIMERO (antes de Firestore)
-                localStorage.setItem('codigoVendedorLocal', codigoVendedor);
+                // 🔧 FIX: se espera (await) la confirmación real de Firestore
+                // antes de mostrar el código al usuario. Antes el .set() no se
+                // esperaba y el error se descartaba en silencio, por lo que el
+                // código podía mostrarse/guardarse en caché sin haber quedado
+                // guardado nunca en la base de datos.
+                await firebase.firestore().collection('usuarios').doc(user.uid).set(userData);
 
-                if (firebase.firestore) {
-                    const usuariosCollection = firebase.firestore().collection('usuarios');
-                    
-                    // Guardar en Firestore sin bloquear el flujo
-                    // Esto permite que el registro continúe incluso si Firestore falla
-                    usuariosCollection.doc(user.uid).set(userData)
-                        .catch(err => {
-                            // Error silencioso
-                        });
-                }
+                localStorage.setItem('codigoVendedorLocal', codigoVendedor);
+                window.currentUser = { ...(window.currentUser || {}), ...userData };
 
                 // Mostrar modal de confirmación con el código vendedor
                 showRegistrationConfirmation(codigoVendedor, nombre);
                 
             } catch (error) {
-                
-                // FALLBACK: Si el usuario se creó en Firebase pero falló Firestore,
-                // mostrar el modal de todas formas
-                if (userCreatedSuccessfully) {
+
+                // FALLBACK: si el usuario se creó en Firebase pero falló el
+                // guardado en Firestore, se reintenta una vez antes de mostrar
+                // el código (para no dejarlo mostrado sin estar en la base).
+                if (userCreatedSuccessfully && codigoVendedor) {
                     try {
-                        showRegistrationConfirmation(codigoVendedor, nombre);
-                    } catch (modalError) {
-                        showRegistrationError(error);
+                        const user = firebase.auth().currentUser;
+                        if (user) {
+                            await firebase.firestore().collection('usuarios').doc(user.uid).set({
+                                uid: user.uid, nombre, apellido, direccion, telefono, email,
+                                codigoVendedor, creado: new Date()
+                            }, { merge: true });
+                            localStorage.setItem('codigoVendedorLocal', codigoVendedor);
+                            showRegistrationConfirmation(codigoVendedor, nombre);
+                        } else {
+                            showRegistrationError(error);
+                        }
+                    } catch (retryError) {
+                        showRegistrationError(retryError);
                     }
                 } else {
                     showRegistrationError(error);
@@ -7325,82 +7340,64 @@
                 ? (wUser.nombre + (wUser.apellido ? ' ' + wUser.apellido : ''))
                 : (user ? user.email.split('@')[0] : '—');
 
-            // Intentar mostrar código en este orden: localStorage → window.currentUser → Firestore → Generar nuevo
-            let codigoEncontrado = false;
+            // 🔧 FIX: Firestore es la ÚNICA fuente de verdad para el código de
+            // revendedor (mismo criterio que stock.html). Antes se priorizaba
+            // localStorage, lo que podía mostrar un código desactualizado y
+            // distinto al que realmente valida el login (que consulta Firestore).
             let codigoFinal = '';
-            
-            // 1. PRIMER INTENTO: localStorage (más rápido y más confiable)
-            const codigoLocal = localStorage.getItem('codigoVendedorLocal');
-            if (codigoLocal && codigoLocal.trim() !== '') {
-                codigoFinal = codigoLocal;
-                codigoEncontrado = true;
-            }
-            
-            // 2. SEGUNDO INTENTO: window.currentUser
-            if (!codigoEncontrado) {
-                if (window.currentUser?.codigoVendedor && window.currentUser.codigoVendedor.trim() !== '') {
-                    codigoFinal = window.currentUser.codigoVendedor;
-                    localStorage.setItem('codigoVendedorLocal', window.currentUser.codigoVendedor);
-                    codigoEncontrado = true;
-                }
-            }
-            
-            // 3. TERCER INTENTO: Firestore (solo si hay usuario Firebase)
-            if (!codigoEncontrado && user) {
-                const profileCodeEl = document.getElementById('profileCode');
+            const profileCodeEl = document.getElementById('profileCode');
+
+            if (user) {
                 if (profileCodeEl) profileCodeEl.textContent = 'Cargando...';
                 try {
                     const doc = await firebase.firestore().collection('usuarios').doc(user.uid).get();
-                    
+
                     if (doc.exists) {
                         const userData = doc.data();
-                        
+
+                        window.currentUser = {
+                            ...(window.currentUser || {}),
+                            uid: user.uid,
+                            email: user.email,
+                            ...userData
+                        };
+
                         if (userData.codigoVendedor && userData.codigoVendedor.trim() !== '') {
-                            codigoFinal = userData.codigoVendedor;
-                            localStorage.setItem('codigoVendedorLocal', userData.codigoVendedor);
-                            if (window.currentUser) {
-                                window.currentUser.codigoVendedor = userData.codigoVendedor;
-                            }
-                            codigoEncontrado = true;
+                            codigoFinal = userData.codigoVendedor.trim();
+                        } else {
+                            // Documento existe pero sin código guardado: se genera
+                            // una sola vez (determinista por UID) y se confirma la
+                            // escritura en Firestore antes de mostrarlo.
+                            codigoFinal = generarCodigoVendedor();
+                            await firebase.firestore().collection('usuarios').doc(user.uid)
+                                .set({ codigoVendedor: codigoFinal }, { merge: true });
+                            window.currentUser.codigoVendedor = codigoFinal;
                         }
-                        
-                        if (!window.currentUser || !window.currentUser.codigoVendedor) {
-                            window.currentUser = {
-                                uid: user.uid,
-                                email: user.email,
-                                ...userData
-                            };
-                        }
+                    } else {
+                        codigoFinal = generarCodigoVendedor();
+                        await firebase.firestore().collection('usuarios').doc(user.uid).set({
+                            uid: user.uid,
+                            email: user.email,
+                            nombre: window.currentUser?.nombre || user.email.split('@')[0],
+                            codigoVendedor: codigoFinal,
+                            creado: new Date()
+                        }, { merge: true });
+                        window.currentUser = { ...(window.currentUser || {}), uid: user.uid, email: user.email, codigoVendedor: codigoFinal };
                     }
+
+                    localStorage.setItem('codigoVendedorLocal', codigoFinal);
+
                 } catch (error) {
-                    // Error silencioso
+                    console.error('No se pudo leer el código de revendedor desde Firestore:', error);
+                    const codigoCache = localStorage.getItem('codigoVendedorLocal');
+                    codigoFinal = codigoCache ? (codigoCache + ' (sin conexión)') : '';
                 }
-            }
-            
-            // 4. ÚLTIMO RECURSO: Si hay Firebase auth y no hay código, generar uno
-            if ((!codigoEncontrado || !codigoFinal || codigoFinal.trim() === '') && user) {
-                codigoFinal = generarCodigoVendedor();
-                
-                localStorage.setItem('codigoVendedorLocal', codigoFinal);
-                
-                if (window.currentUser) {
-                    window.currentUser.codigoVendedor = codigoFinal;
-                }
-                
-                firebase.firestore().collection('usuarios').doc(user.uid).update({
-                    codigoVendedor: codigoFinal
-                }).catch(err => {
-                    firebase.firestore().collection('usuarios').doc(user.uid).set({
-                        uid: user.uid,
-                        email: user.email,
-                        nombre: window.currentUser?.nombre || user.email.split('@')[0],
-                        codigoVendedor: codigoFinal,
-                        creado: window.currentUser?.creado || new Date()
-                    }).catch(err2 => {});
-                });
+            } else {
+                // Sin usuario de Firebase disponible: no hay forma de confirmar
+                // contra la base, se muestra el último valor en caché si existe.
+                codigoFinal = localStorage.getItem('codigoVendedorLocal') || '';
             }
 
-            const profileCodeEl = document.getElementById('profileCode');
             if (profileCodeEl) profileCodeEl.textContent = codigoFinal || '—';
 
             document.getElementById('profileModal').classList.add('active');
