@@ -3898,6 +3898,7 @@
             <button type="button" onclick="openPedidosRecibidos()" style="margin-top:14px;width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#1B7F3D,#2BA84F);color:#fff;border:none;padding:14px 16px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 4px 12px rgba(27,127,61,.25);">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                 Pedidos recibidos
+                <span id="profile-pedidos-badge" style="display:none;background:rgba(255,255,255,.25);border-radius:20px;font-size:12px;font-weight:800;padding:2px 9px;min-width:20px;text-align:center;">0</span>
             </button>
         </div>
     </div>
@@ -7405,6 +7406,24 @@
 
             document.getElementById('profileModal').classList.add('active');
             preventBodyScroll(true);
+
+            // Total de "Pedidos recibidos" — se refresca cada vez que se abre
+            // el Perfil, así siempre queda al instante después de aprobarse
+            // un pago en pedidos.html (no hace falta recargar la página).
+            actualizarBadgePedidosRecibidos(codigoFinal);
+        }
+
+        async function actualizarBadgePedidosRecibidos(codigo) {
+            const badge = document.getElementById('profile-pedidos-badge');
+            if (!badge || !codigo) return;
+            try {
+                const res = await fetch(`${WORKER_CLIENTE_BASE}/logistica?codigo=${encodeURIComponent(codigo)}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                const total = Array.isArray(data?.pedidos) ? data.pedidos.length : (data?.total || 0);
+                badge.textContent = total;
+                badge.style.display = total > 0 ? 'inline-block' : 'none';
+            } catch (_e) { /* si falla, dejamos el badge oculto sin romper el Perfil */ }
         }
 
         function closeProfileModal(e) {
@@ -8284,11 +8303,13 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         async function prefetchPreciosWorkers(codigo) {
             if (window._preciosMayoristaCache) return;
             try {
-                const [rPerfumes, rCalzados] = await Promise.allSettled([
+                const [rPerfumes, rCalzados, rResto] = await Promise.allSettled([
                     fetch('https://workerpagos.tuweb.workers.dev/api/precios-mayoristas?categoria=perfumes', {signal: AbortSignal.timeout(6000)}).then(r=>r.ok?r.json():null),
-                    fetch('https://workerpagos.tuweb.workers.dev/api/precios-mayoristas?categoria=calzados', {signal: AbortSignal.timeout(6000)}).then(r=>r.ok?r.json():null)
+                    fetch('https://workerpagos.tuweb.workers.dev/api/precios-mayoristas?categoria=calzados', {signal: AbortSignal.timeout(6000)}).then(r=>r.ok?r.json():null),
+                    fetch('https://restoprecios.tuweb.workers.dev/', {signal: AbortSignal.timeout(6000)}).then(r=>r.ok?r.json():null)
                 ]);
                 const mapa = {};
+                const mapaPorNombre = {};
                 const agregar = (resultado) => {
                     if (resultado.status !== 'fulfilled' || !resultado.value) return;
                     const lista = Array.isArray(resultado.value.precios) ? resultado.value.precios : [];
@@ -8299,9 +8320,20 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 };
                 agregar(rPerfumes);
                 agregar(rCalzados);
+                // Bazar / Vajilla de Melamina / Juguetes / Peluches / Librería /
+                // Electrónicos: no tienen id embebido acá, se matchean por nombre.
+                if (rResto.status === 'fulfilled' && rResto.value) {
+                    (rResto.value.productos || []).forEach(p => {
+                        if (p && p.nombre && p.precio_mayorista != null) {
+                            mapaPorNombre[String(p.nombre).trim().toUpperCase()] = Number(p.precio_mayorista);
+                        }
+                    });
+                }
                 window._preciosMayoristaCache = mapa;
+                window._preciosMayoristaCachePorNombre = mapaPorNombre;
             } catch(_) {
                 window._preciosMayoristaCache = {};
+                window._preciosMayoristaCachePorNombre = {};
             }
         }
 
@@ -8311,6 +8343,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         //  2) Tabla embebida por nombre normalizado (para pedidos viejos
         //     que guardaron el nombre pero no el id con prefijo de categoría)
         //  3) Cache del Worker (productos nuevos no incluidos en la tabla embebida)
+        //  4) Cache del Worker restoprecios por nombre (Bazar, Juguetería,
+        //     Vajilla de Melamina, Peluches, Librería, Electrónicos)
         function buscarPrecioMayoristaCatalogo(item) {
             const idDirecto = String(item.id || '');
             if (idDirecto && CATALOGO_MAYORISTA_POR_ID[idDirecto] !== undefined) {
@@ -8333,6 +8367,20 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (idDirecto && mapa[idDirecto] !== undefined) return mapa[idDirecto];
             const idProducto = item.productoId !== undefined ? item.productoId : item.id;
             if (mapa['__byProductoId__' + idProducto] !== undefined) return mapa['__byProductoId__' + idProducto];
+
+            // Bazar / Juguetería / Librería / Multishop, etc. — match por nombre
+            // contra el catálogo restoprecios (mismo criterio que index(1).html
+            // y pedidos.html, para que la ganancia se calcule igual en todos lados).
+            const mapaNombre = window._preciosMayoristaCachePorNombre || {};
+            if (nombreNorm) {
+                const limpio = nombreNorm.replace(/\s*\(T\.?\s*\d+\)\s*/gi, '').replace(/\s+/g, ' ').trim();
+                if (mapaNombre[limpio] !== undefined) return mapaNombre[limpio];
+                const keys = Object.keys(mapaNombre);
+                const porContenido = keys.filter(k => limpio.includes(k) && k.length > 3).sort((a,b)=>b.length-a.length);
+                if (porContenido.length) return mapaNombre[porContenido[0]];
+                const porContenido2 = keys.filter(k => k.includes(limpio) && limpio.length > 3).sort((a,b)=>a.length-b.length);
+                if (porContenido2.length) return mapaNombre[porContenido2[0]];
+            }
 
             return null;
         }
