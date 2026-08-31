@@ -6256,9 +6256,18 @@
             return item.catalogo || (item.talle ? 'calzados' : 'perfumes');
         }
 
+        // Categorías reales que puede tener un carrito. Antes esta función
+        // solo reconocía perfumes/calzados — cualquier producto de Belleza,
+        // Bazar, Juguetería, Librería o Multishop caía en el "else" y
+        // terminaba etiquetado como "perfumes" por error, por lo que nunca
+        // aparecía en su categoría real dentro del panel de gestión.
+        const CATEGORIAS_PEDIDO = ['perfumes','calzados','belleza','bazar','jugueteria','libreria','multishop'];
+
         function getCartMinimumStatus(cartItems = window.cart) {
-            const perfumeItems = cartItems.filter(item => getItemCatalog(item) === 'perfumes');
-            const shoeItems = cartItems.filter(item => getItemCatalog(item) === 'calzados');
+            const buckets = {};
+            CATEGORIAS_PEDIDO.forEach(c => { buckets[c] = cartItems.filter(item => getItemCatalog(item) === c); });
+            const perfumeItems = buckets.perfumes;
+            const shoeItems = buckets.calzados;
             const perfumeTotal = perfumeItems.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
             const shoesQty = shoeItems.reduce((sum, item) => sum + item.cantidad, 0);
             const missing = [];
@@ -6272,6 +6281,7 @@
             }
 
             return {
+                ...buckets,
                 perfumeItems,
                 shoeItems,
                 perfumeTotal,
@@ -6281,11 +6291,15 @@
             };
         }
 
+        // Devuelve la categoría real del pedido: si todos los items son de
+        // la misma categoría (bazar, jugueteria, libreria, belleza, etc.) se
+        // usa esa directamente; si el carrito mezcla más de una, se manda
+        // como "multishop" (igual que antes se hacía para perfumes+calzados).
         function getPedidoNicho(cartItems = window.cart) {
-            const status = getCartMinimumStatus(cartItems);
-            if (status.perfumeItems.length > 0 && status.shoeItems.length > 0) return 'multishop';
-            if (status.shoeItems.length > 0) return 'calzados';
-            return 'perfumes';
+            if (!cartItems || !cartItems.length) return 'perfumes';
+            const presentes = new Set(cartItems.map(getItemCatalog));
+            if (presentes.size > 1) return 'multishop';
+            return [...presentes][0] || 'perfumes';
         }
 
         // Agregar zapatilla al carrito (con validación de talle)
@@ -8110,16 +8124,14 @@
         }
         
         function abrirModalCodigoCalzados() {
-            // Aceptar login por código de vendedor O por Firebase Auth
-            const currentUser = firebase.auth().currentUser || window.currentUser;
-            if (!currentUser) {
-                showSessionRequiredModal();
-                return;
-            }
-            
             // Establecer que estamos en catálogo de Calzados
             window.currentCatalog = 'calzados';
-            
+            // abrirModalCodigo ya revisa TODO lo necesario (Firebase, código
+            // guardado en este navegador, o espera a que Firebase resuelva)
+            // antes de decidir si mostrar el modal de código o pedir login.
+            // Antes, esta función cortaba ese chequeo a la mitad y mandaba
+            // directo a un modal de "sesión requerida" sin campo de código,
+            // aunque el revendedor ya tuviera un código guardado.
             abrirModalCodigo('calzados');
         }
 
@@ -9105,6 +9117,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         async function abrirModalCodigo(catalogo = 'perfumes') {
             // Evitar llamadas concurrentes
             if (window.isChangingCatalog) return;
+
+            // Por las dudas haya quedado abierto de otro flujo (ej. "agregar
+            // al carrito" sin sesión) — nunca debe tapar el modal de código.
+            if (typeof closeSessionRequiredModal === 'function') closeSessionRequiredModal();
             
             // Establecer catálogo elegido explícitamente
             window.currentCatalog = catalogo || 'perfumes';
