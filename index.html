@@ -8468,6 +8468,9 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 // ya guardado en el item (i.precio). Nunca se recalcula ni se confunde
                 // con el total del pedido.
                 const pedidoItems = p.items || [];
+                // Categoría de este pedido — usada solo para saber si hay que
+                // mostrar el aviso de calzados dentro del cuadro azul de abajo.
+                const esPedidoCalzados = pedidoItems.some(i => i.catalogo === 'calzados' || i.talle);
 
                 let totalCostoN = 0, totalVentaN = 0;
                 pedidoItems.forEach(i => {
@@ -8568,6 +8571,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                                 <span style="font-size:13px;font-weight:600;">Tu ganancia</span>
                                 <span style="font-size:16px;font-weight:800;">${fmt(gananciaCalc)}</span>
                             </div>
+                            ${esPedidoCalzados ? `<div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.15);font-size:10.5px;line-height:1.35;opacity:.85;">Ver datos de esta categoría en tu panel de gestión</div>` : ''}
                         </div>
                         <div style="display:flex;gap:8px;">${botonesAprobacion}</div>
                     </div>
@@ -8659,11 +8663,32 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                             talle:       i.talle || null,
                             catalogo:    i.catalogo || null
                         }));
-                        // Detectar nicho por palabras clave en los nombres de productos
-                        const nombresUp = items.map(i => (i.nombre || '').toUpperCase()).join(' ');
-                        const esCalzado  = /NIKE|ADIDAS|JORDAN|DUNK|SAMBA|CAMPUS|AIR FORCE|NEW BALANCE|ZAPATILLA|BOTITA|FORUM|SUPERSTAR/.test(nombresUp);
-                        const esPerfume  = /PERFUME|ARABE|ÁRABE|LATTAFA|AFNAN|ARMAF|YARA|OUD|ATTAR|CLUB DE NUIT|HAYA|HARAMAIN/.test(nombresUp);
-                        const nicho = esCalzado ? 'calzados' : esPerfume ? 'perfumes' : 'multishop';
+                        // Detectar el nicho real del pedido a partir del catálogo
+                        // guardado en cada ítem (item.catalogo) — el mismo dato que
+                        // usa getPedidoNicho()/getItemCatalog() en el resto de la
+                        // app. Antes esto se adivinaba por palabras clave en el
+                        // nombre del producto y solo reconocía Nike/Adidas
+                        // (calzados) o Perfume/Lattafa (perfumes); cualquier
+                        // producto de Belleza, Bazar, Juguetería, Librería o
+                        // Multishop caía siempre en "multishop" por defecto, sin
+                        // importar su categoría real.
+                        const categoriasValidas = new Set(['perfumes','calzados','belleza','bazar','jugueteria','libreria','multishop']);
+                        const catsPresentes = new Set(
+                            items.map(i => i.catalogo).filter(c => c && categoriasValidas.has(c))
+                        );
+                        let nicho;
+                        if (catsPresentes.size === 1) {
+                            nicho = [...catsPresentes][0];
+                        } else if (catsPresentes.size > 1) {
+                            nicho = 'multishop';
+                        } else {
+                            // Fallback SOLO para pedidos viejos que no guardaron
+                            // item.catalogo — detección por palabras clave.
+                            const nombresUp = items.map(i => (i.nombre || '').toUpperCase()).join(' ');
+                            const esCalzado  = /NIKE|ADIDAS|JORDAN|DUNK|SAMBA|CAMPUS|AIR FORCE|NEW BALANCE|ZAPATILLA|BOTITA|FORUM|SUPERSTAR/.test(nombresUp);
+                            const esPerfume  = /PERFUME|ARABE|ÁRABE|LATTAFA|AFNAN|ARMAF|YARA|OUD|ATTAR|CLUB DE NUIT|HAYA|HARAMAIN/.test(nombresUp);
+                            nicho = esCalzado ? 'calzados' : esPerfume ? 'perfumes' : 'multishop';
+                        }
 
                         const panelPayload = {
                             pedidoId:       pedido.id,
