@@ -11123,52 +11123,15 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
 
             // Al cargar la página
+            // 🔒 SEGURIDAD: index.html vive en un repositorio aparte de
+            // stock.html (donde sí se guarda la sesión). Acá SIEMPRE hay
+            // que pedir el código de revendedor a mano — nunca se debe
+            // ocultar este modal solo porque haya un código guardado de
+            // una visita anterior. Recién cuando el usuario lo escribe y
+            // toca "Ingresar" (bvIngresar), ese código queda vinculado
+            // (por UID) para pasar a mas-categorias.html.
             window.addEventListener('load', function() {
-                var codigoGuardado = bvCodigoVigente();
-                if (codigoGuardado) {
-                    // Sesión ya iniciada: ocultamos el modal de inmediato
-                    // y restauramos los datos del revendedor en segundo plano.
-                    bvOcultar();
-                    (async function() {
-                        var userData = null;
-
-                        // 1. Intentar via Worker
-                        try {
-                            var res = await fetch(WORKER_LOGIN, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ codigo: codigoGuardado })
-                            });
-                            if (res.ok) {
-                                var workerData = await res.json();
-                                if (workerData.success && workerData.vendedor) {
-                                    userData = workerData.vendedor;
-                                }
-                            }
-                        } catch(e) {
-                            // Worker no disponible — continúa con Firestore
-                        }
-
-                        // 2. Firestore como fallback si el Worker no respondió
-                        if (!userData) {
-                            try {
-                                await esperarFirebase();
-                                userData = await buscarEnFirestore(codigoGuardado);
-                            } catch(e) {
-                                // Firebase tampoco disponible
-                            }
-                        }
-
-                        if (userData) {
-                            await bvAplicarDatos(codigoGuardado, userData);
-                            bvOcultar();
-                        }
-                        // Si la verificación falla, NO mostramos el modal:
-                        // la sesión sigue guardada hasta que el usuario cierre sesión.
-                    })();
-                } else {
-                    bvMostrar();
-                }
+                bvMostrar();
             });
 
             // ── Botón INGRESAR ────────────────────────────────────────────
