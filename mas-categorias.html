@@ -3228,6 +3228,25 @@
     </script>
 </head>
 <body>
+    <!-- OVERLAY: DETECTANDO SESIÓN (blur + puntos animados) -->
+    <div id="session-restore-overlay" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:14px;">
+            <div style="display:flex;gap:8px;">
+                <span class="session-restore-dot" style="width:12px;height:12px;border-radius:50%;background:#0066ff;animation:sessionRestoreBounce 1s ease-in-out infinite;animation-delay:0s;"></span>
+                <span class="session-restore-dot" style="width:12px;height:12px;border-radius:50%;background:#00a650;animation:sessionRestoreBounce 1s ease-in-out infinite;animation-delay:.15s;"></span>
+                <span class="session-restore-dot" style="width:12px;height:12px;border-radius:50%;background:#0066ff;animation:sessionRestoreBounce 1s ease-in-out infinite;animation-delay:.3s;"></span>
+                <span class="session-restore-dot" style="width:12px;height:12px;border-radius:50%;background:#00a650;animation:sessionRestoreBounce 1s ease-in-out infinite;animation-delay:.45s;"></span>
+            </div>
+            <div style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;color:#1a1a1a;">Cargando...</div>
+        </div>
+    </div>
+    <style>
+        @keyframes sessionRestoreBounce {
+            0%, 80%, 100% { transform: translateY(0); opacity:.6; }
+            40% { transform: translateY(-10px); opacity:1; }
+        }
+    </style>
+
     <!-- HEADER TOP BAR -->
     <header class="header-top">
         <div class="header-top-inner">
@@ -6786,9 +6805,18 @@ function catalogoEfectivoMultishop(p) {
             return item.catalogo || (item.talle ? 'calzados' : 'perfumes');
         }
 
+        // Categorías reales que puede tener un carrito. Antes esta función
+        // solo reconocía perfumes/calzados — cualquier producto de Belleza,
+        // Bazar, Juguetería, Librería o Multishop caía en el "else" y
+        // terminaba etiquetado como "perfumes" por error, por lo que nunca
+        // aparecía en su categoría real dentro del panel de gestión.
+        const CATEGORIAS_PEDIDO = ['perfumes','calzados','belleza','bazar','jugueteria','libreria','multishop'];
+
         function getCartMinimumStatus(cartItems = window.cart) {
-            const perfumeItems = cartItems.filter(item => getItemCatalog(item) === 'perfumes');
-            const shoeItems = cartItems.filter(item => getItemCatalog(item) === 'calzados');
+            const buckets = {};
+            CATEGORIAS_PEDIDO.forEach(c => { buckets[c] = cartItems.filter(item => getItemCatalog(item) === c); });
+            const perfumeItems = buckets.perfumes;
+            const shoeItems = buckets.calzados;
             const perfumeTotal = perfumeItems.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
             const shoesQty = shoeItems.reduce((sum, item) => sum + item.cantidad, 0);
             const missing = [];
@@ -6802,6 +6830,7 @@ function catalogoEfectivoMultishop(p) {
             }
 
             return {
+                ...buckets,
                 perfumeItems,
                 shoeItems,
                 perfumeTotal,
@@ -6811,11 +6840,15 @@ function catalogoEfectivoMultishop(p) {
             };
         }
 
+        // Devuelve la categoría real del pedido: si todos los items son de
+        // la misma categoría (bazar, jugueteria, libreria, belleza, etc.) se
+        // usa esa directamente; si el carrito mezcla más de una, se manda
+        // como "multishop" (igual que antes se hacía para perfumes+calzados).
         function getPedidoNicho(cartItems = window.cart) {
-            const status = getCartMinimumStatus(cartItems);
-            if (status.perfumeItems.length > 0 && status.shoeItems.length > 0) return 'multishop';
-            if (status.shoeItems.length > 0) return 'calzados';
-            return 'perfumes';
+            if (!cartItems || !cartItems.length) return 'perfumes';
+            const presentes = new Set(cartItems.map(getItemCatalog));
+            if (presentes.size > 1) return 'multishop';
+            return [...presentes][0] || 'perfumes';
         }
 
 
@@ -10448,13 +10481,28 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
                 // Continuación de sesión desde index.html: si ya hay un código
                 // guardado, restaurar el estado de "logueado" sin pedir nada.
+                // Mientras tanto se ve el overlay "Cargando..." desenfocado.
+                const _sessionOverlayInicio = Date.now();
+                const _ocultarSessionOverlay = () => {
+                    const overlay = document.getElementById('session-restore-overlay');
+                    if (!overlay) return;
+                    const transcurrido = Date.now() - _sessionOverlayInicio;
+                    const espera = Math.max(0, 500 - transcurrido); // mínimo visible: .5s
+                    setTimeout(() => { overlay.style.display = 'none'; }, espera);
+                };
+                // Salvaguarda: nunca dejar el overlay trabado más de 6s.
+                setTimeout(_ocultarSessionOverlay, 6000);
                 (async () => {
-                    if (!window.codigoValidado) {
-                        const codigoGuardado = localStorage.getItem('codigoRevendedorValidado') || localStorage.getItem('codigoVendedorLocal');
-                        if (codigoGuardado) {
-                            await restaurarSesionGuardada(codigoGuardado);
-                            if (typeof actualizarBotonesRevend === 'function') actualizarBotonesRevend();
+                    try {
+                        if (!window.codigoValidado) {
+                            const codigoGuardado = localStorage.getItem('codigoRevendedorValidado') || localStorage.getItem('codigoVendedorLocal');
+                            if (codigoGuardado) {
+                                await restaurarSesionGuardada(codigoGuardado);
+                                if (typeof actualizarBotonesRevend === 'function') actualizarBotonesRevend();
+                            }
                         }
+                    } finally {
+                        _ocultarSessionOverlay();
                     }
                 })();
                 
