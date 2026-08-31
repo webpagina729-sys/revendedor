@@ -9033,74 +9033,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
             
             if (window.currentUser) {
-                // Verificar si ya validó el código (localStorage)
-                const codigoEnSesion = localStorage.getItem('codigoRevendedorValidado');
-                if (codigoEnSesion) {
-                    // Antes de confiar en el flag guardado, se revalida contra el
-                    // Worker — si el código ya no existe en la base de datos (por
-                    // ejemplo, se borró la cuenta), no hay que seguir mostrando el
-                    // catálogo ni la config de tienda vieja que quedó en caché.
-                    let codigoSigueValido = true;
-                    try {
-                        const ctrl = new AbortController();
-                        const timeoutId = setTimeout(() => ctrl.abort(), 4000);
-                        const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            signal: ctrl.signal,
-                            body: JSON.stringify({ codigo: codigoEnSesion })
-                        });
-                        clearTimeout(timeoutId);
-                        if (res.ok) {
-                            const data = await res.json();
-                            if (!data || !data.success || !data.vendedor) {
-                                codigoSigueValido = false;
-                            } else {
-                                // Refrescar la config con lo que realmente hay ahora
-                                // en la base, no lo que quedó viejo en caché.
-                                const v = data.vendedor;
-                                if (v.configTienda) localStorage.setItem('configTienda', JSON.stringify(v.configTienda));
-                                if (v.configTiendaAll) localStorage.setItem('configTiendaAll', JSON.stringify(v.configTiendaAll));
-                            }
-                        }
-                        // Si la red falla o da timeout, no se toca nada (se sigue
-                        // confiando en la caché para no dejar a alguien afuera por
-                        // un problema de conexión pasajero).
-                    } catch (_e) {
-                        console.warn('[APP] No se pudo revalidar el código guardado:', _e && _e.message);
-                    }
-
-                    if (!codigoSigueValido) {
-                        // El código ya no existe en la base: limpiar todo lo
-                        // guardado localmente para que no vuelva a aparecer una
-                        // tienda que ya no existe.
-                        localStorage.removeItem('codigoRevendedorValidado');
-                        localStorage.removeItem('codigoRevendedorValidadoFecha');
-                        localStorage.removeItem('codigoVendedorLocal');
-                        localStorage.removeItem('configTienda');
-                        localStorage.removeItem('configTiendaAll');
-                        window.codigoValidado = false;
-                        if (window.currentUser) window.currentUser.codigoVendedor = '';
-                        if (nichosSection) nichosSection.classList.remove('hide');
-                        setTimeout(inicializarCarrusel, 50);
-                        setTimeout(inicializarCarruselShoesPreview, 100);
-                        setTimeout(inicializarCarruselBelleza, 50);
-                        return;
-                    }
-
-                    // Usuario logueado y código validado: mostrar catálogo
-                    window.codigoValidado = true;
-                    mostrarCatalogo();
-                } else {
-                    // Usuario logueado pero sin código validado: mostrar nichos
-                    if (nichosSection) {
-                        nichosSection.classList.remove('hide');
-                    }
-                    // Inicializar carruseles
-                    setTimeout(inicializarCarrusel, 50);
-                    setTimeout(inicializarCarruselShoesPreview, 100);
-                    setTimeout(inicializarCarruselBelleza, 50);
+                // 🔒 SEGURIDAD: index.html vive en un repositorio aparte de
+                // stock.html (que es donde se guarda la sesión del
+                // revendedor). Acá NUNCA se debe entrar directo al catálogo
+                // por un código guardado de una visita anterior — siempre
+                // hay que pedir el código de revendedor de nuevo al cargar
+                // la página. Una vez que el código se valida a mano, recién
+                // ahí queda vinculado (por UID) para pasar a mas-categorias.html.
+                if (nichosSection) {
+                    nichosSection.classList.remove('hide');
                 }
+                setTimeout(inicializarCarrusel, 50);
+                setTimeout(inicializarCarruselShoesPreview, 100);
+                setTimeout(inicializarCarruselBelleza, 50);
             } else {
                 // Usuario NO logueado: mostrar nichos
                 if (nichosSection) {
