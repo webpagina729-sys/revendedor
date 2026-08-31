@@ -3377,7 +3377,7 @@
             <!-- NICHO 3: CALZADOS -->
             <div class="nicho-item">
                 <div class="nicho-info">
-                    <h3 class="nicho-title">Calzados</h3>
+                    <h3 class="nicho-title">Calzados Importados</h3>
                     <p class="nicho-subtitle">Los calzados son importados, calidad premium de Brasil. Zapatillas deportivas urbanas.</p>
                 </div>
                 
@@ -3621,7 +3621,7 @@
             <button class="modal-cart-close" onclick="closeCart()">✕</button>
             <div class="modal-cart-header">
                 <h2>Tu Pedido por Encargo</h2>
-                <p class="cart-info">Perfumes: mínimo $150.000 · Calzados: mínimo 12 productos</p>
+                <p class="cart-info">Perfumes: mínimo $150.000 · Calzados Importados: mínimo 12 productos</p>
             </div>
             
             <div class="modal-cart-items" id="modal-cart-items">
@@ -6277,7 +6277,7 @@
             }
             if (shoeItems.length > 0 && shoesQty < MIN_ORDER_SHOES_QTY) {
                 const falta = MIN_ORDER_SHOES_QTY - shoesQty;
-                missing.push(`Calzados: faltan ${falta} ${falta === 1 ? 'producto' : 'productos'}`);
+                missing.push(`Calzados Importados: faltan ${falta} ${falta === 1 ? 'producto' : 'productos'}`);
             }
 
             return {
@@ -8173,18 +8173,20 @@
             const costoIndividuales  = raw.costoIndividuales  || [];
             const gananciaIndividual = raw.gananciaIndividual || [];
             let items = [];
+            const nichoPedido = raw.nicho || raw.categoria || null;
             if (Array.isArray(productos) && productos.length && typeof productos[0] === 'string') {
                 items = productos.map((nombre, i) => ({
                     nombre,
                     cantidad: Number(cantidades[i]) || 1,
                     precio: Number(preciosIndividuales[i]) || 0,
                     precioCosto: Number(costoIndividuales[i]) || 0,
-                    ganancia: Number(gananciaIndividual[i]) || 0
+                    ganancia: Number(gananciaIndividual[i]) || 0,
+                    catalogo: nichoPedido
                 }));
             } else if (Array.isArray(productos)) {
                 items = productos.map((p, i) => ({
                     id: p.id, nombre: p.nombre || p.name, cantidad: Number(p.cantidad || p.qty || 1),
-                    precio: Number(p.precio || p.precioFinal || 0), talle: p.talle, catalogo: p.catalogo,
+                    precio: Number(p.precio || p.precioFinal || 0), talle: p.talle, catalogo: p.catalogo || nichoPedido,
                     precioCosto: Number(p.precioCosto || costoIndividuales[i] || 0),
                     ganancia: Number(p.ganancia || gananciaIndividual[i] || 0)
                 }));
@@ -8203,6 +8205,14 @@
                 gananciaTotal: Number(raw.gananciaTotal || 0),
                 estadoAprobacion: raw.estadoAprobacion || raw.estado || 'pendiente',
                 fechaCreacion: raw.fecha ? { toDate: () => new Date(raw.fecha + ' ' + (raw.hora||'')) } : null,
+                // 🔑 Categoría real del pedido — viene de tienda.html a nivel
+                // de pedido completo (raw.nicho), NO por producto. Antes esto
+                // se perdía acá y el pedido llegaba "sin categoría", por lo
+                // que solo Perfumería/Calzados se detectaban después por
+                // palabras clave en el nombre — el resto de las categorías
+                // (Belleza, Bazar, Juguetería, Librería, Multishop) nunca
+                // llegaban bien clasificadas al panel de gestión.
+                nicho: raw.nicho || raw.categoria || null,
                 _origenWorker: true,
                 _raw: raw
             };
@@ -8315,13 +8325,26 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         async function prefetchPreciosWorkers(codigo) {
             if (window._preciosMayoristaCache) return;
             try {
+                // ⚠️ IMPORTANTE: acá NUNCA se debe llamar a
+                // restoprecios.tuweb.workers.dev — ese Worker es el costo
+                // REAL del dueño de la plataforma, y solo se usa dentro de
+                // pedidos.html para calcular SU ganancia cuando el
+                // revendedor le paga a precio mayorista. Este panel (Pedidos
+                // Recibidos del revendedor) tiene que calcular con el precio
+                // mayorista DE LA PLATAFORMA (el mismo que ve el revendedor
+                // en su catálogo) contra el precio que pagó el cliente en
+                // tienda.html — son dos cuentas completamente distintas.
+                //
+                // Perfumería y Calzados → workerpagos (igual que siempre).
+                // Belleza, Bazar, Juguetería, Librería y Multishop →
+                // preciosmayoristasrevendedores (Worker dedicado a esto,
+                // separado de restoprecios).
                 const [rPerfumes, rCalzados, rResto] = await Promise.allSettled([
                     fetch('https://workerpagos.tuweb.workers.dev/api/precios-mayoristas?categoria=perfumes', {signal: AbortSignal.timeout(6000)}).then(r=>r.ok?r.json():null),
                     fetch('https://workerpagos.tuweb.workers.dev/api/precios-mayoristas?categoria=calzados', {signal: AbortSignal.timeout(6000)}).then(r=>r.ok?r.json():null),
-                    fetch('https://restoprecios.tuweb.workers.dev/', {signal: AbortSignal.timeout(6000)}).then(r=>r.ok?r.json():null)
+                    fetch('https://preciosmayoristasrevendedores.tuweb.workers.dev/api/products', {signal: AbortSignal.timeout(6000)}).then(r=>r.ok?r.json():null)
                 ]);
                 const mapa = {};
-                const mapaPorNombre = {};
                 const agregar = (resultado) => {
                     if (resultado.status !== 'fulfilled' || !resultado.value) return;
                     const lista = Array.isArray(resultado.value.precios) ? resultado.value.precios : [];
@@ -8332,15 +8355,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 };
                 agregar(rPerfumes);
                 agregar(rCalzados);
-                // Bazar / Vajilla de Melamina / Juguetes / Peluches / Librería /
-                // Electrónicos: no tienen id embebido acá, se matchean por nombre.
-                if (rResto.status === 'fulfilled' && rResto.value) {
-                    (rResto.value.productos || []).forEach(p => {
-                        if (p && p.nombre && p.precio_mayorista != null) {
-                            mapaPorNombre[String(p.nombre).trim().toUpperCase()] = Number(p.precio_mayorista);
+
+                const mapaPorNombre = {};
+                if (rResto.status === 'fulfilled' && Array.isArray(rResto.value)) {
+                    rResto.value.forEach(p => {
+                        if (p && p.name && typeof p.price === 'number') {
+                            mapaPorNombre[String(p.name).trim().toUpperCase()] = p.price;
                         }
                     });
                 }
+
                 window._preciosMayoristaCache = mapa;
                 window._preciosMayoristaCachePorNombre = mapaPorNombre;
             } catch(_) {
@@ -8349,14 +8373,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
         }
 
-        // Busca el precio mayorista real de un item del pedido.
+        // Busca el precio mayorista real de un item del pedido, usando
+        // SIEMPRE precios de la plataforma (nunca restoprecios, que es el
+        // costo del dueño y no tiene nada que ver con este panel).
         // Orden de prioridad:
         //  1) Tabla embebida por id exacto ('perfume_2', 'calzado_67', etc.)
-        //  2) Tabla embebida por nombre normalizado (para pedidos viejos
-        //     que guardaron el nombre pero no el id con prefijo de categoría)
-        //  3) Cache del Worker (productos nuevos no incluidos en la tabla embebida)
-        //  4) Cache del Worker restoprecios por nombre (Bazar, Juguetería,
-        //     Vajilla de Melamina, Peluches, Librería, Electrónicos)
+        //  2) Tabla embebida por nombre normalizado
+        //  3) Cache del Worker de precios mayoristas de la plataforma
+        //     (Perfumería / Calzados — workerpagos)
+        //  4) Cache del Worker preciosmayoristasrevendedores, por nombre
+        //     (Belleza, Bazar, Juguetería, Librería, Multishop)
         function buscarPrecioMayoristaCatalogo(item) {
             const idDirecto = String(item.id || '');
             if (idDirecto && CATALOGO_MAYORISTA_POR_ID[idDirecto] !== undefined) {
@@ -8380,18 +8406,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             const idProducto = item.productoId !== undefined ? item.productoId : item.id;
             if (mapa['__byProductoId__' + idProducto] !== undefined) return mapa['__byProductoId__' + idProducto];
 
-            // Bazar / Juguetería / Librería / Multishop, etc. — match por nombre
-            // contra el catálogo restoprecios (mismo criterio que index(1).html
-            // y pedidos.html, para que la ganancia se calcule igual en todos lados).
-            const mapaNombre = window._preciosMayoristaCachePorNombre || {};
+            const mapaResto = window._preciosMayoristaCachePorNombre || {};
             if (nombreNorm) {
+                if (mapaResto[nombreNorm] !== undefined) return mapaResto[nombreNorm];
                 const limpio = nombreNorm.replace(/\s*\(T\.?\s*\d+\)\s*/gi, '').replace(/\s+/g, ' ').trim();
-                if (mapaNombre[limpio] !== undefined) return mapaNombre[limpio];
-                const keys = Object.keys(mapaNombre);
+                if (mapaResto[limpio] !== undefined) return mapaResto[limpio];
+                const keys = Object.keys(mapaResto);
                 const porContenido = keys.filter(k => limpio.includes(k) && k.length > 3).sort((a,b)=>b.length-a.length);
-                if (porContenido.length) return mapaNombre[porContenido[0]];
+                if (porContenido.length) return mapaResto[porContenido[0]];
                 const porContenido2 = keys.filter(k => k.includes(limpio) && limpio.length > 3).sort((a,b)=>a.length-b.length);
-                if (porContenido2.length) return mapaNombre[porContenido2[0]];
+                if (porContenido2.length) return mapaResto[porContenido2[0]];
             }
 
             return null;
@@ -8460,13 +8484,14 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 const badgeText = estado_labels[estado] || estado;
 
                 // Calcular estadísticas del pedido:
-                // Precio mayorista (costo) → SIEMPRE el precioCosto ya congelado en el item
-                // del pedido (viene de costoIndividuales, guardado al crear el pedido).
-                // Solo si un item viejo no trae ese dato, se busca como respaldo en el
-                // catálogo real de workerpagos (GET /api/precios-mayoristas).
-                // Precio cliente (venta) → el precio que efectivamente pagó el cliente,
-                // ya guardado en el item (i.precio). Nunca se recalcula ni se confunde
-                // con el total del pedido.
+                // Precio mayorista (costo) → SIEMPRE el precio de la PLATAFORMA
+                // (el mismo que ve el revendedor en su propio catálogo:
+                // Perfumería/Calzados via workerpagos, Belleza via el catálogo
+                // ya cargado en memoria). Este panel NUNCA usa restoprecios —
+                // ese es el costo del DUEÑO de la plataforma y solo se usa
+                // dentro de pedidos.html.
+                // Precio cliente (venta) → el precio que efectivamente pagó el
+                // cliente en tienda.html, ya guardado en el item (i.precio).
                 const pedidoItems = p.items || [];
                 // Categoría de este pedido — usada solo para saber si hay que
                 // mostrar el aviso de calzados dentro del cuadro azul de abajo.
@@ -8479,11 +8504,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     // Precio cliente (venta): el que pagó el cliente por ese ítem.
                     const precioCli = Number(i.precio || i.precioFinal || 0);
 
-                    // Precio mayorista (costo): prioridad al valor ya congelado en el pedido.
-                    let precioMay = Number(i.precioCosto || i.precioMayorista || 0);
-                    if (!precioMay) {
-                        const desdeCatalogo = buscarPrecioMayoristaCatalogo(i);
-                        if (desdeCatalogo !== null) precioMay = Number(desdeCatalogo);
+                    // Precio mayorista (costo): precio base real de la plataforma
+                    // primero; si el producto no se encuentra en el catálogo
+                    // (por ejemplo, nombre viejo que ya no existe), se usa el
+                    // precioCosto congelado en el pedido como respaldo.
+                    let precioMay = null;
+                    const desdeCatalogo = buscarPrecioMayoristaCatalogo(i);
+                    if (desdeCatalogo !== null && desdeCatalogo !== undefined) {
+                        precioMay = Number(desdeCatalogo);
+                    } else {
+                        precioMay = Number(i.precioCosto || i.precioMayorista || 0);
                     }
 
                     totalCostoN += precioMay * cant;
@@ -8648,46 +8678,53 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 if (nuevoEstado === 'aprobado' && pedido) {
                     try {
                         const cli = pedido.cliente || {};
-                        // Normalizar items (pueden venir en distintos formatos).
-                        // IMPORTANTE: precioCosto/ganancia se conservan tal cual ya
-                        // venían en "pedido" (cargados en normalizarPedidoWorker desde
-                        // costoIndividuales/gananciaIndividual de workerwebcliente).
-                        // NUNCA se recalculan acá ni se dejan vacíos para que los
-                        // recalcule workerpagos.
-                        const items = (pedido.items || []).map(i => ({
-                            nombre:      i.nombre || i.name || '',
-                            cantidad:    Number(i.cantidad || i.qty || 1),
-                            precio:      Number(i.precio || i.precioFinal || 0),
-                            precioCosto: Number(i.precioCosto || 0),
-                            ganancia:    Number(i.ganancia || 0),
-                            talle:       i.talle || null,
-                            catalogo:    i.catalogo || null
-                        }));
-                        // Detectar el nicho real del pedido a partir del catálogo
-                        // guardado en cada ítem (item.catalogo) — el mismo dato que
-                        // usa getPedidoNicho()/getItemCatalog() en el resto de la
-                        // app. Antes esto se adivinaba por palabras clave en el
-                        // nombre del producto y solo reconocía Nike/Adidas
-                        // (calzados) o Perfume/Lattafa (perfumes); cualquier
-                        // producto de Belleza, Bazar, Juguetería, Librería o
-                        // Multishop caía siempre en "multishop" por defecto, sin
-                        // importar su categoría real.
+                        // Normalizar items y recalcular el costo mayorista real de
+                        // cada uno contra el catálogo de la plataforma (mismo
+                        // criterio que en la tarjeta de "Pedidos Recibidos"):
+                        // el precio mayorista es SIEMPRE el precio base original
+                        // del producto, no el que haya llegado (o no) congelado
+                        // desde workerwebcliente — ese dato en la práctica solo
+                        // se completaba bien para Perfumería.
+                        const items = (pedido.items || []).map(i => {
+                            const precioVenta = Number(i.precio || i.precioFinal || 0);
+                            const desdeCatalogo = buscarPrecioMayoristaCatalogo(i);
+                            const precioCostoReal = (desdeCatalogo !== null && desdeCatalogo !== undefined)
+                                ? Number(desdeCatalogo)
+                                : Number(i.precioCosto || 0);
+                            return {
+                                nombre:      i.nombre || i.name || '',
+                                cantidad:    Number(i.cantidad || i.qty || 1),
+                                precio:      precioVenta,
+                                precioCosto: precioCostoReal,
+                                ganancia:    precioVenta - precioCostoReal,
+                                talle:       i.talle || null,
+                                catalogo:    i.catalogo || null
+                            };
+                        });
+                        // Detectar el nicho real del pedido — prioridad:
+                        // 1) pedido.nicho (viene directo de tienda.html a nivel
+                        //    de pedido completo, es la fuente de verdad real)
+                        // 2) item.catalogo (si algún ítem lo trae explícito)
+                        // 3) palabras clave en el nombre (solo pedidos viejos
+                        //    que no tienen ninguno de los dos datos anteriores)
                         const categoriasValidas = new Set(['perfumes','calzados','belleza','bazar','jugueteria','libreria','multishop']);
-                        const catsPresentes = new Set(
-                            items.map(i => i.catalogo).filter(c => c && categoriasValidas.has(c))
-                        );
-                        let nicho;
-                        if (catsPresentes.size === 1) {
-                            nicho = [...catsPresentes][0];
-                        } else if (catsPresentes.size > 1) {
-                            nicho = 'multishop';
+                        let nicho = null;
+                        if (pedido.nicho && categoriasValidas.has(String(pedido.nicho).toLowerCase())) {
+                            nicho = String(pedido.nicho).toLowerCase();
                         } else {
-                            // Fallback SOLO para pedidos viejos que no guardaron
-                            // item.catalogo — detección por palabras clave.
-                            const nombresUp = items.map(i => (i.nombre || '').toUpperCase()).join(' ');
-                            const esCalzado  = /NIKE|ADIDAS|JORDAN|DUNK|SAMBA|CAMPUS|AIR FORCE|NEW BALANCE|ZAPATILLA|BOTITA|FORUM|SUPERSTAR/.test(nombresUp);
-                            const esPerfume  = /PERFUME|ARABE|ÁRABE|LATTAFA|AFNAN|ARMAF|YARA|OUD|ATTAR|CLUB DE NUIT|HAYA|HARAMAIN/.test(nombresUp);
-                            nicho = esCalzado ? 'calzados' : esPerfume ? 'perfumes' : 'multishop';
+                            const catsPresentes = new Set(
+                                items.map(i => i.catalogo).filter(c => c && categoriasValidas.has(c))
+                            );
+                            if (catsPresentes.size === 1) {
+                                nicho = [...catsPresentes][0];
+                            } else if (catsPresentes.size > 1) {
+                                nicho = 'multishop';
+                            } else {
+                                const nombresUp = items.map(i => (i.nombre || '').toUpperCase()).join(' ');
+                                const esCalzado  = /NIKE|ADIDAS|JORDAN|DUNK|SAMBA|CAMPUS|AIR FORCE|NEW BALANCE|ZAPATILLA|BOTITA|FORUM|SUPERSTAR/.test(nombresUp);
+                                const esPerfume  = /PERFUME|ARABE|ÁRABE|LATTAFA|AFNAN|ARMAF|YARA|OUD|ATTAR|CLUB DE NUIT|HAYA|HARAMAIN/.test(nombresUp);
+                                nicho = esCalzado ? 'calzados' : esPerfume ? 'perfumes' : 'multishop';
+                            }
                         }
 
                         const panelPayload = {
@@ -8702,12 +8739,11 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                             fecha:          new Date().toISOString(),
                             items:          items,
                             precio_venta:   Number(pedido.totalFinal || 0),
-                            // Costo/ganancia reales del pedido — el mismo dato que ya
-                            // estaba correcto cuando el pedido estaba pendiente.
-                            // workerpagos debe usarlos directo y NO recalcularlos por
-                            // catálogo cuando estos campos vienen presentes.
-                            costoTotal:     Number(pedido.costoTotal || 0),
-                            gananciaTotal:  Number(pedido.gananciaTotal || 0),
+                            // Costo/ganancia reales — recalculados recién arriba
+                            // contra el catálogo real de la plataforma (item por
+                            // item), no los totales crudos del pedido pendiente.
+                            costoTotal:     items.reduce((s, i) => s + i.precioCosto * i.cantidad, 0),
+                            gananciaTotal:  items.reduce((s, i) => s + i.ganancia * i.cantidad, 0),
                         };
 
                         // Log de verificación: payload exacto que se manda al aprobar.
@@ -10167,7 +10203,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (!user) { abrirLogin(); return; }
 
             const cat = window.currentCatalog || 'general';
-            const catLabel = cat === 'perfumes' ? 'Perfumería' : cat === 'calzados' ? 'Calzados' : cat === 'belleza_maquillaje' ? 'Belleza y Cuidado Personal — Maquillaje' : cat === 'belleza_perfume' ? 'Belleza y Cuidado Personal — Perfumes' : cat === 'belleza' ? 'Belleza y Cuidado Personal' : 'General';
+            const catLabel = cat === 'perfumes' ? 'Perfumería' : cat === 'calzados' ? 'Calzados Importados' : cat === 'belleza_maquillaje' ? 'Belleza y Cuidado Personal — Maquillaje' : cat === 'belleza_perfume' ? 'Belleza y Cuidado Personal — Perfumes' : cat === 'belleza' ? 'Belleza y Cuidado Personal' : 'General';
             const el = document.getElementById('configTiendaCatLabel');
             if (el) el.textContent = '📁 Categoría: ' + catLabel;
 
@@ -10778,7 +10814,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
         async function eliminarConfigTienda() {
             const cat = window.currentCatalog || 'general';
-            const label = cat === 'perfumes' ? 'Perfumes' : cat === 'calzados' ? 'Calzados' : cat;
+            const label = cat === 'perfumes' ? 'Perfumes' : cat === 'calzados' ? 'Calzados Importados' : cat;
             const confirmado = await window.pedirConfirmacionReiniciar(
                 `Esto borra los márgenes, el color y el nombre configurados para "${label}". Vas a tener que volver a configurarla desde cero.`
             );
@@ -12835,7 +12871,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
             window._comboCat = cat;
             window._comboSeleccion = {};
-            const label = cat === 'perfumes' ? 'Perfumería' : cat === 'calzados' ? 'Calzados'
+            const label = cat === 'perfumes' ? 'Perfumería' : cat === 'calzados' ? 'Calzados Importados'
                 : cat === 'belleza_maquillaje' ? 'Belleza — Maquillaje' : cat === 'belleza_perfume' ? 'Belleza — Perfumes'
                 : cat === 'belleza' ? 'Belleza y Cuidado Personal' : cat;
             document.getElementById('crearComboCatLabel').textContent = 'Productos de: ' + label;
