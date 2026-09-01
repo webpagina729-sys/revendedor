@@ -6712,7 +6712,15 @@ function catalogoEfectivoMultishop(p) {
                     cantidad: item.cantidad,
                     subtotal: subtotal,
                     margenPorcentaje: profit.margenPorcentaje,
-                    ganancia: profit.gananciaTotal
+                    ganancia: profit.gananciaTotal,
+                    // 🔑 Categoría real del producto — SIN esto, al aprobar el
+                    // pedido no había forma de saber si era Bazar, Juguetería,
+                    // Librería, Multishop o Belleza (solo Perfumería y
+                    // Calzados "funcionaban" porque sus nombres de producto
+                    // coinciden con palabras clave tipo NIKE/PERFUME que se
+                    // usan como último respaldo en index.html).
+                    catalogo: item.catalogo || getItemCatalog(item),
+                    talle: item.talle || null
                 });
             });
 
@@ -6746,6 +6754,12 @@ function catalogoEfectivoMultishop(p) {
                         observaciones: checkout.observaciones
                     },
                     items: totales.detallesItems,
+                    // 🔑 Categoría real del pedido completo — la misma fuente
+                    // de verdad que usa tienda.html (nicho a nivel de pedido).
+                    // Sin este campo, "Pedidos Recibidos" (en index.html) no
+                    // tenía forma confiable de saber a qué categoría mandar
+                    // este pedido al aprobarlo en el panel de gestión.
+                    nicho: getPedidoNicho(cartItems),
                     totalInversion: totales.totalInversion,
                     totalGanancia: totales.totalGanancia,
                     totalFinal: totales.totalFinal,
