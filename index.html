@@ -6037,7 +6037,15 @@
                     cantidad: item.cantidad,
                     subtotal: subtotal,
                     margenPorcentaje: profit.margenPorcentaje,
-                    ganancia: profit.gananciaTotal
+                    ganancia: profit.gananciaTotal,
+                    // 🔑 Categoría real del producto — SIN esto, al aprobar el
+                    // pedido no había forma de saber si era Belleza, Bazar,
+                    // Juguetería, Librería o Multishop (solo Perfumería y
+                    // Calzados "funcionaban" porque sus nombres de producto
+                    // coinciden con palabras clave tipo NIKE/PERFUME que se
+                    // usan como último respaldo).
+                    catalogo: item.catalogo || getItemCatalog(item),
+                    talle: item.talle || null
                 });
             });
 
@@ -6071,6 +6079,12 @@
                         observaciones: checkout.observaciones
                     },
                     items: totales.detallesItems,
+                    // 🔑 Categoría real del pedido completo — la misma fuente
+                    // de verdad que usa tienda.html (nicho a nivel de pedido).
+                    // Sin este campo, "Pedidos Recibidos" no tenía forma
+                    // confiable de saber a qué categoría mandar el pedido al
+                    // aprobarlo en el panel de gestión.
+                    nicho: getPedidoNicho(cartItems),
                     totalInversion: totales.totalInversion,
                     totalGanancia: totales.totalGanancia,
                     totalFinal: totales.totalFinal,
