@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <script>
+        // Silenciar errores de extensiones del navegador (mismo criterio que index.html)
+        console.error = function() {};
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tienda</title>
@@ -1817,7 +1821,7 @@ const urlParams = new URLSearchParams(window.location.search);
 // mostrarError más abajo) sin depender de que alguien sepa abrir la
 // consola del navegador.
 window._diagLog = [];
-function _diag(msg) { window._diagLog.push(msg); try { console.log('[tienda]', msg); } catch(_) {} }
+function _diag(msg) { window._diagLog.push(msg); }
 _diag('URL: ' + window.location.href);
 
 // 🔧 ENLACES CORTOS CON RUTA LIMPIA: revendeways.shop/tienda/nombre-apellido
@@ -2810,7 +2814,7 @@ function formatPrice(n) {
 async function cargarVendedor() {
     _diag('cargarVendedor() — codigoParam=' + (codigoParam || '(vacío)') + ' | uidParam=' + (uidParam || '(vacío)'));
     if (!codigoParam && !uidParam) {
-        console.warn('[tienda] Sin codigoParam ni uidParam en la URL — urlParams:', urlParams.toString());
+        /* silenciado */
         if (window._slugFetchOk === false) {
             // Había un ?s=slug en el enlace (el enlace SÍ es válido), pero
             // no se pudo resolver contra el servidor después de reintentar.
@@ -2852,13 +2856,13 @@ async function cargarVendedor() {
                 const data = await res.json();
                 _diag('WORKER_LOGIN_UID resultado: ' + JSON.stringify(data).slice(0,200));
                 if (data.success && data.vendedor) userData = data.vendedor;
-                else console.warn('[tienda] WORKER_LOGIN_UID respondió pero sin vendedor válido:', data);
+                /* silenciado */
             } else {
-                console.warn('[tienda] WORKER_LOGIN_UID status', res.status);
+                /* silenciado */
             }
         } catch (e) {
             _diag('WORKER_LOGIN_UID ERROR: ' + e.message);
-            console.warn('[tienda] WORKER_LOGIN_UID falló:', e.message);
+            /* silenciado */
         }
 
         // 0b. Vía Firestore directo (lectura por ID de documento — funciona
@@ -2868,10 +2872,10 @@ async function cargarVendedor() {
                 const docSnap = await db.collection('usuarios').doc(uidParam).get();
                 _diag('Firestore usuarios/' + uidParam + ': ' + (docSnap.exists ? 'encontrado' : 'NO existe'));
                 if (docSnap.exists) userData = docSnap.data();
-                else console.warn('[tienda] Firestore: no existe usuarios/' + uidParam);
+                /* silenciado */
             } catch (e) {
                 _diag('Firestore directo ERROR: ' + e.message);
-                console.warn('[tienda] Lectura directa por UID falló:', e.message);
+                /* silenciado */
             }
         }
 
@@ -2897,13 +2901,13 @@ async function cargarVendedor() {
                 if (data.success && data.vendedor) {
                     userData = data.vendedor;
                 } else {
-                    console.warn('[tienda] WORKER_LOGIN respondió pero sin vendedor válido:', data);
+                    /* silenciado */
                 }
             } else {
-                console.warn('[tienda] WORKER_LOGIN status', res.status);
+                /* silenciado */
             }
         } catch (e) {
-            console.warn('[tienda] WORKER_LOGIN falló (intento ' + (intento + 1) + '):', e.message);
+            /* silenciado */
             if (intento === 0) await new Promise(r => setTimeout(r, 600));
         }
     }
@@ -2917,14 +2921,14 @@ async function cargarVendedor() {
                 .limit(1)
                 .get();
             if (!snap.empty) userData = snap.docs[0].data();
-            else console.warn('[tienda] Firestore: sin resultados para codigoVendedor =', codigoParam);
+            /* silenciado */
         } catch (e) {
-            console.warn('[tienda] Fallback Firestore falló (probablemente reglas de seguridad):', e.message);
+            /* silenciado */
         }
     }
 
     if (!userData) {
-        console.error('[tienda] No se pudo resolver el vendedor. codigoParam =', codigoParam, '| catParam =', catParam, '| urlParams =', urlParams.toString());
+        /* silenciado */
         mostrarError('Tienda no encontrada. Verificá el enlace con el vendedor.');
         return;
     }
@@ -3778,7 +3782,7 @@ window.addEventListener('load', function() {
                         window._comboDestacado = { tipo: d.tipo, item: d.item };
                     }
                 }
-            } catch(e) { console.warn('[tienda] No se pudo resolver el enlace de combo/promo:', e.message); }
+            } catch(e) { /* silenciado */ }
         }
 
         cargarVendedor();
@@ -4201,14 +4205,14 @@ function registrarAceptacionLegales(pedidoId, nombre, apellido, telefono, codigo
         }).then(function(r) {
             return r.json().catch(function(){ return null; }).then(function(data) {
                 if (!r.ok) {
-                    console.error('[legales] El worker respondió con error:', r.status, data);
+                    /* silenciado */
                 } else {
-                    console.log('[legales] Aceptación guardada correctamente:', data);
+                    /* silenciado */
                 }
             });
-        }).catch(function(e) { console.error('[legales] No se pudo contactar al worker (red/CORS):', e); });
+        }).catch(function(e) { /* silenciado */ });
     } catch (e) {
-        console.error('Error preparando la aceptación de legales:', e);
+        /* silenciado */
     }
 }
 
@@ -4377,13 +4381,13 @@ function cerrarBienvenidaModal() {
     const modal = document.getElementById('bienvenidaModal');
     if (modal) modal.classList.remove('active');
     if (window.promoActiva) {
-        // 5 segundos después de aceptar la bienvenida, se muestra la promoción activa.
-        setTimeout(mostrarPromoFloat, 5000);
+        // 10 segundos después de aceptar la bienvenida, se muestra la promoción activa.
+        setTimeout(mostrarPromoFloat, 10000);
     } else if (!window._comboTimerDisparado) {
         // Sin promo activa, el modal de Promoción nunca se abre/cierra, así que
-        // el combo (si el revendedor lo configuró) se dispara 15s después de aceptar.
+        // el combo (si el revendedor lo configuró) se dispara 10s después de aceptar.
         window._comboTimerDisparado = true;
-        setTimeout(dispararComboFloatSiHay, 15000);
+        setTimeout(dispararComboFloatSiHay, 10000);
     }
 }
 
@@ -4422,10 +4426,10 @@ function mostrarPromoFloat() {
 
 function cerrarPromoFloat() {
     document.getElementById('promoFloatModal').classList.remove('active');
-    // El combo (si hay) se muestra 15s DESPUÉS de cerrar este modal.
+    // El combo (si hay) se muestra 10s DESPUÉS de cerrar este modal.
     if (!window._comboTimerDisparado) {
         window._comboTimerDisparado = true;
-        setTimeout(dispararComboFloatSiHay, 15000);
+        setTimeout(dispararComboFloatSiHay, 10000);
     }
 }
 
@@ -4824,7 +4828,7 @@ async function enviarStatsPromo() {
                 ultimaVenta: firebase.firestore.FieldValue.serverTimestamp(),
                 conRegalo: carrito.some(x => x.regalo)
             }, { merge: true });
-    } catch(e) { console.warn('Stats promo:', e); }
+    } catch(e) { /* silenciado */ }
 }
 
 // Hook al éxito del checkout (después de _enviarPorWhatsAppOriginal)
