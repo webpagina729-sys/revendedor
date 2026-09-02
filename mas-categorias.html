@@ -4300,12 +4300,11 @@
         /*
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
-            console.log('✅ Firebase inicializado CORRECTAMENTE en configuración');
         }
         
         firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-            .then(() => console.log('✅ Persistencia de sesión configurada'))
-            .catch(err => console.error('❌ Error configurando persistencia:', err.message));
+            .then(() => {})
+            .catch(err => {});
         */
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -6356,12 +6355,12 @@ function catalogoEfectivoMultishop(p) {
                     if (codigo) {
                         localStorage.setItem('codigoVendedorLocal', codigo);
                         window.currentUser = { ...(window.currentUser || {}), uid: uidActual, email: usuarioActual?.email || data.email || window.currentUser?.email || '', ...data, codigoVendedor: codigo };
-                        console.log('✅ Código de revendedor obtenido desde Firebase UID (oculto por privacidad)');
+                        /* silenciado */
                         return codigo;
                     }
                 }
             } catch (error) {
-                console.warn('No se pudo leer usuarios/{uid}; se usan fallbacks de sesión:', error);
+                /* silenciado */
             }
 
             if (codigoMemoria) return codigoMemoria;
@@ -6379,10 +6378,10 @@ function catalogoEfectivoMultishop(p) {
             const originalButtonText = payButton ? payButton.textContent : 'Comprar Ahora';
             
             try {
-                console.log('🚀 [CHECKOUT] Iniciando proceso de compra...');
+                /* silenciado */
 
                 const usuarioActual = firebase.auth().currentUser;
-                console.log('👤 [CHECKOUT] Usuario:', usuarioActual ? usuarioActual.uid : 'NO AUTENTICADO');
+                /* silenciado */
                 if (!usuarioActual) throw new Error('Debes estar autenticado');
 
                 if (payButton) {
@@ -6391,7 +6390,7 @@ function catalogoEfectivoMultishop(p) {
                 }
 
                 let codigoRevendedorValido = await getCodigoVendedorActual();
-                console.log('🏷️ [CHECKOUT] Código de vendedor presente (oculto por privacidad)');
+                /* silenciado */
 
                 const checkout = {
                     nombre: document.getElementById('checkout-nombre').value.trim(),
@@ -6405,7 +6404,7 @@ function catalogoEfectivoMultishop(p) {
                     observaciones: document.getElementById('checkout-observaciones')?.value.trim() || '',
                     codigoRevendedor: codigoRevendedorValido
                 };
-                console.log('📋 [CHECKOUT] Datos checkout:', checkout);
+                /* silenciado */
 
                 if (!checkout.nombre || !checkout.apellido || !checkout.email || !checkout.telefono ||
                     !checkout.provincia || !checkout.ciudad || !checkout.cp || !checkout.direccion) {
@@ -6415,12 +6414,12 @@ function catalogoEfectivoMultishop(p) {
                 if (!minimumStatus.isValid) {
                     throw new Error('Completá el mínimo obligatorio: ' + minimumStatus.missing.join(' · '));
                 }
-                console.log('✅ [CHECKOUT] Validaciones OK');
+                /* silenciado */
 
                 let totales;
                 try {
                     totales = calculateOrderTotals(window.cart);
-                    console.log('💰 [CHECKOUT] Totales calculados:', totales);
+                    /* silenciado */
                 } catch (e) {
                     console.error('❌ [CHECKOUT] Error en calculateOrderTotals:', e);
                     throw e;
@@ -6428,9 +6427,9 @@ function catalogoEfectivoMultishop(p) {
 
                 let pedidoId;
                 try {
-                    console.log('💾 [CHECKOUT] Guardando pedido en Firestore...');
+                    /* silenciado */
                     pedidoId = await savePedidoToFirestore(checkout, window.cart, totales);
-                    console.log('✅ [CHECKOUT] Pedido guardado con ID:', pedidoId);
+                    /* silenciado */
                 } catch (e) {
                     console.error('❌ [CHECKOUT] Error en savePedidoToFirestore:', e);
                     throw e;
@@ -6602,7 +6601,7 @@ function catalogoEfectivoMultishop(p) {
             } catch (error) {
                 // No loguear errores de conexión offline (esperados)
                 if (error.code !== 'unavailable' && !error.message.includes('offline')) {
-                    console.warn('Error cargando carrito:', error.message);
+                    /* silenciado */
                 }
                 return [];
             }
@@ -6783,7 +6782,7 @@ function catalogoEfectivoMultishop(p) {
                     )
                 ]);
 
-                console.log('💾 [FIRESTORE] Pedido guardado exitosamente:', docRef.id);
+                /* silenciado */
 
                 // Sincronizar con la colección raíz a través del Worker
                 try {
@@ -7531,7 +7530,7 @@ function catalogoEfectivoMultishop(p) {
             
             // Validar reCAPTCHA usando el ID del widget de registro
             const recaptchaResponse = grecaptcha.getResponse(window.grecaptchaRegisterId);
-            console.log('📋 reCAPTCHA Response:', recaptchaResponse);
+            /* silenciado */
             if (!recaptchaResponse) {
                 alert('❌ Por favor, completa el reCAPTCHA');
                 return;
@@ -7607,7 +7606,7 @@ function catalogoEfectivoMultishop(p) {
             
             // Validar reCAPTCHA usando el ID del widget de login
             const recaptchaResponse = grecaptcha.getResponse(window.grecaptchaLoginId);
-            console.log('📋 reCAPTCHA Response:', recaptchaResponse);
+            /* silenciado */
             if (!recaptchaResponse) {
                 alert('❌ Por favor, completa el reCAPTCHA');
                 return;
@@ -8752,15 +8751,6 @@ function catalogoEfectivoMultishop(p) {
                 _raw: raw
             };
 
-            // Log de verificación: pedido tal cual entra como pendiente.
-            console.log('[PEDIDO][pendiente]', pedidoNormalizado.id, {
-                costoIndividuales:   raw.costoIndividuales,
-                costoTotal:          pedidoNormalizado.costoTotal,
-                gananciaTotal:       pedidoNormalizado.gananciaTotal,
-                preciosIndividuales: raw.preciosIndividuales,
-                total:               pedidoNormalizado.totalFinal
-            });
-
             return pedidoNormalizado;
         }
 
@@ -9160,26 +9150,52 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 if (nuevoEstado === 'aprobado' && pedido) {
                     try {
                         const cli = pedido.cliente || {};
-                        // Normalizar items (pueden venir en distintos formatos).
-                        // IMPORTANTE: precioCosto/ganancia se conservan tal cual ya
-                        // venían en "pedido" (cargados en normalizarPedidoWorker desde
-                        // costoIndividuales/gananciaIndividual de workerwebcliente).
-                        // NUNCA se recalculan acá ni se dejan vacíos para que los
-                        // recalcule workerpagos.
-                        const items = (pedido.items || []).map(i => ({
-                            nombre:      i.nombre || i.name || '',
-                            cantidad:    Number(i.cantidad || i.qty || 1),
-                            precio:      Number(i.precio || i.precioFinal || 0),
-                            precioCosto: Number(i.precioCosto || 0),
-                            ganancia:    Number(i.ganancia || 0),
-                            talle:       i.talle || null,
-                            catalogo:    i.catalogo || null
-                        }));
-                        // Detectar nicho por palabras clave en los nombres de productos
-                        const nombresUp = items.map(i => (i.nombre || '').toUpperCase()).join(' ');
-                        const esCalzado  = /NIKE|ADIDAS|JORDAN|DUNK|SAMBA|CAMPUS|AIR FORCE|NEW BALANCE|ZAPATILLA|BOTITA|FORUM|SUPERSTAR/.test(nombresUp);
-                        const esPerfume  = /PERFUME|ARABE|ÁRABE|LATTAFA|AFNAN|ARMAF|YARA|OUD|ATTAR|CLUB DE NUIT|HAYA|HARAMAIN/.test(nombresUp);
-                        const nicho = esCalzado ? 'calzados' : esPerfume ? 'perfumes' : 'multishop';
+                        // Normalizar items y recalcular el costo mayorista real de
+                        // cada uno contra el catálogo de la plataforma (mismo
+                        // criterio que en "Pedidos Recibidos" y que index.html):
+                        // el precio mayorista es SIEMPRE el precio base original
+                        // del producto, no el que haya llegado (o no) congelado
+                        // desde workerwebcliente.
+                        const items = (pedido.items || []).map(i => {
+                            const precioVenta = Number(i.precio || i.precioFinal || 0);
+                            const desdeCatalogo = buscarPrecioMayoristaCatalogo(i);
+                            const precioCostoReal = (desdeCatalogo !== null && desdeCatalogo !== undefined)
+                                ? Number(desdeCatalogo)
+                                : Number(i.precioCosto || 0);
+                            return {
+                                nombre:      i.nombre || i.name || '',
+                                cantidad:    Number(i.cantidad || i.qty || 1),
+                                precio:      precioVenta,
+                                precioCosto: precioCostoReal,
+                                ganancia:    precioVenta - precioCostoReal,
+                                talle:       i.talle || null,
+                                catalogo:    i.catalogo || null
+                            };
+                        });
+                        // Detectar el nicho real del pedido — prioridad:
+                        // 1) pedido.nicho (viene directo de tienda.html a nivel
+                        //    de pedido completo, es la fuente de verdad real)
+                        // 2) item.catalogo (si algún ítem lo trae explícito)
+                        // 3) palabras clave en el nombre (solo pedidos viejos)
+                        const categoriasValidas = new Set(['perfumes','calzados','belleza','bazar','jugueteria','libreria','multishop']);
+                        let nicho = null;
+                        if (pedido.nicho && categoriasValidas.has(String(pedido.nicho).toLowerCase())) {
+                            nicho = String(pedido.nicho).toLowerCase();
+                        } else {
+                            const catsPresentes = new Set(
+                                items.map(i => i.catalogo).filter(c => c && categoriasValidas.has(c))
+                            );
+                            if (catsPresentes.size === 1) {
+                                nicho = [...catsPresentes][0];
+                            } else if (catsPresentes.size > 1) {
+                                nicho = 'multishop';
+                            } else {
+                                const nombresUp = items.map(i => (i.nombre || '').toUpperCase()).join(' ');
+                                const esCalzado  = /NIKE|ADIDAS|JORDAN|DUNK|SAMBA|CAMPUS|AIR FORCE|NEW BALANCE|ZAPATILLA|BOTITA|FORUM|SUPERSTAR/.test(nombresUp);
+                                const esPerfume  = /PERFUME|ARABE|ÁRABE|LATTAFA|AFNAN|ARMAF|YARA|OUD|ATTAR|CLUB DE NUIT|HAYA|HARAMAIN/.test(nombresUp);
+                                nicho = esCalzado ? 'calzados' : esPerfume ? 'perfumes' : 'multishop';
+                            }
+                        }
 
                         const panelPayload = {
                             pedidoId:       pedido.id,
@@ -9193,29 +9209,25 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                             fecha:          new Date().toISOString(),
                             items:          items,
                             precio_venta:   Number(pedido.totalFinal || 0),
-                            // Costo/ganancia reales del pedido — el mismo dato que ya
-                            // estaba correcto cuando el pedido estaba pendiente.
-                            // workerpagos debe usarlos directo y NO recalcularlos por
-                            // catálogo cuando estos campos vienen presentes.
-                            costoTotal:     Number(pedido.costoTotal || 0),
-                            gananciaTotal:  Number(pedido.gananciaTotal || 0),
+                            costoTotal:     items.reduce((s, i) => s + i.precioCosto * i.cantidad, 0),
+                            gananciaTotal:  items.reduce((s, i) => s + i.ganancia * i.cantidad, 0),
                         };
 
-                        // Log de verificación: payload exacto que se manda al aprobar.
-                        console.log('[PEDIDO][aprobando]', pedido.id, {
-                            costoIndividuales:   items.map(i => i.precioCosto),
-                            costoTotal:          panelPayload.costoTotal,
-                            gananciaTotal:       panelPayload.gananciaTotal,
-                            preciosIndividuales: items.map(i => i.precio),
-                            total:               panelPayload.precio_venta
-                        });
-
-                        await fetch(WORKER_URL + '/api/panel-gestion', {
-                            method:  'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body:    JSON.stringify(panelPayload)
-                        });
-                    } catch (_) { /* no bloquear el flujo principal */ }
+                        if (!panelPayload.codigoVendedor) {
+                            alert('⚠️ No se pudo registrar en el panel de gestión: falta el código de revendedor');
+                        } else {
+                            const respPanel = await fetch(WORKER_URL + '/api/panel-gestion', {
+                                method:  'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body:    JSON.stringify(panelPayload)
+                            });
+                            if (!respPanel.ok) {
+                                alert('⚠️ El pedido se aprobó pero no llegó al panel de gestión. Probá de nuevo o avisame si se repite.');
+                            }
+                        }
+                    } catch (_) {
+                        alert('⚠️ El pedido se aprobó pero no llegó al panel de gestión (error de conexión). Probá de nuevo.');
+                    }
                 }
                 // ── Persistir estado en workerwebcliente (pedidos de tienda.html) ──
                 if (esWorker && codigoVendedor) {
@@ -9583,7 +9595,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                         // confiando en la caché para no dejar a alguien afuera por
                         // un problema de conexión pasajero).
                     } catch (_e) {
-                        console.warn('[APP] No se pudo revalidar el código guardado:', _e && _e.message);
+                        /* silenciado */
                     }
 
                     if (!codigoSigueValido) {
@@ -11428,7 +11440,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         function vistaPreviaTienda() {
             const inputEl = document.getElementById('verTiendaEnlace');
             if (inputEl.disabled) return;
-            console.log('[index] Abriendo vista previa con esta URL exacta:', JSON.stringify(inputEl.value));
+            /* silenciado */
             window.open(inputEl.value, '_blank');
         }
 
@@ -11762,7 +11774,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         
         // Callback para cuando reCAPTCHA esté listo
         window.onRecaptchaReady = function() {
-            console.log('reCAPTCHA API cargada');
+            /* silenciado */
 
             // Login
             if (document.getElementById('recaptcha-login')) {
@@ -11861,7 +11873,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
             // Aplica los datos del revendedor a toda la página
             async function bvAplicarDatos(codigo, userData) {
-                console.log("[APP] bvAplicarDatos iniciado");
 
                 // 🔧 FIX: si el navegador tenía cacheado un código de OTRO
                 // revendedor (ej: se borró la base de datos y se volvió a
@@ -11915,7 +11926,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 }
 
                 var fbUser = firebase.auth().currentUser;
-                console.log("[APP] firebase.auth().currentUser:", fbUser);
 
                 // Obtener UID real desde Firestore (por codigoVendedor) si firebase.auth no lo tiene
                 var _uidReal = fbUser ? fbUser.uid : (userData.uid || null);
@@ -11944,33 +11954,24 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     configTienda:       userData.configTienda || null,
                 };
                 window.codigoValidado = true;
-                console.log("[APP] window.currentUser seteado");
 
                 // FIX: mostrar cinta negra superior tras login con código
                 try {
-                    console.log("[APP] updateUIForAuthentication(true)");
                     updateUIForAuthentication(true);
                 } catch(err) { console.error("[APP] ERROR updateUIForAuthentication", err); }
 
                 // Diagnóstico del contenedor de catálogo y de productos cargados
                 try {
                     var grid = document.getElementById("products-grid");
-                    console.log("[APP] GRID #products-grid:", grid);
                     if (typeof productos !== 'undefined') {
-                        console.log("[APP] Productos:", productos);
-                        console.log("[APP] Cantidad productos:", productos && productos.length);
                     } else if (window.productos) {
-                        console.log("[APP] window.productos:", window.productos);
-                        console.log("[APP] Cantidad window.productos:", window.productos.length);
                     } else {
-                        console.log("[APP] variable productos no definida en este scope");
                     }
                 } catch(err) {
                     console.error("[APP] ERROR diagnóstico contenedor/productos", err);
                 }
 
                 if (typeof setBannerYFooterVendedor === 'function') {
-                    console.log("[APP] setBannerYFooterVendedor()");
                     try {
                         setBannerYFooterVendedor(
                             userData.nombre || 'Revendedor', codigo,
@@ -11979,18 +11980,14 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     } catch(err) { console.error("ERROR setBannerYFooterVendedor", err); }
                 }
                 if (typeof initializeUserSession === 'function' && fbUser) {
-                    console.log("[APP] initializeUserSession()");
                     try { initializeUserSession(userData, fbUser); } catch(err) { console.error("ERROR initializeUserSession", err); }
                 }
                 if (typeof actualizarVistaNichos   === 'function') {
-                    console.log("[APP] actualizarVistaNichos()");
                     try { actualizarVistaNichos(); }   catch(err) { console.error("ERROR actualizarVistaNichos", err); }
                 }
                 if (typeof actualizarBotonesRevend === 'function') {
-                    console.log("[APP] actualizarBotonesRevend()");
                     try { actualizarBotonesRevend(); } catch(err) { console.error("ERROR actualizarBotonesRevend", err); }
                 }
-                console.log("[APP] bvAplicarDatos finalizado");
             }
 
             // Al cargar la página
@@ -12044,14 +12041,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
             // ── Botón INGRESAR ────────────────────────────────────────────
             window.bvIngresar = async function() {
-                console.log("[LOGIN] Inicio");
                 var input  = document.getElementById('bv-input');
                 var errEl  = document.getElementById('bv-error');
                 var btn    = document.getElementById('bv-btn');
                 var lbl    = document.getElementById('bv-btn-lbl');
                 var spin   = document.getElementById('bv-spin');
                 var codigo = (input.value || '').trim().toUpperCase();
-                console.log("[LOGIN] Código ingresado (oculto por privacidad)");
 
                 errEl.textContent = '';
                 errEl.classList.remove('show');
@@ -12080,7 +12075,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     });
                     workerRespondio = true;
                     var workerData = await res.json();
-                    console.log("[LOGIN] Respuesta Worker:", workerData);
                     if (workerData.success && workerData.vendedor) {
                         userData = workerData.vendedor;
                     } else {
@@ -12100,7 +12094,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     try {
                         await esperarFirebase();
                         userData = await buscarEnFirestore(codigo);
-                        console.log("[LOGIN] Respaldo Firestore:", userData ? 'encontrado' : 'no encontrado');
                     } catch(e) {
                         console.error("[LOGIN] Error en respaldo Firestore:", e);
                     }
@@ -12125,13 +12118,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     return;
                 }
 
-                console.log("[LOGIN] Datos de usuario recibidos correctamente (oculto por privacidad)");
 
                 // 3. Aplicar datos y cerrar modal
-                console.log("[LOGIN] Ejecutando bvAplicarDatos()");
                 try {
                     await bvAplicarDatos(codigo, userData);
-                    console.log("[LOGIN] SessionStorage guardado (localStorage actualizado)");
                 } catch(err) {
                     console.error("[LOGIN] ERROR bvAplicarDatos", err);
                 }
@@ -12666,7 +12656,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                         }
                     }
                 } catch(_e) {
-                    console.warn('[enlace] No se pudo consultar el Worker por UID:', _e && _e.message);
+                    /* silenciado */
                 }
             }
 
@@ -12691,14 +12681,14 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                             nombre = v.nombre || v.name || nombre;
                             apellido = v.apellido || v.lastName || apellido;
                         } else {
-                            console.warn('[enlace] El Worker de datos del revendedor respondió sin datos válidos:', data);
+                            /* silenciado */
                         }
                     } else {
-                        console.warn('[enlace] Worker de datos del revendedor status:', res.status);
+                        /* silenciado */
                     }
                 } catch(_e) {
                     // Timeout o error de red: se sigue con los datos de Firebase Auth.
-                    console.warn('[enlace] No se pudo consultar el Worker de datos del revendedor:', _e && _e.message);
+                    /* silenciado */
                 }
             }
             return { nombre, apellido };
@@ -12761,7 +12751,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             const uid = (typeof getUidVendedorActual === 'function') ? getUidVendedorActual() : '';
             try {
                 if (!codigo) {
-                    console.warn('[enlace] Sin código de revendedor todavía — se usa el enlace largo de respaldo.');
+                    /* silenciado */
                     throw new Error('sin codigo');
                 }
                 const ctrl = new AbortController();
@@ -12777,7 +12767,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 });
                 clearTimeout(timeoutId);
                 if (!res.ok) {
-                    console.warn('[enlace] El Worker de slugs respondió con error:', res.status, await res.text().catch(()=>'')); 
+                    /* silenciado */
                     throw new Error('slug fail: ' + res.status);
                 }
                 let slugFinal = slugId;
@@ -12798,13 +12788,13 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 // hosting — el navegador pide exactamente ese archivo con
                 // exactamente esos parámetros, siempre.
                 const urlFinal = TIENDA_DOMINIO_PERSONALIZADO + '/tienda.html?s=' + encodeURIComponent(slugFinal);
-                console.log('[enlace] URL CORTA generada:', JSON.stringify(urlFinal), '| slugId original:', JSON.stringify(slugId), '| slugFinal usado:', JSON.stringify(slugFinal));
+                /* silenciado */
                 return urlFinal;
             } catch(_e) {
                 // Sin red / Worker caído / timeout: enlace largo como respaldo.
-                console.warn('[enlace] Cayó al enlace largo de respaldo. Motivo:', _e && _e.message);
+                /* silenciado */
                 const urlRespaldo = construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub, uid);
-                console.log('[enlace] URL LARGA de respaldo generada:', JSON.stringify(urlRespaldo), '| slugId:', JSON.stringify(slugId));
+                /* silenciado */
                 return urlRespaldo;
             }
         }
@@ -12954,7 +12944,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generando...'; }
             try {
                 const url = await generarEnlaceProducto(catalogoRutaCompleta(catalogo), productId);
-                console.log('[index] compartirTiendaDesdeProducto — URL a copiar:', JSON.stringify(url), '| productId recibido:', JSON.stringify(productId));
+                /* silenciado */
                 if (navigator.share) {
                     try {
                         await navigator.share({ title: 'Mi tienda', url });
