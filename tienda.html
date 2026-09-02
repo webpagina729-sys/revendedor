@@ -3158,6 +3158,7 @@ async function cargarVendedor() {
 
     iniciarTienda();
     cargarYMostrarCombosPromos();
+    reintentarLegalesPendientes();
     cargarSeccionDescuentosYCombos();
 
     // ── Bienvenida a los 5 segundos → Aceptar → 5s → Promoción activa ──
@@ -4191,6 +4192,9 @@ function registrarAceptacionLegales(pedidoId, nombre, apellido, telefono, codigo
             telefono: telefono || '',
             codigoVendedor: codigoVendedor || '',
             aceptado: true,
+            aceptoTerminos: true,
+            terminosCondicionesAceptado: true,
+            politicaPrivacidadAceptado: true,
             versionDocumento: VERSION_DOCUMENTO_LEGAL,
             fecha: fecha || '',
             hora: hora || '',
@@ -4203,17 +4207,67 @@ function registrarAceptacionLegales(pedidoId, nombre, apellido, telefono, codigo
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
         }).then(function(r) {
-            return r.json().catch(function(){ return null; }).then(function(data) {
-                if (!r.ok) {
-                    /* silenciado */
-                } else {
-                    /* silenciado */
-                }
-            });
-        }).catch(function(e) { /* silenciado */ });
+            if (!r.ok) {
+                // Igual que haría cualquier registro legal importante: si el
+                // Worker no lo confirmó, se guarda localmente para poder
+                // reintentar en vez de perder el registro en silencio.
+                try {
+                    const pendientes = JSON.parse(_lsGet('legalesPendientes') || '[]');
+                    pendientes.push(body);
+                    _lsSet('legalesPendientes', JSON.stringify(pendientes));
+                } catch(_) {}
+                // 🔧 DIAGNÓSTICO TEMPORAL: el Worker devuelve el motivo real
+                // del error en el cuerpo de la respuesta (campo "detalle"),
+                // pero antes se descartaba sin mirarlo. Se muestra acá SOLO
+                // el texto del error (nunca datos del cliente) para poder
+                // identificar la causa exacta del 500. Sacar este bloque una
+                // vez confirmado el arreglo.
+                r.json().then(function(data) {
+                    console.warn('[DIAGNÓSTICO legales] Status:', r.status, '| Detalle:', (data && (data.detalle || data.error)) || '(sin detalle)');
+                }).catch(function() {
+                    console.warn('[DIAGNÓSTICO legales] Status:', r.status, '| Sin cuerpo de respuesta legible.');
+                });
+            }
+        }).catch(function(e) {
+            try {
+                const pendientes = JSON.parse(_lsGet('legalesPendientes') || '[]');
+                pendientes.push(body);
+                _lsSet('legalesPendientes', JSON.stringify(pendientes));
+            } catch(_) {}
+            console.warn('[DIAGNÓSTICO legales] Error de red:', e && e.message);
+        });
     } catch (e) {
         /* silenciado */
     }
+}
+
+// Reintenta enviar aceptaciones de Términos/Privacidad que hayan fallado
+// antes (por ejemplo, si el Worker de legales estaba caído en ese momento).
+// Se llama al cargar la página, así ningún registro se pierde.
+function reintentarLegalesPendientes() {
+    try {
+        const pendientes = JSON.parse(_lsGet('legalesPendientes') || '[]');
+        if (!pendientes.length) return;
+        const restantes = [];
+        let i = 0;
+        const procesarSiguiente = function() {
+            if (i >= pendientes.length) {
+                _lsSet('legalesPendientes', JSON.stringify(restantes));
+                return;
+            }
+            const body = pendientes[i++];
+            fetch(WORKER_LEGALES, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            }).then(function(r) {
+                if (!r.ok) restantes.push(body);
+            }).catch(function() {
+                restantes.push(body);
+            }).finally(procesarSiguiente);
+        };
+        procesarSiguiente();
+    } catch(_) {}
 }
 
 function mostrarErrorCheckout(msg) {
