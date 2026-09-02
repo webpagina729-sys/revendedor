@@ -4216,17 +4216,6 @@ function registrarAceptacionLegales(pedidoId, nombre, apellido, telefono, codigo
                     pendientes.push(body);
                     _lsSet('legalesPendientes', JSON.stringify(pendientes));
                 } catch(_) {}
-                // 🔧 DIAGNÓSTICO TEMPORAL: el Worker devuelve el motivo real
-                // del error en el cuerpo de la respuesta (campo "detalle"),
-                // pero antes se descartaba sin mirarlo. Se muestra acá SOLO
-                // el texto del error (nunca datos del cliente) para poder
-                // identificar la causa exacta del 500. Sacar este bloque una
-                // vez confirmado el arreglo.
-                r.json().then(function(data) {
-                    console.warn('[DIAGNÓSTICO legales] Status:', r.status, '| Detalle:', (data && (data.detalle || data.error)) || '(sin detalle)');
-                }).catch(function() {
-                    console.warn('[DIAGNÓSTICO legales] Status:', r.status, '| Sin cuerpo de respuesta legible.');
-                });
             }
         }).catch(function(e) {
             try {
@@ -4234,7 +4223,6 @@ function registrarAceptacionLegales(pedidoId, nombre, apellido, telefono, codigo
                 pendientes.push(body);
                 _lsSet('legalesPendientes', JSON.stringify(pendientes));
             } catch(_) {}
-            console.warn('[DIAGNÓSTICO legales] Error de red:', e && e.message);
         });
     } catch (e) {
         /* silenciado */
