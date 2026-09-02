@@ -12487,7 +12487,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         <p id="crearComboCatLabel" style="font-size:12.5px;color:var(--text-light);margin:-6px 0 12px;"></p>
 
         <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">Elegí los productos del combo</label>
-        <div id="crearComboProductos" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px;margin-bottom:14px;"></div>
+        <div id="crearComboProductos" style="margin-bottom:10px;"></div>
+        <button type="button" onclick="abrirCatalogoCompletoCombo()" style="width:100%;background:var(--gray-light);border:1px dashed var(--border);border-radius:8px;padding:9px;font-size:12.5px;font-weight:600;color:var(--text);cursor:pointer;margin-bottom:14px;">Ver todo el catálogo →</button>
 
         <div style="background:var(--gray-light);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;line-height:1.9;">
             <div>Inversión total: <strong id="combo-inversion">$0</strong></div>
@@ -12501,6 +12502,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
         <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;" onclick="guardarCombo()">Crear</button>
         <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);" onclick="document.getElementById('crearComboModal').classList.remove('active')">Cancelar</button>
+    </div>
+</div>
+
+<!-- MODAL: CATÁLOGO COMPLETO PARA ELEGIR PRODUCTOS DEL COMBO -->
+<div class="modal-overlay" id="comboCatalogoModal" onclick="if(event.target.id==='comboCatalogoModal')this.classList.remove('active')">
+    <div class="modal-content" style="max-width:420px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2 class="modal-title">Elegí los productos</h2>
+            <button type="button" class="modal-close" onclick="document.getElementById('comboCatalogoModal').classList.remove('active')" aria-label="Cerrar">×</button>
+        </div>
+        <div id="comboCatalogoGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-height:52vh;overflow-y:auto;padding-bottom:4px;"></div>
+        <button type="button" id="comboCatalogoVerMasBtn" onclick="cargarMasComboProductos()" style="width:100%;background:var(--gray-light);border:1px dashed var(--border);border-radius:8px;padding:9px;font-size:12.5px;font-weight:600;color:var(--text);cursor:pointer;margin:10px 0;">Ver más</button>
+        <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="guardarSeleccionCombo()">Guardar</button>
     </div>
 </div>
 
@@ -12849,6 +12863,71 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
         }
 
+        // Dibuja la mini-vista previa dentro del modal de "Crear combo":
+        // los primeros 2 productos con imagen (igual que en el catálogo
+        // principal) + casillero. El resto se elige desde "Ver todo".
+        function renderMiniPreviewCombo() {
+            const cat = window._comboCat;
+            const productos = getProductosPorCatalogo(cat);
+            const cont = document.getElementById('crearComboProductos');
+            if (productos.length === 0) {
+                cont.innerHTML = '<p style="font-size:12.5px;color:var(--text-light);padding:8px;">No hay productos disponibles en esta categoría.</p>';
+                return;
+            }
+            const primeros2 = productos.slice(0, 2);
+            cont.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">` +
+                primeros2.map(p => comboProductCardHtml(p)).join('') + `</div>`;
+        }
+
+        // Tarjeta estilo catálogo: imagen + nombre + casillero (sin precio,
+        // el precio ya se ve en el resumen de totales del combo).
+        function comboProductCardHtml(p) {
+            const marcado = !!window._comboSeleccion[p.id];
+            return `
+                <label style="display:flex;flex-direction:column;border:1px solid ${marcado ? 'var(--primary)' : 'var(--border)'};border-radius:10px;overflow:hidden;cursor:pointer;position:relative;background:${marcado ? 'rgba(0,0,0,.03)' : '#fff'};">
+                    <div style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:${marcado ? 'var(--primary)' : 'rgba(255,255,255,.9)'};border:1.5px solid ${marcado ? 'var(--primary)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;z-index:2;">
+                        ${marcado ? '<span style="color:#fff;font-size:13px;line-height:1;">✓</span>' : ''}
+                    </div>
+                    <input type="checkbox" ${marcado ? 'checked' : ''} onchange="toggleComboProducto(${p.id}, this.checked)" style="position:absolute;inset:0;opacity:0;cursor:pointer;z-index:3;">
+                    <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${(p.imagen||'').replace(/'/g,"\\'")}')" style="width:100%;aspect-ratio:1;object-fit:cover;background:#f5f5f5;">
+                    <div style="padding:6px 8px;font-size:11.5px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${p.nombre}</div>
+                </label>`;
+        }
+
+        // Estado de paginación del catálogo completo (modal "Ver todo").
+        window._comboCatalogoMostrados = 0;
+        const COMBO_CATALOGO_PASO = 10;
+
+        window.abrirCatalogoCompletoCombo = function() {
+            window._comboCatalogoMostrados = COMBO_CATALOGO_PASO;
+            renderComboCatalogoGrid();
+            document.getElementById('comboCatalogoModal').classList.add('active');
+        };
+
+        function renderComboCatalogoGrid() {
+            const cat = window._comboCat;
+            const productos = getProductosPorCatalogo(cat);
+            const grid = document.getElementById('comboCatalogoGrid');
+            const hastaAhora = productos.slice(0, window._comboCatalogoMostrados);
+            grid.innerHTML = hastaAhora.map(p => comboProductCardHtml(p)).join('');
+            const btnVerMas = document.getElementById('comboCatalogoVerMasBtn');
+            btnVerMas.style.display = window._comboCatalogoMostrados >= productos.length ? 'none' : 'block';
+        }
+
+        window.cargarMasComboProductos = function() {
+            window._comboCatalogoMostrados += COMBO_CATALOGO_PASO;
+            renderComboCatalogoGrid();
+        };
+
+        // Al tocar "Guardar" en el catálogo completo: se cierra ese modal y
+        // se actualiza la mini-vista previa + los totales, quedando los
+        // productos elegidos ya seleccionados para el combo.
+        window.guardarSeleccionCombo = function() {
+            document.getElementById('comboCatalogoModal').classList.remove('active');
+            renderMiniPreviewCombo();
+            calcularTotalesCombo();
+        };
+
         window.abrirCrearCombo = async function(cat) {
             const codigoVendedor = window.getCodigoVendedor();
             const existentes = await comboFetch('/combos?codigo=' + encodeURIComponent(codigoVendedor));
@@ -12863,18 +12942,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 : cat === 'belleza' ? 'Belleza y Cuidado Personal' : cat;
             document.getElementById('crearComboCatLabel').textContent = 'Productos de: ' + label;
 
-            const productos = getProductosPorCatalogo(cat);
-            const cont = document.getElementById('crearComboProductos');
-            if (productos.length === 0) {
-                cont.innerHTML = '<p style="font-size:12.5px;color:var(--text-light);padding:8px;">No hay productos disponibles en esta categoría.</p>';
-            } else {
-                cont.innerHTML = productos.map(p => `
-                    <label style="display:flex;align-items:center;gap:8px;padding:7px 6px;border-bottom:1px solid var(--gray-light);cursor:pointer;font-size:12.5px;">
-                        <input type="checkbox" onchange="toggleComboProducto(${p.id}, this.checked)" style="flex-shrink:0;">
-                        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.nombre}</span>
-                        <span style="color:var(--text-light);flex-shrink:0;">$${p.precio.toLocaleString()}</span>
-                    </label>`).join('');
-            }
+            renderMiniPreviewCombo();
             document.getElementById('combo-descuento').value = '';
             calcularTotalesCombo();
             document.getElementById('crearComboModal').classList.add('active');
@@ -12883,6 +12951,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         window.toggleComboProducto = function(id, checked) {
             if (checked) window._comboSeleccion[id] = true;
             else delete window._comboSeleccion[id];
+            renderMiniPreviewCombo();
+            // Si el catálogo completo está abierto, también se refresca ahí
+            // para que el tilde se vea actualizado en el momento.
+            if (document.getElementById('comboCatalogoModal').classList.contains('active')) {
+                renderComboCatalogoGrid();
+            }
             calcularTotalesCombo();
         };
 
