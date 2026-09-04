@@ -8966,13 +8966,15 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 const badgeText = estado_labels[estado] || estado;
 
                 // Calcular estadísticas del pedido:
-                // Precio mayorista (costo) → SIEMPRE el precioCosto ya congelado en el item
-                // del pedido (viene de costoIndividuales, guardado al crear el pedido).
-                // Solo si un item viejo no trae ese dato, se busca como respaldo en el
-                // catálogo real de workerpagos (GET /api/precios-mayoristas).
+                // Precio mayorista (costo) — MISMA prioridad que usa
+                // index.html e index(1).html, para que los tres paneles
+                // muestren siempre el mismo número:
+                //  1) i.precioCosto, si ya viene calculado y es distinto
+                //     del precio de venta (pedidos ya aprobados antes).
+                //  2) precio real de la plataforma por catálogo/nombre.
+                //  3) i.precioCosto/i.precioMayorista como último recurso.
                 // Precio cliente (venta) → el precio que efectivamente pagó el cliente,
-                // ya guardado en el item (i.precio). Nunca se recalcula ni se confunde
-                // con el total del pedido.
+                // ya guardado en el item (i.precio).
                 const pedidoItems = p.items || [];
 
                 let totalCostoN = 0, totalVentaN = 0;
@@ -8982,11 +8984,17 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     // Precio cliente (venta): el que pagó el cliente por ese ítem.
                     const precioCli = Number(i.precio || i.precioFinal || 0);
 
-                    // Precio mayorista (costo): prioridad al valor ya congelado en el pedido.
-                    let precioMay = Number(i.precioCosto || i.precioMayorista || 0);
-                    if (!precioMay) {
+                    let precioMay = null;
+                    const costoGuardado = Number(i.precioCosto || 0);
+                    if (costoGuardado > 0 && costoGuardado !== precioCli) {
+                        precioMay = costoGuardado;
+                    } else {
                         const desdeCatalogo = buscarPrecioMayoristaCatalogo(i);
-                        if (desdeCatalogo !== null) precioMay = Number(desdeCatalogo);
+                        if (desdeCatalogo !== null && desdeCatalogo !== undefined) {
+                            precioMay = Number(desdeCatalogo);
+                        } else {
+                            precioMay = Number(i.precioCosto || i.precioMayorista || 0);
+                        }
                     }
 
                     totalCostoN += precioMay * cant;
