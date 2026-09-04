@@ -8507,16 +8507,24 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     // Precio cliente (venta): el que pagó el cliente por ese ítem.
                     const precioCli = Number(i.precio || i.precioFinal || 0);
 
-                    // Precio mayorista (costo): precio base real de la plataforma
-                    // primero; si el producto no se encuentra en el catálogo
-                    // (por ejemplo, nombre viejo que ya no existe), se usa el
-                    // precioCosto congelado en el pedido como respaldo.
+                    // Precio mayorista (costo) — MISMA prioridad que usa
+                    // index(1).html en precioMayoristaItem(), para que los
+                    // dos paneles muestren siempre el mismo número:
+                    //  1) i.precioCosto, si ya viene calculado y es distinto
+                    //     del precio de venta (pedidos ya aprobados antes).
+                    //  2) precio real de la plataforma por catálogo/nombre.
+                    //  3) i.precioCosto/i.precioMayorista como último recurso.
                     let precioMay = null;
-                    const desdeCatalogo = buscarPrecioMayoristaCatalogo(i);
-                    if (desdeCatalogo !== null && desdeCatalogo !== undefined) {
-                        precioMay = Number(desdeCatalogo);
+                    const costoGuardado = Number(i.precioCosto || 0);
+                    if (costoGuardado > 0 && costoGuardado !== precioCli) {
+                        precioMay = costoGuardado;
                     } else {
-                        precioMay = Number(i.precioCosto || i.precioMayorista || 0);
+                        const desdeCatalogo = buscarPrecioMayoristaCatalogo(i);
+                        if (desdeCatalogo !== null && desdeCatalogo !== undefined) {
+                            precioMay = Number(desdeCatalogo);
+                        } else {
+                            precioMay = Number(i.precioCosto || i.precioMayorista || 0);
+                        }
                     }
 
                     totalCostoN += precioMay * cant;
