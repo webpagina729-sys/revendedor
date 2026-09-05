@@ -1629,15 +1629,15 @@
         }
 
         .modal-title {
-            font-size: 22px;
+            font-size: 19px;
             font-weight: 700;
             color: var(--text);
             margin: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: normal;
+            overflow-wrap: break-word;
+            word-break: break-word;
             max-width: 100%;
-            line-height: 1.2;
+            line-height: 1.3;
         }
 
         .modal-close {
@@ -7895,6 +7895,13 @@ function catalogoEfectivoMultishop(p) {
             // Permitir apertura si hay usuario Firebase O usuario por código
             if (!user && !wUser) return;
 
+            // 🔧 FIX: cerrar cualquier otro overlay que haya quedado
+            // trabado con la clase "active" pero invisible, para que nunca
+            // bloquee el clic de este ni de ningún otro modal.
+            document.querySelectorAll('.modal-overlay.active').forEach(m => {
+                if (m.id !== 'profileModal') m.classList.remove('active');
+            });
+
             // Mostrar email
             const emailEl = document.getElementById('profileEmail');
             if (emailEl) emailEl.textContent = user ? user.email : (wUser.email || '—');
@@ -7995,6 +8002,9 @@ function catalogoEfectivoMultishop(p) {
         }
 
         function openGuideModal() {
+            document.querySelectorAll('.modal-overlay.active').forEach(m => {
+                if (m.id !== 'guideModal') m.classList.remove('active');
+            });
             document.getElementById('guideModal').classList.add('active');
             preventBodyScroll(true);
         }
@@ -10339,6 +10349,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
                 // Volver a arrancar los carruseles de las tarjetas de inicio
                 if (typeof inicializarCarruselesNuevos === 'function') inicializarCarruselesNuevos();
+
+                // 🔧 FIX: si había quedado algún modal con la clase "active"
+                // pero invisible (overlay fantasma), sigue tapando toda la
+                // pantalla y "traga" los clics siguientes — por eso después
+                // de tocar Inicio, Perfil/Guía rápida dejaban de responder.
+                document.querySelectorAll('.modal-overlay.active, .modal-cart.active, .auth-modal.active').forEach(m => {
+                    m.classList.remove('active');
+                });
+                window._modalOpenCount = 0;
+                document.body.style.overflow = '';
             } catch (error) {
                 // Error silencioso — nunca debe dejar la pantalla trabada
             } finally {
@@ -12037,52 +12057,20 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
 
             // Al cargar la página
+            // 🔧 FIX: este archivo tenía un sistema de login "Mi Tienda"
+            // (bv-overlay) duplicado, sobrante de cuando este archivo se
+            // clonó de index.html. Corría EN PARALELO con el sistema
+            // correcto de esta página (restaurarSesionGuardada, más abajo
+            // en el DOMContentLoaded), y esa carrera entre dos
+            // inicializaciones era la causa de que la página "flashee" a
+            // otra pantalla (el banner azul) antes de asentarse en Inicio.
+            // mas-categorias.html NUNCA debe mostrar su propio modal de
+            // login — siempre hereda la sesión ya iniciada en index.html.
+            // Se deja la función vacía (en vez de borrarla) para no romper
+            // ninguna otra llamada suelta a bvMostrar()/bvOcultar() que
+            // pudiera quedar en el resto del archivo.
             window.addEventListener('load', function() {
-                var codigoGuardado = bvCodigoVigente();
-                if (codigoGuardado) {
-                    // Sesión ya iniciada: ocultamos el modal de inmediato
-                    // y restauramos los datos del revendedor en segundo plano.
-                    bvOcultar();
-                    (async function() {
-                        var userData = null;
-
-                        // 1. Intentar via Worker
-                        try {
-                            var res = await fetch(WORKER_LOGIN, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ codigo: codigoGuardado })
-                            });
-                            if (res.ok) {
-                                var workerData = await res.json();
-                                if (workerData.success && workerData.vendedor) {
-                                    userData = workerData.vendedor;
-                                }
-                            }
-                        } catch(e) {
-                            // Worker no disponible — continúa con Firestore
-                        }
-
-                        // 2. Firestore como fallback si el Worker no respondió
-                        if (!userData) {
-                            try {
-                                await esperarFirebase();
-                                userData = await buscarEnFirestore(codigoGuardado);
-                            } catch(e) {
-                                // Firebase tampoco disponible
-                            }
-                        }
-
-                        if (userData) {
-                            await bvAplicarDatos(codigoGuardado, userData);
-                            bvOcultar();
-                        }
-                        // Si la verificación falla, NO mostramos el modal:
-                        // la sesión sigue guardada hasta que el usuario cierre sesión.
-                    })();
-                } else {
-                    bvMostrar();
-                }
+                bvOcultar();
             });
 
             // ── Botón INGRESAR ────────────────────────────────────────────
@@ -13466,7 +13454,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 <div class="modal-overlay" id="promoGiftConfigModal" onclick="if(event.target.id==='promoGiftConfigModal')this.classList.remove('active')">
     <div class="modal-content" style="max-width:440px;" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <h2 class="modal-title" style="font-size:clamp(13px,3.5vw,17px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎁 Selecciona el rango de precios</h2>
+            <h2 class="modal-title" style="font-size:clamp(13px,3.5vw,17px);white-space:normal;overflow-wrap:break-word;">🎁 Selecciona el rango de precios</h2>
             <button type="button" class="modal-close" onclick="document.getElementById('promoGiftConfigModal').classList.remove('active')" aria-label="Cerrar">×</button>
         </div>
 
