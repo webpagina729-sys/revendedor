@@ -3505,7 +3505,7 @@
     <footer class="final-footer">
         <div class="final-footer-inner">
             <div class="final-footer-title">
-                ✓ más de 4.000 productos | 📦 envíos a todo el país desde Buenos Aires
+                ✓ más de 2.000 productos | 📦 envíos a todo el país
             </div>
             <div class="final-footer-links">
                 <a href="javascript:void(0)" class="final-footer-link" onclick="alert('Sección de compra - próximamente')">Comprar</a>
@@ -6489,43 +6489,75 @@
                 return;
             }
 
+            // Agrupar los productos por el pedido de cliente del que vinieron
+            // — así se ven separados en vez de todos mezclados en una sola
+            // lista, y se puede marcar cada pedido como enviado por separado.
+            const grupos = {};
+            const ordenGrupos = [];
+            window.cart.forEach(item => {
+                const key = item.pedidoOrigenId || '__sin_pedido__';
+                if (!grupos[key]) {
+                    grupos[key] = { cliente: item.pedidoOrigenCliente || 'Pedido sin cliente asociado', items: [] };
+                    ordenGrupos.push(key);
+                }
+                grupos[key].items.push(item);
+            });
+
             let html = '';
             let totalCosto = 0;
             let totalVenta = 0;
 
-            window.cart.forEach((item, index) => {
-                const detalle = [
-                    item.talle ? 'Talle ' + item.talle : null,
-                    item.variante ? 'Variante: ' + item.variante : null
-                ].filter(Boolean).join(' · ');
-                const talleText = detalle ? ` · ${detalle}` : '';
-                const precioVenta = item.precio || 0;
-                // Precio mayorista real: SIEMPRE el que sale del Worker
-                // preciosmayoristasrevendedores (o workerpagos para
-                // Perfumería/Calzados) — la misma lógica universal que usa
-                // todo el resto del panel. Solo si no se encuentra en el
-                // catálogo real se cae al precio local como último recurso.
-                const desdeCatalogo = buscarPrecioMayoristaCatalogo(item);
-                const precioCosto = (desdeCatalogo !== null && desdeCatalogo !== undefined)
-                    ? Number(desdeCatalogo)
-                    : (item.precioBase || item.precio || 0);
-                const costoItem = precioCosto * item.cantidad;
-                const ventaItem = precioVenta * item.cantidad;
-                totalCosto += costoItem;
-                totalVenta += ventaItem;
+            ordenGrupos.forEach(key => {
+                const grupo = grupos[key];
+                let htmlGrupo = '';
+
+                grupo.items.forEach(item => {
+                    const detalle = [
+                        item.talle ? 'Talle ' + item.talle : null,
+                        item.variante ? 'Variante: ' + item.variante : null
+                    ].filter(Boolean).join(' · ');
+                    const talleText = detalle ? ` · ${detalle}` : '';
+                    const precioVenta = item.precio || 0;
+                    // Precio mayorista real: SIEMPRE el que sale del Worker
+                    // preciosmayoristasrevendedores (o workerpagos para
+                    // Perfumería/Calzados) — la misma lógica universal que usa
+                    // todo el resto del panel. Solo si no se encuentra en el
+                    // catálogo real se cae al precio local como último recurso.
+                    const desdeCatalogo = buscarPrecioMayoristaCatalogo(item);
+                    const precioCosto = (desdeCatalogo !== null && desdeCatalogo !== undefined)
+                        ? Number(desdeCatalogo)
+                        : (item.precioBase || item.precio || 0);
+                    const costoItem = precioCosto * item.cantidad;
+                    const ventaItem = precioVenta * item.cantidad;
+                    totalCosto += costoItem;
+                    totalVenta += ventaItem;
+
+                    htmlGrupo += `
+                    <div class="cart-item" style="position:relative;">
+                        <div class="cart-item-image">
+                            <img src="${resolveImgUrl(item.imagen)}" alt="${item.nombre}" onerror="fallbackProductImage(this, '${item.imagen}')">
+                        </div>
+                        <div class="cart-item-details">
+                            <div class="cart-item-name">${item.nombre}${talleText}</div>
+                            <div style="font-size:12px;color:var(--text-light);margin:2px 0;">Cantidad: <b style="color:var(--text);">${item.cantidad}</b></div>
+                            <div style="font-size:12px;color:var(--text-light);margin:1px 0;">Precio de costo: <b style="color:var(--primary);">$${precioCosto.toLocaleString('es-AR')}</b></div>
+                            <div style="font-size:12px;color:var(--text-light);margin:1px 0;">Precio venta: <b style="color:var(--text);">$${precioVenta.toLocaleString('es-AR')}</b></div>
+                            <div style="font-size:12px;margin-top:3px;">Ganancia: <b style="color:#00a650;">$${(ventaItem - costoItem).toLocaleString('es-AR')}</b></div>
+                        </div>
+                    </div>`;
+                });
+
+                const botonMarcar = key !== '__sin_pedido__'
+                    ? `<button type="button" onclick="marcarPedidoComoEnviado('${key}')" style="background:#e8f9ee;border:1px solid #b7ebc7;color:#0a7a34;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">✓ Marcar como enviado</button>`
+                    : '';
 
                 html += `
-                <div class="cart-item" style="position:relative;">
-                    <div class="cart-item-image">
-                        <img src="${resolveImgUrl(item.imagen)}" alt="${item.nombre}" onerror="fallbackProductImage(this, '${item.imagen}')">
+                <div style="margin-bottom:18px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 4px;border-bottom:2px solid var(--border);margin-bottom:8px;">
+                        <span style="font-size:13px;font-weight:700;color:var(--text);">👤 ${grupo.cliente}</span>
+                        ${botonMarcar}
                     </div>
-                    <div class="cart-item-details">
-                        <div class="cart-item-name">${item.nombre}${talleText}</div>
-                        <div style="font-size:12px;color:var(--text-light);margin:2px 0;">Cantidad: <b style="color:var(--text);">${item.cantidad}</b></div>
-                        <div style="font-size:12px;color:var(--text-light);margin:1px 0;">Precio de costo: <b style="color:var(--primary);">$${precioCosto.toLocaleString('es-AR')}</b></div>
-                        <div style="font-size:12px;color:var(--text-light);margin:1px 0;">Precio venta: <b style="color:var(--text);">$${precioVenta.toLocaleString('es-AR')}</b></div>
-                        <div style="font-size:12px;margin-top:3px;">Ganancia: <b style="color:#00a650;">$${(ventaItem - costoItem).toLocaleString('es-AR')}</b></div>
-                    </div>
+                    ${htmlGrupo}
                 </div>`;
             });
 
@@ -8745,6 +8777,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         function agregarPedidoAlCarrito(pedido) {
             if (!window.cart) window.cart = [];
             const items = pedido.items || [];
+            const cli = pedido.cliente || {};
+            const nombreCliente = ((cli.nombre || '') + ' ' + (cli.apellido || '')).trim() || cli.email || 'Cliente';
             items.forEach(it => {
                 const cat = it.catalogo || (it.talle ? 'calzados' : 'perfumes');
                 let producto = null;
@@ -8764,7 +8798,14 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 if (!producto) {
                     producto = { id: it.id || ('ext_' + Date.now() + Math.random()), nombre: it.nombre, precio: Number(it.precio)||0, imagen: it.imagen || '' };
                 }
-                const existing = window.cart.find(c => c.id === producto.id && (c.talle || null) === (it.talle || null));
+                // 🔑 Cada ítem queda marcado con el pedido de cliente del que
+                // vino (id + nombre) — esto es lo que permite separar "Tu
+                // Pedido por Encargo" por pedido en vez de mostrar todo
+                // mezclado, y sacar solo ESE grupo cuando se aprueba/envía.
+                // Por eso ya NO se fusiona con ítems iguales de OTROS
+                // pedidos — antes se sumaban las cantidades entre sí y se
+                // perdía a qué cliente pertenecía cada uno.
+                const existing = window.cart.find(c => c.id === producto.id && (c.talle || null) === (it.talle || null) && c.pedidoOrigenId === pedido.id);
                 const qty = Number(it.cantidad) || 1;
                 if (existing) {
                     existing.cantidad += qty;
@@ -8776,11 +8817,26 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                         cantidad: qty,
                         talle: it.talle || undefined,
                         variante: it.variante || undefined,
-                        catalogo: cat
+                        catalogo: cat,
+                        pedidoOrigenId: pedido.id,
+                        pedidoOrigenCliente: nombreCliente
                     });
                 }
             });
             try { updateCartCount(); updateCartDisplay(); } catch(_) {}
+            try { if (typeof saveCartToFirebase === 'function') saveCartToFirebase(window.cart); } catch(_) {}
+        }
+
+        // Marca un pedido de cliente completo como ya enviado/aprobado —
+        // saca del carrito TODOS los productos que vinieron de ese pedido
+        // puntual. Así "Tu Pedido por Encargo" va vaciándose pedido por
+        // pedido a medida que se van aprobando, en vez de recién vaciarse
+        // todo junto al final.
+        function marcarPedidoComoEnviado(pedidoOrigenId) {
+            if (!window.cart) return;
+            window.cart = window.cart.filter(c => c.pedidoOrigenId !== pedidoOrigenId);
+            updateCartCount();
+            updateCartDisplay();
             try { if (typeof saveCartToFirebase === 'function') saveCartToFirebase(window.cart); } catch(_) {}
         }
 
