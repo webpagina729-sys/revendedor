@@ -5941,8 +5941,6 @@ function catalogoEfectivoMultishop(p) {
 
         // [Eliminado: renderShoesProducts (calzados) — no se usa en esta extensión]
 
-        // [Eliminado: filterBellezaProducts/searchBellezaProducts/changeSortBelleza — no se usa en esta extensión]
-
         function actualizarToolbarSubBelleza(sub) {
             const toolbar = document.getElementById('belleza-sub-toolbar');
             const label = document.getElementById('belleza-sub-toolbar-label');
@@ -6041,9 +6039,7 @@ function catalogoEfectivoMultishop(p) {
                 toast.style.display = 'block';
                 setTimeout(() => { toast.style.display = 'none'; }, 3000);
             }
-            if (window.currentCatalog === 'belleza' && typeof renderBellezaProducts === 'function') {
-                renderBellezaProducts();
-            } else if (window.currentCatalog === 'bazar' && typeof renderBazarProducts === 'function') {
+            if (window.currentCatalog === 'bazar' && typeof renderBazarProducts === 'function') {
                 renderBazarProducts();
             } else if (window.currentCatalog === 'jugueteria' && typeof renderJugueteriaProducts === 'function') {
                 renderJugueteriaProducts();
@@ -6051,10 +6047,6 @@ function catalogoEfectivoMultishop(p) {
                 renderMultishopProducts();
             }
         }
-
-        // [Eliminado: renderBellezaProducts — no se usa en esta extensión]
-
-        // [Eliminado: openDetailsBelleza — no se usa en esta extensión]
 
         // [Eliminado: openDetails (detalle de producto de perfumería) — no se usa en esta extensión]
 
@@ -7090,7 +7082,24 @@ function catalogoEfectivoMultishop(p) {
             abrirDetalleGenerico(p, catalogoEfectivoJugueteria(p), 'jugueteria', getStockProducto(catalogoEfectivoJugueteria(p), p.id));
         }
 
-        // ---------- LIBRERÍA (sin sub-categorías) ----------
+        // ---------- DISPATCHER GLOBAL "VER MÁS PRODUCTOS" ----------
+        // 🔧 FIX: el botón de "Ver más productos" siempre llamó a
+        // loadMore() en el HTML, pero esa función nunca existió en este
+        // archivo — por eso tocarlo no hacía nada en NINGUNA categoría de
+        // mas-categorias.html (Bazar, Juguetería, Librería, Multishop,
+        // Calzados — las únicas que existen acá). Esto ya estaba así antes
+        // de agregar los Squishy.
+        function loadMore() {
+            switch (window.currentCatalog) {
+                case 'bazar':      loadMoreBazarProducts();      break;
+                case 'jugueteria': loadMoreJugueteriaProducts(); break;
+                case 'libreria':   loadMoreLibreriaProducts();   break;
+                case 'multishop':  loadMoreMultishopProducts();  break;
+                case 'calzados':   loadMoreShoesProducts();      break;
+                default: break;
+            }
+        }
+
         function searchLibreriaProducts(searchTerm) {
             window.currentLibSearch = searchTerm;
             window.itemsDisplayedLib = 6;
@@ -10224,49 +10233,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     }
                     
                     renderProducts();
-                } else if (window.currentCatalog === 'belleza') {
-                    if (shoesCategorySection) shoesCategorySection.style.display = 'none';
-                    if (filtersContainer) filtersContainer.classList.remove('hidden');
-                    if (productsContainer) productsContainer.classList.remove('hidden');
-                    if (paginationSection) paginationSection.classList.remove('hidden');
-
-                    const searchInput = document.getElementById('products-search');
-                    if (searchInput) {
-                        searchInput.placeholder = 'Buscar en Belleza y Cuidado Personal...';
-                        searchInput.onkeyup = (e) => searchBellezaProducts(e.target.value);
-                    }
-
-                    const filterBtns = document.querySelectorAll('.filter-btn');
-
-                    // Filtros pedidos: Todos / Maquillaje / Perfumes
-                    filterBtns.forEach((btn, idx) => {
-                        btn.classList.toggle('active', idx === 0);
-                        if (idx === 0) {
-                            btn.textContent = 'Todos';
-                            btn.style.display = 'inline-block';
-                            btn.onclick = () => filterBellezaProducts('todos');
-                        } else if (idx === 1) {
-                            btn.textContent = 'Maquillaje';
-                            btn.style.display = 'inline-block';
-                            btn.onclick = () => filterBellezaProducts('maquillaje');
-                        } else if (idx === 2) {
-                            btn.textContent = 'Perfumes';
-                            btn.style.display = 'inline-block';
-                            btn.onclick = () => filterBellezaProducts('perfume');
-                        } else {
-                            btn.style.display = 'none';
-                            btn.onclick = null;
-                        }
-                    });
-
-                    const sortSelect = document.getElementById('sort-select');
-                    if (sortSelect) {
-                        sortSelect.onchange = (e) => changeSortBelleza(e.target.value);
-                    }
-
-                    window.currentBellezaFilter = window.currentBellezaFilter || 'todos';
-                    actualizarToolbarSubBelleza(window.currentBellezaFilter);
-                    renderBellezaProducts();
                 } else if (window.currentCatalog === 'bazar') {
                     if (shoesCategorySection) shoesCategorySection.style.display = 'none';
                     if (filtersContainer) filtersContainer.classList.remove('hidden');
@@ -11696,7 +11662,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         function getProductosParaConfigActual() {
             if (window.currentCatalog === 'calzados') return window.shoes || [];
             if (window.currentCatalog === 'perfumes') return window.products || products || [];
-            if (window.currentCatalog === 'belleza') return window.productsBelleza || [];
             if (window.currentCatalog === 'bazar') return window.productsBazar || [];
             if (window.currentCatalog === 'jugueteria') return window.productsJugueteria || [];
             if (window.currentCatalog === 'libreria') return window.productsLibreria || [];
@@ -11822,7 +11787,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // ─────────────────────────────────────────────────────────────────
             document.getElementById('editarPrecioProductoModal').classList.remove('active');
             if (window.currentCatalog === 'calzados') { renderShoesProducts(); }
-            else if (window.currentCatalog === 'belleza') { renderBellezaProducts(); }
             else if (window.currentCatalog === 'bazar') { renderBazarProducts(); }
             else if (window.currentCatalog === 'jugueteria') { renderJugueteriaProducts(); }
             else if (window.currentCatalog === 'libreria') { renderLibreriaProducts(); }
