@@ -9647,28 +9647,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
         // Mostrar sección de nichos (Inicio)
         function mostrarInicio() {
-            // Limpiar todos los timers y listeners cuando se regresa a inicio
-            if (window.cleanupAllTimers) window.cleanupAllTimers();
-
-            // 🔧 FIX: si quedaba algún modal con la clase "active" pero
-            // invisible (por ejemplo, uno que no se cerró bien desde otra
-            // pantalla), ese overlay sigue cubriendo toda la página y
-            // "traga" los clics siguientes — por eso después de tocar
-            // Inicio, Perfil/Guía rápida dejaban de abrir. Forzamos el
-            // cierre de cualquier overlay que haya quedado activo y
-            // liberamos el scroll del body, así siempre queda una pantalla
-            // limpia y clickeable.
-            document.querySelectorAll('.modal-overlay.active, .modal-cart.active, .auth-modal.active').forEach(m => {
-                m.classList.remove('active');
-            });
-            window._modalOpenCount = 0;
-            document.body.style.overflow = '';
-
-            // Resetear handlers directos de filtros
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.onclick = null;
-            });
-            
+            // 🔧 FIX: lo que se VE cambia primero e inmediato (mostrar
+            // nichos, ocultar catálogo) — todo lo demás (timers, limpiar
+            // overlays fantasma) se hace un instante después, para que el
+            // clic en "Inicio" nunca se sienta trabado esperando algo.
             const nichosSection = document.getElementById('nichos-section');
             const filtersContainer = document.getElementById('filters-container');
             const productsContainer = document.getElementById('products-container');
@@ -9683,7 +9665,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (portadaDosSection) portadaDosSection.style.display = 'none';
             if (revendSection) revendSection.style.display = 'none';
             window.currentCatalog = null;
-            if (typeof actualizarIconoConfigTienda === 'function') actualizarIconoConfigTienda();
+
+            setTimeout(function() {
+                try {
+                    if (window.cleanupAllTimers) window.cleanupAllTimers();
+                    document.querySelectorAll('.modal-overlay.active, .modal-cart.active, .auth-modal.active').forEach(m => {
+                        m.classList.remove('active');
+                    });
+                    window._modalOpenCount = 0;
+                    document.body.style.overflow = '';
+                    document.querySelectorAll('.filter-btn').forEach(btn => { btn.onclick = null; });
+                    if (typeof actualizarIconoConfigTienda === 'function') actualizarIconoConfigTienda();
+                } catch(_e) { /* nunca debe romper la pantalla ya mostrada */ }
+            }, 0);
         }
 
         // Ocultar catálogo y mostrar nichos
