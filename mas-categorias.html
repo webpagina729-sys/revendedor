@@ -10318,7 +10318,14 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         // nada, sin ningún error visible. Ahora "Inicio" es una salida de
         // emergencia: siempre funciona y de paso libera esa bandera para
         // que el resto de la app también se recupere.
+        // Mostrar sección de nichos (Inicio)
+        // 🔧 FIX DEFINITIVO: si ya estás en Inicio (no hay ningún catálogo
+        // abierto), tocar "Inicio" ahora NO HACE NADA — así el botón nunca
+        // vuelve a disparar la limpieza/reinicio que causaba el
+        // congelamiento. Solo actúa para volver a Inicio cuando el usuario
+        // está adentro de un catálogo.
         function mostrarInicio() {
+            if (!window.currentCatalog) return;
             window.isChangingCatalog = false;
 
             const nichosSection = document.getElementById('nichos-section');
@@ -10336,27 +10343,18 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (revendSection) revendSection.style.display = 'none';
             window.currentCatalog = null;
 
-            setTimeout(function() {
-                try {
-                    if (window.cleanupAllTimers) window.cleanupAllTimers();
-                    [
-                        'carruselAutoplay', 'carruselAutoplayShoesPreview', 'carruselInterval',
-                        'carruselAutoplayBelleza', '_carruselesNuevosInterval'
-                    ].forEach(key => {
-                        if (window[key]) { clearInterval(window[key]); window[key] = null; }
-                    });
-                    if (window.searchProductsTimeout) { clearTimeout(window.searchProductsTimeout); window.searchProductsTimeout = null; }
-                    if (window.searchShoesProductsTimeout) { clearTimeout(window.searchShoesProductsTimeout); window.searchShoesProductsTimeout = null; }
-                    document.querySelectorAll('.filter-btn').forEach(btn => { btn.onclick = null; });
-                    if (typeof actualizarIconoConfigTienda === 'function') actualizarIconoConfigTienda();
-                    if (typeof inicializarCarruselesNuevos === 'function') inicializarCarruselesNuevos();
-                    document.querySelectorAll('.modal-overlay.active, .modal-cart.active, .auth-modal.active').forEach(m => {
-                        m.classList.remove('active');
-                    });
-                    window._modalOpenCount = 0;
-                    document.body.style.overflow = '';
-                } catch(_e) { /* nunca debe romper la pantalla ya mostrada */ }
-            }, 0);
+            if (window.cleanupAllTimers) window.cleanupAllTimers();
+            [
+                'carruselAutoplay', 'carruselAutoplayShoesPreview', 'carruselInterval',
+                'carruselAutoplayBelleza', '_carruselesNuevosInterval'
+            ].forEach(key => {
+                if (window[key]) { clearInterval(window[key]); window[key] = null; }
+            });
+            if (window.searchProductsTimeout) { clearTimeout(window.searchProductsTimeout); window.searchProductsTimeout = null; }
+            if (window.searchShoesProductsTimeout) { clearTimeout(window.searchShoesProductsTimeout); window.searchShoesProductsTimeout = null; }
+            document.querySelectorAll('.filter-btn').forEach(btn => { btn.onclick = null; });
+            if (typeof actualizarIconoConfigTienda === 'function') actualizarIconoConfigTienda();
+            if (typeof inicializarCarruselesNuevos === 'function') inicializarCarruselesNuevos();
         }
 
         // Ocultar catálogo y mostrar nichos
