@@ -5578,6 +5578,90 @@ const PELUCHES_DATA = [
 { id: 63081, nombre: "KUROMI ALMOHADA LARGA 80CM MAB443", imagen: JUGUETES_REPO_BASE + "kuromialmohada.png", precio: 35700, categoria: "peluches", caracteristicas: ["80 Centímetros"], info: "Peluche mayorista de 80cm." }
 ];
 
+// Squishy — se agregan a Juguetería (y por lo tanto también a Multishop,
+// que ya arma su lista a partir de window.productsJugueteria). Se usa
+// ÚNICAMENTE el precio final de venta como "precio" del producto, misma
+// lógica de estructura que el resto del catálogo.
+const SQUISHY_DATA = [
+{ id: 62190, nombre: "FRUTA ANTIESTRES SQH-005", imagen: JUGUETES_REPO_BASE + "fruta.png", precio: 2400, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62191, nombre: "DECEMPRESSION SQUEEZE TOY MANTECA OSO 2799-13", imagen: JUGUETES_REPO_BASE + "decempression.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62192, nombre: "AJOLOTE ANTIESTRES SQH-002 SQUEEZE", imagen: JUGUETES_REPO_BASE + "ajolote.png", precio: 3600, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62193, nombre: "MONSTER ANTIESTRES SQH-002 SQUEEZE", imagen: JUGUETES_REPO_BASE + "monster.png", precio: 3500, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62194, nombre: "MAGIC SQUIRREL CUP CAPYBARA 2799-15", imagen: JUGUETES_REPO_BASE + "squirrel.png", precio: 3600, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62195, nombre: "SQUEEZE GATITO C/BIBERON SQH-003", imagen: JUGUETES_REPO_BASE + "gatito.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62196, nombre: "DECOMPRESSION TOY SQUEEZ PULPO 2799-42", imagen: JUGUETES_REPO_BASE + "decompression.png", precio: 3500, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62197, nombre: "SQUEEZE FAMILIA DE HAMSTERS 3PCS SQH-003", imagen: JUGUETES_REPO_BASE + "familia.png", precio: 4200, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62198, nombre: "ANIMAL CHICO ANTIESTRES SQH-005 SQUEEZE", imagen: JUGUETES_REPO_BASE + "chico.png", precio: 2700, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62199, nombre: "SQUEEZE POLLITO AMARILLO SQH-002", imagen: JUGUETES_REPO_BASE + "pollito.png", precio: 4900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62200, nombre: "SQUEEZE PAN TOSTADO SQH-003", imagen: JUGUETES_REPO_BASE + "pan.png", precio: 3700, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62201, nombre: "SQUEEZE FAMILIA DE POLLITO 3PCS SQH-003", imagen: JUGUETES_REPO_BASE + "familiapollito.png", precio: 4200, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62202, nombre: "SQUEEZE BLOW BUBBLE TOY ANIMAL 2799-21", imagen: JUGUETES_REPO_BASE + "blow.png", precio: 3100, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62203, nombre: "DECOMSSION TOY CAPYBARA 2799-25 SQUEEZE", imagen: JUGUETES_REPO_BASE + "decomssion.png", precio: 3600, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62204, nombre: "SQUEEZE PERRITO CON BUFANDA SQH-003", imagen: JUGUETES_REPO_BASE + "perrito.png", precio: 4600, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62205, nombre: "SQUEEZE MANGO SQH-002", imagen: JUGUETES_REPO_BASE + "mango.png", precio: 4400, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62206, nombre: "SQUEEZE DUCK YOU SQH-001", imagen: JUGUETES_REPO_BASE + "duck.png", precio: 4900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62207, nombre: "SQUEEZE CAQUI SA0216 SQH-002", imagen: JUGUETES_REPO_BASE + "caqui.png", precio: 4400, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62208, nombre: "SQUEEZE BOLITA DE CARBON SQH-003", imagen: JUGUETES_REPO_BASE + "bolita.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62209, nombre: "PATO ANTIESTRES 2799-36 SQH-002", imagen: JUGUETES_REPO_BASE + "pato.png", precio: 3700, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62210, nombre: "SQUEEZE CAPIBARA PELOS A202100", imagen: JUGUETES_REPO_BASE + "capibara.png", precio: 7100, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62211, nombre: "SQUEEZE ME VENT TOY ELEFANTE 2799-30", imagen: JUGUETES_REPO_BASE + "vent.png", precio: 3700, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62212, nombre: "SQUEEZE CAPYBARA GO CON OSITO 2799-02", imagen: JUGUETES_REPO_BASE + "capybara.png", precio: 3500, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62213, nombre: "ANIMAL POPPING EYES SQUEEZE CAPYBARA 2799-05", imagen: JUGUETES_REPO_BASE + "popping.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62214, nombre: "SQUEEZE RATA AZUL SQH-003", imagen: JUGUETES_REPO_BASE + "rata.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62215, nombre: "SQUEEZE PERRO BICHON BLANCO C/GAFA SQH-003", imagen: JUGUETES_REPO_BASE + "perro.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62216, nombre: "SQUEEZE HAMSTER CASTANA SQH-003", imagen: JUGUETES_REPO_BASE + "hamster.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62217, nombre: "SQUEEZE DORMIR ESTRELLA SQH-003", imagen: JUGUETES_REPO_BASE + "dormir.png", precio: 4100, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62218, nombre: "RANA ANTIESTRES SQH-002", imagen: JUGUETES_REPO_BASE + "rana.png", precio: 3700, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62219, nombre: "OSO CANDY ANTIESTRES SQH-001", imagen: JUGUETES_REPO_BASE + "oso.png", precio: 4900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62220, nombre: "SQUEEZE GLITTER CAPSULA STITCH 24064 SLIME", imagen: JUGUETES_REPO_BASE + "glitter.png", precio: 6200, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62221, nombre: "PLASTILINA EN BOLSA KUROMI 24060N SLIME", imagen: JUGUETES_REPO_BASE + "plastilina.png", precio: 3600, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62222, nombre: "SQUEEZE PATO GRANDE C/ROPA SQH-001", imagen: JUGUETES_REPO_BASE + "patogrande.png", precio: 7300, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62223, nombre: "SQUEEZE CABEZA DE CONEJO TEJIDO SQH-003", imagen: JUGUETES_REPO_BASE + "cabeza.png", precio: 4100, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62224, nombre: "PLASTILINA EN BOLSA STITCH 24062N SLIME", imagen: JUGUETES_REPO_BASE + "plastilinabolsa.png", precio: 3600, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62225, nombre: "SQUISHY TOY GORILA GRANDE NLS-002", imagen: JUGUETES_REPO_BASE + "gorila.png", precio: 8500, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62226, nombre: "PUFFER BALL CAPYBARA 2799-01", imagen: JUGUETES_REPO_BASE + "puffer.png", precio: 4200, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62227, nombre: "XIANGYING SQUEEZE COMIDA SQH-002", imagen: JUGUETES_REPO_BASE + "xiangying.png", precio: 5900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62228, nombre: "TORTUGA ANTIESTRES SQH-002", imagen: JUGUETES_REPO_BASE + "tortuga.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62229, nombre: "SQUEEZE PERRITO ESTILO LINEAL SQH-003", imagen: JUGUETES_REPO_BASE + "perritoestilo.png", precio: 3600, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62230, nombre: "SQUEEZE KOALA BLANCO SQH-003", imagen: JUGUETES_REPO_BASE + "koala.png", precio: 4400, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62231, nombre: "SQUEEZE GATO C/COLLAR DE PERLAS SQH-002", imagen: JUGUETES_REPO_BASE + "gato.png", precio: 6100, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62232, nombre: "KUROMI EXPLOTA-BURBUJAS ANTIESTRES SQH-002 SQUEEZE", imagen: JUGUETES_REPO_BASE + "kuromi.png", precio: 5100, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62233, nombre: "SQUEEZE GLITTER CAPSULA STITCH 24064 SLIME", imagen: JUGUETES_REPO_BASE + "pinchy.png", precio: 6200, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62234, nombre: "PLASTILINA EN BOLSA UNICORNIO 24035N SLIME", imagen: JUGUETES_REPO_BASE + "plastilinaunicornio.png", precio: 4400, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62235, nombre: "MUNECO SQUEEZE 24003 24002 KUROMI", imagen: JUGUETES_REPO_BASE + "muneco.png", precio: 4900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62236, nombre: "CRYSTAL MUD SUPER FUN SQUEEZE PANDA 24034 SLIME", imagen: JUGUETES_REPO_BASE + "crystal.png", precio: 6100, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62237, nombre: "AMARILLO DINOSAURIO EXPLOTA-BURBUJAS ANTIESTRES SQUEEZE", imagen: JUGUETES_REPO_BASE + "amarillo.png", precio: 4200, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62238, nombre: "SQUEEZE ME CAPYBARA 2799-29", imagen: JUGUETES_REPO_BASE + "capybarauno.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62239, nombre: "SQUEEZE MARINE ANIMALS SORBETE 2799-18", imagen: JUGUETES_REPO_BASE + "marine.png", precio: 4600, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62240, nombre: "PINCH FAMILY FRUTILLA COLORIDAS 2799-10", imagen: JUGUETES_REPO_BASE + "pinch.png", precio: 3700, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62241, nombre: "PICH BLOW BUBBLE 2799-20", imagen: JUGUETES_REPO_BASE + "pich.png", precio: 4600, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62242, nombre: "SQUEEZE SNOWMAN CHICO SQH-003", imagen: JUGUETES_REPO_BASE + "snowman.png", precio: 4800, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62243, nombre: "SQUEEZE PASTEL PUPPY PERRO SQH-003", imagen: JUGUETES_REPO_BASE + "pastel.png", precio: 3700, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62244, nombre: "SQUEEZE GATITO C/ALETA SQH-003", imagen: JUGUETES_REPO_BASE + "gatitocaleta.png", precio: 3700, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62245, nombre: "SQUEEZE FLUFFY PERRO BLANCO SQH-003", imagen: JUGUETES_REPO_BASE + "fluffy.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62246, nombre: "SQUEEZE BUBBLE TEA SQH-002", imagen: JUGUETES_REPO_BASE + "bubble.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62247, nombre: "POLLITO EXPLOTA-BURBUJAS ANTIESTRES SQH-002", imagen: JUGUETES_REPO_BASE + "pollitoexplo.png", precio: 4200, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62248, nombre: "OPEN EYE POLLITO SQH-002", imagen: JUGUETES_REPO_BASE + "open.png", precio: 4100, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62249, nombre: "OPEN EYE CAT GATO SQH-002", imagen: JUGUETES_REPO_BASE + "openeye.png", precio: 4200, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62250, nombre: "SLIME SUPER FUN CRYSTAL MUD CAPYBARA 24065", imagen: JUGUETES_REPO_BASE + "slimecrystal.png", precio: 4600, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62251, nombre: "SQUEEZE DOG POPPING OUT EYES 2799-22", imagen: JUGUETES_REPO_BASE + "poppingout.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62252, nombre: "POPPING EYE AXOLOTL PESCADO 2799-16", imagen: JUGUETES_REPO_BASE + "poppingeye.png", precio: 5600, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62253, nombre: "PINCH FAMILY SQUEEZE CAPYBARA 2799-28", imagen: JUGUETES_REPO_BASE + "pinchfamily.png", precio: 3500, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62254, nombre: "PINCH FAMILY CAPYBARA 2799-03", imagen: JUGUETES_REPO_BASE + "pinchcapybara.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62255, nombre: "OPEN EYE SQUEEZE ANIMAL 2799-19", imagen: JUGUETES_REPO_BASE + "opendos.png", precio: 4100, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62256, nombre: "DECOMPRESSION SQUEEZE TOY RATA HAMSTER 2799-11", imagen: JUGUETES_REPO_BASE + "decorata.png", precio: 3700, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62257, nombre: "SQUEEZE PERRO BICHON CON ROSA SQH-003", imagen: JUGUETES_REPO_BASE + "perrobichon.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62258, nombre: "SQUEEZE PATITO DE OSO MANTECA AMARILLO SQH-003", imagen: JUGUETES_REPO_BASE + "patito.png", precio: 4100, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62259, nombre: "SQUEEZE BEBE PATITO SQH-002", imagen: JUGUETES_REPO_BASE + "bebe.png", precio: 5300, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62260, nombre: "PINCH SQUEEZE COMIDA SQH-003", imagen: JUGUETES_REPO_BASE + "pinchcomida.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62261, nombre: "OPEN EYE CABBAGE DOG SQH-002", imagen: JUGUETES_REPO_BASE + "opencabbage.png", precio: 4200, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62262, nombre: "SUPER FUN SQUEEZE C/GLITTER CAPYBARA 24062 SLIME", imagen: JUGUETES_REPO_BASE + "cglitter.png", precio: 5100, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62263, nombre: "SQUEEZE CAPYBARA ROLL UP TONGUE 2799-06", imagen: JUGUETES_REPO_BASE + "capybararoll.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62264, nombre: "OCEAN ANIMALS SQUEEZE TOY 2799-17", imagen: JUGUETES_REPO_BASE + "ocean.png", precio: 3900, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62265, nombre: "SQUEEZE PATITA DE GATO SQH-001", imagen: JUGUETES_REPO_BASE + "patita.png", precio: 8500, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." },
+{ id: 62266, nombre: "SQUEEZE GATO C/COLLAR DE PERLAS SQH-002", imagen: JUGUETES_REPO_BASE + "gatoccollar.png", precio: 6100, categoria: "juguetes", caracteristicas: ["Juguetes mayoristas / Squishy"], info: "Juguetes mayoristas / Squishy." }
+];
+
 const LIBRERIA_DATA = [
 { id: 64001, nombre: "ACRYLIC MARKER MARCADOR ACRILICO 12C WB102212", imagen: LIBRERIA_REPO_BASE + "marcador.png", precio: 6600, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
 { id: 64002, nombre: "LAPICERA OSO FRUTILLA AF12875", imagen: LIBRERIA_REPO_BASE + "lapicera.png", precio: 2000, categoria: "libreria", caracteristicas: ["Producto de Librería Mayorista"], info: "Producto de Librería Mayorista." },
@@ -5778,7 +5862,8 @@ window.productsBazar = [
 ];
 window.productsJugueteria = [
     ...JUGUETES_DATA.map(p => ({ ...p, precioOriginal: p.precio, _jugSub: 'juguetes' })),
-    ...PELUCHES_DATA.map(p => ({ ...p, precioOriginal: p.precio, _jugSub: 'peluches' }))
+    ...PELUCHES_DATA.map(p => ({ ...p, precioOriginal: p.precio, _jugSub: 'peluches' })),
+    ...SQUISHY_DATA.map(p => ({ ...p, precioOriginal: p.precio, _jugSub: 'juguetes' }))
 ];
 window.productsLibreria = LIBRERIA_DATA.map(p => ({ ...p, precioOriginal: p.precio }));
 window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal: p.precio }));
