@@ -9989,6 +9989,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // Evitar cambios concurrentes
             if (window.isChangingCatalog) return;
             window.isChangingCatalog = true;
+            // 🔧 FIX: red de seguridad — si por lo que sea esta función no
+            // llega a su propio "finally" (colgada en algo inesperado), la
+            // bandera nunca debe quedar en "true" para siempre, porque eso
+            // bloqueaba silenciosamente el botón "Inicio" y cualquier otro
+            // cambio de catálogo después. Se libera sola a los 5 segundos.
+            const _liberador = setTimeout(function() { window.isChangingCatalog = false; }, 5000);
             
             try {
                 const nichosSection = document.getElementById('nichos-section');
@@ -10267,6 +10273,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             } catch (error) {
                 // Error silencioso
             } finally {
+                clearTimeout(_liberador);
                 window.isChangingCatalog = false;
             }
         }
@@ -10302,68 +10309,54 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         // Mostrar sección de nichos (Inicio)
+        // 🔧 FIX CRÍTICO: "Inicio" ya NO se frena por window.isChangingCatalog.
+        // Esa bandera la usan mostrarCatalogo()/ocultarCatalogo() para evitar
+        // cambios simultáneos, pero si alguna de esas funciones quedaba
+        // trabada en el medio (por ejemplo, esperando una respuesta de red
+        // que nunca vuelve) la bandera se quedaba en "true" PARA SIEMPRE —
+        // y como "Inicio" chequeaba esa misma bandera, tocarlo no hacía
+        // nada, sin ningún error visible. Ahora "Inicio" es una salida de
+        // emergencia: siempre funciona y de paso libera esa bandera para
+        // que el resto de la app también se recupere.
         function mostrarInicio() {
-            // Evitar clics repetidos mientras se hace la transición — sin
-            // este freno, tocar "Inicio" varias veces seguidas (algo muy
-            // común al navegar por la cinta negra) podía disparar la misma
-            // limpieza/reinicio en simultáneo y terminar "colgando" la
-            // pantalla hasta actualizar.
-            if (window.isChangingCatalog) return;
-            window.isChangingCatalog = true;
+            window.isChangingCatalog = false;
 
-            try {
-                // Limpiar todos los timers y listeners cuando se regresa a inicio
-                if (window.cleanupAllTimers) window.cleanupAllTimers();
+            const nichosSection = document.getElementById('nichos-section');
+            const filtersContainer = document.getElementById('filters-container');
+            const productsContainer = document.getElementById('products-container');
+            const paginationSection = document.getElementById('pagination-section');
+            const portadaDosSection = document.getElementById('portada-dos-section');
+            const revendSection = document.querySelector('.revend-section');
 
-                // Limpiar TODOS los intervalos de carrusel (incluidos los nuevos),
-                // para que nunca queden dos corriendo en simultáneo.
-                [
-                    'carruselAutoplay', 'carruselAutoplayShoesPreview', 'carruselInterval',
-                    'carruselAutoplayBelleza', '_carruselesNuevosInterval'
-                ].forEach(key => {
-                    if (window[key]) { clearInterval(window[key]); window[key] = null; }
-                });
-                if (window.searchProductsTimeout) { clearTimeout(window.searchProductsTimeout); window.searchProductsTimeout = null; }
-                if (window.searchShoesProductsTimeout) { clearTimeout(window.searchShoesProductsTimeout); window.searchShoesProductsTimeout = null; }
+            if (nichosSection) nichosSection.classList.remove('hide');
+            if (filtersContainer) filtersContainer.classList.add('hidden');
+            if (productsContainer) productsContainer.classList.add('hidden');
+            if (paginationSection) paginationSection.classList.add('hidden');
+            if (portadaDosSection) portadaDosSection.style.display = 'none';
+            if (revendSection) revendSection.style.display = 'none';
+            window.currentCatalog = null;
 
-                // Resetear handlers directos de filtros
-                document.querySelectorAll('.filter-btn').forEach(btn => {
-                    btn.onclick = null;
-                });
-                
-                const nichosSection = document.getElementById('nichos-section');
-                const filtersContainer = document.getElementById('filters-container');
-                const productsContainer = document.getElementById('products-container');
-                const paginationSection = document.getElementById('pagination-section');
-                const portadaDosSection = document.getElementById('portada-dos-section');
-                const revendSection = document.querySelector('.revend-section');
-
-                if (nichosSection) nichosSection.classList.remove('hide');
-                if (filtersContainer) filtersContainer.classList.add('hidden');
-                if (productsContainer) productsContainer.classList.add('hidden');
-                if (paginationSection) paginationSection.classList.add('hidden');
-                if (portadaDosSection) portadaDosSection.style.display = 'none';
-                if (revendSection) revendSection.style.display = 'none';
-                window.currentCatalog = null;
-                if (typeof actualizarIconoConfigTienda === 'function') actualizarIconoConfigTienda();
-
-                // Volver a arrancar los carruseles de las tarjetas de inicio
-                if (typeof inicializarCarruselesNuevos === 'function') inicializarCarruselesNuevos();
-
-                // 🔧 FIX: si había quedado algún modal con la clase "active"
-                // pero invisible (overlay fantasma), sigue tapando toda la
-                // pantalla y "traga" los clics siguientes — por eso después
-                // de tocar Inicio, Perfil/Guía rápida dejaban de responder.
-                document.querySelectorAll('.modal-overlay.active, .modal-cart.active, .auth-modal.active').forEach(m => {
-                    m.classList.remove('active');
-                });
-                window._modalOpenCount = 0;
-                document.body.style.overflow = '';
-            } catch (error) {
-                // Error silencioso — nunca debe dejar la pantalla trabada
-            } finally {
-                window.isChangingCatalog = false;
-            }
+            setTimeout(function() {
+                try {
+                    if (window.cleanupAllTimers) window.cleanupAllTimers();
+                    [
+                        'carruselAutoplay', 'carruselAutoplayShoesPreview', 'carruselInterval',
+                        'carruselAutoplayBelleza', '_carruselesNuevosInterval'
+                    ].forEach(key => {
+                        if (window[key]) { clearInterval(window[key]); window[key] = null; }
+                    });
+                    if (window.searchProductsTimeout) { clearTimeout(window.searchProductsTimeout); window.searchProductsTimeout = null; }
+                    if (window.searchShoesProductsTimeout) { clearTimeout(window.searchShoesProductsTimeout); window.searchShoesProductsTimeout = null; }
+                    document.querySelectorAll('.filter-btn').forEach(btn => { btn.onclick = null; });
+                    if (typeof actualizarIconoConfigTienda === 'function') actualizarIconoConfigTienda();
+                    if (typeof inicializarCarruselesNuevos === 'function') inicializarCarruselesNuevos();
+                    document.querySelectorAll('.modal-overlay.active, .modal-cart.active, .auth-modal.active').forEach(m => {
+                        m.classList.remove('active');
+                    });
+                    window._modalOpenCount = 0;
+                    document.body.style.overflow = '';
+                } catch(_e) { /* nunca debe romper la pantalla ya mostrada */ }
+            }, 0);
         }
 
         // Ocultar catálogo y mostrar nichos
@@ -10371,6 +10364,9 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // Evitar cambios concurrentes
             if (window.isChangingCatalog) return;
             window.isChangingCatalog = true;
+            // Misma red de seguridad que mostrarCatalogo(): nunca debe
+            // quedar trabada para siempre.
+            const _liberadorOcultar = setTimeout(function() { window.isChangingCatalog = false; }, 5000);
             
             try {
                 // Limpiar intervalos de forma segura
@@ -10423,6 +10419,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 setTimeout(inicializarCarruselesNuevos, 50);
             } catch (error) {
             } finally {
+                clearTimeout(_liberadorOcultar);
                 window.isChangingCatalog = false;
             }
         }
