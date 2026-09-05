@@ -3589,7 +3589,6 @@
     <!-- MODAL CARRITO - LISTA DE PEDIDOS ENVIADOS AL PANEL DE VENTAS -->
     <div class="modal-cart" id="modal-cart" onclick="closeCartIfClickBackground(event)">
         <div class="modal-cart-content">
-            <button class="modal-cart-close" onclick="closeCart()">✕</button>
             <div class="modal-cart-header">
                 <h2>Tu Pedido por Encargo</h2>
                 <p class="cart-info">Perfumes: mínimo $150.000 · Calzados: mínimo 12 productos</p>
@@ -6074,10 +6073,16 @@ function catalogoEfectivoMultishop(p) {
             let totalVenta = 0;
 
             window.cart.forEach((item, index) => {
-                const talleText = item.talle ? ` · Talle ${item.talle}` : '';
-                const precioBase = item.precioBase || item.precio || 0;
+                const detalle = [
+                    item.talle ? 'Talle ' + item.talle : null,
+                    item.variante ? 'Variante: ' + item.variante : null
+                ].filter(Boolean).join(' · ');
+                const talleText = detalle ? ` · ${detalle}` : '';
                 const precioVenta = item.precio || 0;
-                const precioCosto = precioBase;
+                const desdeCatalogo = buscarPrecioMayoristaCatalogo(item);
+                const precioCosto = (desdeCatalogo !== null && desdeCatalogo !== undefined)
+                    ? Number(desdeCatalogo)
+                    : (item.precioBase || item.precio || 0);
                 const costoItem = precioCosto * item.cantidad;
                 const ventaItem = precioVenta * item.cantidad;
                 totalCosto += costoItem;
@@ -8708,7 +8713,7 @@ function catalogoEfectivoMultishop(p) {
 
         function normalizarPedidoWorker(raw, idx) {
             const id = raw.id || raw._id || ('w_' + idx + '_' + (raw.fecha || Date.now()));
-            const productos = raw.productos || raw.items || [];
+            const productos = raw.productos || [];
             const cantidades = raw.cantidades || [];
             const preciosIndividuales = raw.preciosIndividuales || raw.precios || [];
             // Costo/ganancia reales tal cual los guardó workerwebcliente al crear el
@@ -8717,18 +8722,30 @@ function catalogoEfectivoMultishop(p) {
             const costoIndividuales  = raw.costoIndividuales  || [];
             const gananciaIndividual = raw.gananciaIndividual || [];
             let items = [];
-            if (Array.isArray(productos) && productos.length && typeof productos[0] === 'string') {
+            const nichoPedido = raw.nicho || raw.categoria || null;
+            // 🔑 Prioridad 1: "items" estructurado (talle/variante/catalogo
+            // como campos propios de cada producto).
+            if (Array.isArray(raw.items) && raw.items.length && typeof raw.items[0] === 'object') {
+                items = raw.items.map(p => ({
+                    id: p.id, nombre: p.nombre || p.name, cantidad: Number(p.cantidad || p.qty || 1),
+                    precio: Number(p.precio || p.precioFinal || 0), talle: p.talle || null, variante: p.variante || null,
+                    catalogo: p.catalogo || nichoPedido,
+                    precioCosto: Number(p.precioCosto || 0),
+                    ganancia: Number(p.ganancia || 0)
+                }));
+            } else if (Array.isArray(productos) && productos.length && typeof productos[0] === 'string') {
                 items = productos.map((nombre, i) => ({
                     nombre,
                     cantidad: Number(cantidades[i]) || 1,
                     precio: Number(preciosIndividuales[i]) || 0,
                     precioCosto: Number(costoIndividuales[i]) || 0,
-                    ganancia: Number(gananciaIndividual[i]) || 0
+                    ganancia: Number(gananciaIndividual[i]) || 0,
+                    catalogo: nichoPedido
                 }));
             } else if (Array.isArray(productos)) {
                 items = productos.map((p, i) => ({
                     id: p.id, nombre: p.nombre || p.name, cantidad: Number(p.cantidad || p.qty || 1),
-                    precio: Number(p.precio || p.precioFinal || 0), talle: p.talle, catalogo: p.catalogo,
+                    precio: Number(p.precio || p.precioFinal || 0), talle: p.talle, catalogo: p.catalogo || nichoPedido,
                     precioCosto: Number(p.precioCosto || costoIndividuales[i] || 0),
                     ganancia: Number(p.ganancia || gananciaIndividual[i] || 0)
                 }));
@@ -8737,16 +8754,18 @@ function catalogoEfectivoMultishop(p) {
                 id,
                 cliente: raw.cliente || {
                     nombre: raw.nombre, apellido: raw.apellido,
-                    telefono: raw.telefono, ciudad: raw.ciudad || raw.direccion
+                    telefono: raw.telefono, direccion: raw.direccion,
+                    ciudad: raw.ciudad || raw.direccion,
+                    provincia: raw.provincia || '',
+                    codigoPostal: raw.codigoPostal || raw.cp || ''
                 },
                 items,
                 totalFinal: Number(raw.total || raw.totalFinal || items.reduce((s,i)=>s+i.precio*i.cantidad,0)),
-                // Totales de costo/ganancia reales — se conservan tal cual vienen del
-                // worker, no se recalculan en ningún punto del flujo.
                 costoTotal:    Number(raw.costoTotal || 0),
                 gananciaTotal: Number(raw.gananciaTotal || 0),
                 estadoAprobacion: raw.estadoAprobacion || raw.estado || 'pendiente',
                 fechaCreacion: raw.fecha ? { toDate: () => new Date(raw.fecha + ' ' + (raw.hora||'')) } : null,
+                nicho: nichoPedido,
                 _origenWorker: true,
                 _raw: raw
             };
@@ -9014,8 +9033,9 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
                 const productos = pedidoItems.map(i => {
                     const pUnit = Number(i.precio || i.precioFinal || 0);
+                    const detalle = [i.talle ? 'T.'+i.talle : null, i.variante ? 'Var: '+i.variante : null].filter(Boolean).join(' · ');
                     return `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid #f0f0f0;">
-                        <span style="font-size:13px;color:var(--text);flex:1;min-width:0;padding-right:10px;line-height:1.3;">${Number(i.cantidad||1)} × ${i.nombre||''}${i.talle ? ' · T.'+i.talle : ''}</span>
+                        <span style="font-size:13px;color:var(--text);flex:1;min-width:0;padding-right:10px;line-height:1.3;">${Number(i.cantidad||1)} × ${i.nombre||''}${detalle ? ' · '+detalle : ''}</span>
                         <span style="font-size:13px;font-weight:700;color:var(--primary);white-space:nowrap;">${fmt(pUnit)}</span>
                     </div>`;
                 }).join('');
@@ -9096,7 +9116,20 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 const cat = it.catalogo || (it.talle ? 'calzados' : 'perfumes');
                 let producto = null;
                 if (it.id) {
-                    const lista = cat === 'calzados' ? (window.shoes || []) : (window.products || []);
+                    // mas-categorias.html tiene cargados los 7 catálogos —
+                    // buscamos en el que corresponda según la categoría real
+                    // del ítem, así la imagen siempre sale del catálogo
+                    // correcto (antes solo buscaba en Perfumes/Calzados).
+                    const listaPorCategoria = {
+                        calzados:    window.shoes,
+                        perfumes:    window.products,
+                        belleza:     (window.productsBelleza || []).concat(window.productsMaquillaje || []),
+                        bazar:       window.productsBazar,
+                        jugueteria:  window.productsJugueteria,
+                        libreria:    window.productsLibreria,
+                        multishop:   window.productsMultishop
+                    };
+                    const lista = listaPorCategoria[cat] || window.products || [];
                     producto = lista.find(p => p.id === it.id);
                 }
                 if (!producto) {
@@ -9113,6 +9146,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                         precio: Number(it.precio) || producto.precio,
                         cantidad: qty,
                         talle: it.talle || undefined,
+                        variante: it.variante || undefined,
                         catalogo: cat
                     });
                 }
@@ -9177,6 +9211,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                                 precioCosto: precioCostoReal,
                                 ganancia:    precioVenta - precioCostoReal,
                                 talle:       i.talle || null,
+                                variante:    i.variante || null,
                                 catalogo:    i.catalogo || null
                             };
                         });
@@ -9213,7 +9248,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                             nicho:          nicho,
                             cliente:        ((cli.nombre || '') + ' ' + (cli.apellido || '')).trim() || cli.email || '',
                             telefono:       cli.telefono || '',
-                            direccion:      cli.ciudad   || cli.direccion || '',
+                            direccion:      cli.direccion || '',
+                            ciudad:         cli.ciudad || '',
+                            provincia:      cli.provincia || '',
+                            codigoPostal:   cli.codigoPostal || cli.cp || '',
                             fecha:          new Date().toISOString(),
                             items:          items,
                             precio_venta:   Number(pedido.totalFinal || 0),
