@@ -940,13 +940,17 @@
 
         <div class="checkout-row">
             <div class="checkout-field">
-                <label>Ciudad <span class="checkout-required">*</span></label>
-                <input type="text" id="co-ciudad" placeholder="Ej: Buenos Aires">
+                <label>Provincia <span class="checkout-required">*</span></label>
+                <input type="text" id="co-provincia" placeholder="Ej: Buenos Aires">
             </div>
             <div class="checkout-field">
-                <label>Código Postal <span class="checkout-required">*</span></label>
-                <input type="text" id="co-cp" placeholder="Ej: 1001">
+                <label>Ciudad <span class="checkout-required">*</span></label>
+                <input type="text" id="co-ciudad" placeholder="Ej: La Plata">
             </div>
+        </div>
+        <div class="checkout-field">
+            <label>Código Postal <span class="checkout-required">*</span></label>
+            <input type="text" id="co-cp" placeholder="Ej: 1001">
         </div>
 
         <div class="checkout-status" id="co-status">✓ ¡Pedido enviado correctamente!</div>
@@ -3351,6 +3355,12 @@ function iniciarTienda() {
         const _preciosManualCat = (vendedor && vendedor.preciosManualCat && vendedor.preciosManualCat[catKey]) || {};
         return {
             ...p,
+            // Categoría real de este producto puntual (resuelve las
+            // sub-categorías de Belleza/Bazar/Juguetería y el mix de
+            // Multishop) — se usa al armar el pedido para que el costo
+            // mayorista y la clasificación por categoría funcionen bien
+            // en TODO el flujo (Pedidos Recibidos, index(1).html, etc.).
+            _catKey: catKey,
             precioFinal: (_preciosManualCat[p.id] !== undefined && _preciosManualCat[p.id] !== null && _preciosManualCat[p.id] !== '')
                 ? Number(_preciosManualCat[p.id])
                 : calcularPrecioConMargen(p.precio, catKey)
@@ -4062,6 +4072,7 @@ async function enviarPedidoConDatos() {
     const telefono  = document.getElementById('co-telefono').value.trim();
     const direccion = document.getElementById('co-direccion').value.trim();
     const dirAlt    = document.getElementById('co-direccion-alt').value.trim();
+    const provincia = document.getElementById('co-provincia') ? document.getElementById('co-provincia').value.trim() : '';
     const ciudad    = document.getElementById('co-ciudad') ? document.getElementById('co-ciudad').value.trim() : '';
     const cp        = document.getElementById('co-cp') ? document.getElementById('co-cp').value.trim() : '';
 
@@ -4074,8 +4085,8 @@ async function enviarPedidoConDatos() {
         mostrarErrorCheckout('Completá los campos obligatorios (*).');
         return;
     }
-    if (!ciudad || !cp) {
-        mostrarErrorCheckout('Completá ciudad y código postal (*).');
+    if (!provincia || !ciudad || !cp) {
+        mostrarErrorCheckout('Completá provincia, ciudad y código postal (*).');
         return;
     }
 
@@ -4089,13 +4100,46 @@ async function enviarPedidoConDatos() {
     const fecha    = now.toLocaleDateString('es-AR');
     const hora     = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
+    // Mapea la sub-categoría interna de un producto ("belleza_maquillaje",
+    // "bazar_melamina", etc.) a la categoría real que reconoce todo el
+    // resto del flujo (Pedidos Recibidos, index(1).html): perfumes,
+    // calzados, belleza, bazar, jugueteria, libreria, multishop.
+    function _catalogoRealDe(item) {
+        const k = (item.producto && item.producto._catKey) || catalogoActual || 'perfumes';
+        if (k.startsWith('belleza')) return 'belleza';
+        if (k.startsWith('bazar')) return 'bazar';
+        if (k.startsWith('jugueteria')) return 'jugueteria';
+        if (k === 'electronicos') return 'multishop';
+        if (['perfumes','calzados','libreria','multishop'].includes(k)) return k;
+        return catalogoActual || 'perfumes';
+    }
+
+    // 🔑 Items ESTRUCTURADOS — talle, variante y categoría real como datos
+    // propios de cada producto (no como texto pegado al nombre). Esto es
+    // lo que permite que todo el flujo (WhatsApp, Pedidos Recibidos,
+    // index(1).html) sepa la variante/talle elegido y calcule bien el
+    // costo mayorista de cada categoría.
+    const itemsEstructurados = carrito.map(i => ({
+        nombre:      i.producto.nombre,
+        cantidad:    i.qty,
+        precio:      i.producto.precioFinal,
+        talle:       i.talle || null,
+        variante:    i.variante || null,
+        catalogo:    _catalogoRealDe(i),
+        precioCosto: 0 // el costo mayorista real lo calcula index.html/mas-categorias.html contra el Worker preciosmayoristasrevendedores al aprobar el pedido
+    }));
+
+    // Se mantienen los arrays paralelos "productos"/"cantidades"/
+    // "preciosIndividuales" (con el talle/variante como texto legible)
+    // SOLO por compatibilidad hacia atrás — el mensaje de WhatsApp y
+    // cualquier lector viejo los siguen usando tal cual.
     const productos           = carrito.map(i => i.producto.nombre + (i.talle ? ` (T.${i.talle})` : '') + (i.variante ? ` (Variante: ${i.variante})` : ''));
     const cantidades          = carrito.map(i => i.qty);
     const preciosIndividuales = carrito.map(i => i.producto.precioFinal);
     const subtotal            = carrito.reduce((s, x) => s + x.producto.precioFinal * x.qty, 0);
     const total               = subtotal + costoEntrega;
 
-    const datosEnvio = { nombre, apellido, telefono, direccion, direccionAlternativa: dirAlt, ciudad, cp, tipoEntrega: tipo, costoEntrega };
+    const datosEnvio = { nombre, apellido, telefono, direccion, direccionAlternativa: dirAlt, provincia, ciudad, cp, tipoEntrega: tipo, costoEntrega };
 
     const payload = {
         nombre,
@@ -4103,6 +4147,7 @@ async function enviarPedidoConDatos() {
         telefono,
         direccion,
         direccionAlternativa: dirAlt,
+        provincia,
         ciudad,
         codigoPostal: cp,
         codigoVendedor: codigoParam || (vendedor && vendedor.codigoVendedor) || '',
@@ -4112,6 +4157,7 @@ async function enviarPedidoConDatos() {
         productos,
         cantidades,
         preciosIndividuales,
+        items: itemsEstructurados,
         subtotal,
         costoEntrega,
         total,
@@ -4328,10 +4374,15 @@ function _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, totalCo
     }, 0);
 
     const lineas = carrito.map(item => {
+        const detalle = [
+            item.talle ? 'T. ' + item.talle : null,
+            item.variante ? 'Variante: ' + item.variante : null
+        ].filter(Boolean).join(' — ');
+        const suf = detalle ? ` (${detalle})` : '';
         if (item.regalo) {
-            return `• *${item.producto.nombre}*${item.talle ? ' (T. ' + item.talle + ')' : ''}\n  Precio: GRATIS 🎁\n  Cantidad: ${item.qty}`;
+            return `• *${item.producto.nombre}*${suf}\n  Precio: GRATIS 🎁\n  Cantidad: ${item.qty}`;
         }
-        return `• *${item.producto.nombre}*${item.talle ? ' (T. ' + item.talle + ')' : ''}\n  Precio: ${formatPrice(item.producto.precioFinal)}\n  Cantidad: ${item.qty}`;
+        return `• *${item.producto.nombre}*${suf}\n  Precio: ${formatPrice(item.producto.precioFinal)}\n  Cantidad: ${item.qty}`;
     });
 
     const esRetiro = tipo === 'retiro';
@@ -4358,6 +4409,7 @@ function _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, totalCo
         if (datosEnvio.direccionAlternativa) {
             partes.push(`Referencia: ${datosEnvio.direccionAlternativa}`);
         }
+        partes.push(`Provincia: ${datosEnvio.provincia || ''}`);
         partes.push(`Ciudad: ${datosEnvio.ciudad}`);
         partes.push(`Código Postal: ${datosEnvio.cp}`);
         partes.push('🚚 Entrega: *A domicilio*');
@@ -4367,6 +4419,7 @@ function _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, totalCo
             partes.push('📦 *Datos del cliente:*');
             partes.push(`Nombre: ${datosEnvio.nombre} ${datosEnvio.apellido}`);
             partes.push(`Teléfono: ${datosEnvio.telefono}`);
+            partes.push(`Provincia: ${datosEnvio.provincia || ''}`);
             partes.push(`Ciudad: ${datosEnvio.ciudad}`);
             partes.push(`Código Postal: ${datosEnvio.cp}`);
         }
