@@ -1638,6 +1638,15 @@
             word-break: break-word;
             max-width: 100%;
             line-height: 1.3;
+            text-wrap: balance;
+        }
+
+        /* Subtítulos/descripciones dentro de cualquier modal: mismo
+           criterio — nunca debe quedar una palabra sola en el último
+           renglón, y el ajuste de línea se hace de forma pareja. */
+        .modal-content p,
+        .modal-header + div p {
+            text-wrap: pretty;
         }
 
         .modal-close {
@@ -4060,15 +4069,15 @@
     <div class="modal-overlay" id="guardarSesionModal">
         <div class="modal-content" style="max-width:420px;">
             <div class="modal-header">
-                <h2 class="modal-title">¿Guardar inicio de sesión?</h2>
+                <h2 class="modal-title">¿Guardar inicio de&nbsp;sesión?</h2>
             </div>
             <div style="text-align:center;padding:16px 0 8px;">
                 <div style="font-size:44px;margin-bottom:12px;">🔐</div>
-                <p style="color:#666;font-size:14px;line-height:1.6;margin-bottom:8px;">
-                    Si elegís <strong>Sí</strong>, la próxima vez que entres a tu tienda se va a abrir directo con este código de revendedor.
+                <p style="color:#666;font-size:14px;line-height:1.6;margin-bottom:8px;text-wrap:pretty;">
+                    Si elegís <strong>Sí</strong>, la próxima vez que entres a tu tienda se va a abrir directo con este código de&nbsp;revendedor.
                 </p>
-                <p style="color:#666;font-size:14px;line-height:1.6;margin-bottom:20px;">
-                    Si elegís <strong>No</strong>, te vamos a pedir el código cada vez que entres, por seguridad.
+                <p style="color:#666;font-size:14px;line-height:1.6;margin-bottom:20px;text-wrap:pretty;">
+                    Si elegís <strong>No</strong>, te vamos a pedir el código cada vez que entres, por&nbsp;seguridad.
                 </p>
             </div>
             <div style="display:flex;gap:10px;">
@@ -4078,20 +4087,35 @@
         </div>
     </div>
 
+    <!-- MODAL: DATOS VINCULADOS A TU TIENDA -->
+    <div class="modal-overlay" id="datosVinculadosModal">
+        <div class="modal-content" style="max-width:400px;">
+            <div class="modal-header" style="justify-content:center;">
+                <h2 class="modal-title" style="text-align:center;">Datos Vinculados a tu Tienda</h2>
+            </div>
+            <div style="text-align:center;padding:16px 0 24px;">
+                <div style="width:64px;height:64px;border-radius:50%;background:#e8f9ee;display:flex;align-items:center;justify-content:center;margin:0 auto;">
+                    <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#00a650" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+            </div>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="document.getElementById('datosVinculadosModal').classList.remove('active')">Aceptar</button>
+        </div>
+    </div>
+
     <!-- MODAL CONFIRMAR WHATSAPP -->
     <div class="modal-overlay" id="whatsappConfirmModal" onclick="closeWhatsappConfirmModal(event)">
         <div class="modal-content" style="max-width:460px;">
-            <div class="modal-header">
-                <h2 class="modal-title">Confirmar WhatsApp</h2>
+            <div class="modal-header" style="justify-content:center;">
+                <h2 class="modal-title" style="text-align:center;">Confirma Tus Datos</h2>
             </div>
             <div style="text-align:center;padding:16px 0 8px;">
                 <div style="font-size:44px;margin-bottom:12px;">📱</div>
                 <p style="color:#666;font-size:14px;line-height:1.6;margin-bottom:20px;">
-                    Ingresá tu número de WhatsApp. Tus clientes te enviarán sus pedidos a este número cuando compren en tu tienda.
+                    Ingresá tus datos para vincular tu tienda. Tus clientes te enviarán sus pedidos a este número cuando compren en tu tienda.
                 </p>
             </div>
             <div style="margin-bottom:16px;">
-                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Número de WhatsApp</label>
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Número de WhatsApp <span style="color:#c00;">*</span></label>
                 <div style="display:flex;align-items:stretch;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:#fff;">
                     <span style="display:flex;align-items:center;gap:6px;padding:11px 10px;background:#f5f7fa;border-right:1px solid var(--border);font-size:14px;font-weight:600;color:#333;white-space:nowrap;">🇦🇷 +54 9</span>
                     <input type="tel" id="whatsapp-input-modal" placeholder="Ej: 2395401234" inputmode="numeric" style="flex:1;min-width:0;padding:11px 12px;border:none;outline:none;font-size:14px;font-family:var(--font-body);">
@@ -4100,7 +4124,7 @@
                 <div id="whatsapp-modal-error" style="display:none;margin-top:10px;padding:10px 14px;background:#fff3f3;border:1px solid #fcc;border-radius:var(--radius);color:#c00;font-size:13px;font-weight:500;"></div>
             </div>
             <div style="margin-bottom:16px;">
-                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">CUIT</label>
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">CUIT <span style="color:#c00;">*</span></label>
                 <input type="text" id="cuit-input-modal" placeholder="Ej: 20-12345678-9" inputmode="numeric" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
                 <small style="display:block;margin-top:6px;color:#777;font-size:12px;">Lo usamos para tus datos de facturación.</small>
                 <div id="cuit-modal-error" style="display:none;margin-top:10px;padding:10px 14px;background:#fff3f3;border:1px solid #fcc;border-radius:var(--radius);color:#c00;font-size:13px;font-weight:500;"></div>
@@ -4108,7 +4132,7 @@
 
             <!-- SEXO — cortina deslizable -->
             <div style="margin-bottom:16px;">
-                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Sexo</label>
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Sexo <span style="color:#c00;">*</span></label>
                 <button type="button" id="sexo-toggle-btn" onclick="toggleSexoDrawer()" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;font-size:14px;font-family:var(--font-body);cursor:pointer;">
                     <span id="sexo-toggle-label" style="color:#888;">Elegí una opción</span>
                     <svg id="sexo-toggle-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform .2s;"><polyline points="6 9 12 15 18 9"/></svg>
@@ -4124,17 +4148,17 @@
             </div>
 
             <div style="margin-bottom:16px;">
-                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Provincia</label>
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Provincia <span style="color:#c00;">*</span></label>
                 <input type="text" id="provincia-input-modal" placeholder="Ej: Buenos Aires" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
             </div>
 
             <div style="margin-bottom:16px;">
-                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Ciudad</label>
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Ciudad <span style="color:#c00;">*</span></label>
                 <input type="text" id="ciudad-input-modal" placeholder="Ej: La Plata" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
             </div>
 
             <div style="margin-bottom:16px;">
-                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Código Postal</label>
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Código Postal <span style="color:#c00;">*</span></label>
                 <input type="text" id="cp-input-modal" placeholder="Ej: 1900" inputmode="numeric" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
             </div>
 
@@ -9646,11 +9670,14 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         // Mostrar sección de nichos (Inicio)
+        // 🔧 FIX DEFINITIVO: si ya estás en Inicio (no hay ningún catálogo
+        // abierto), tocar "Inicio" ahora NO HACE NADA — así el botón nunca
+        // vuelve a disparar la limpieza/reinicio que causaba el
+        // congelamiento. Solo actúa para volver a Inicio cuando el usuario
+        // está adentro de un catálogo.
         function mostrarInicio() {
-            // 🔧 FIX: lo que se VE cambia primero e inmediato (mostrar
-            // nichos, ocultar catálogo) — todo lo demás (timers, limpiar
-            // overlays fantasma) se hace un instante después, para que el
-            // clic en "Inicio" nunca se sienta trabado esperando algo.
+            if (!window.currentCatalog) return;
+
             const nichosSection = document.getElementById('nichos-section');
             const filtersContainer = document.getElementById('filters-container');
             const productsContainer = document.getElementById('products-container');
@@ -9666,18 +9693,9 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (revendSection) revendSection.style.display = 'none';
             window.currentCatalog = null;
 
-            setTimeout(function() {
-                try {
-                    if (window.cleanupAllTimers) window.cleanupAllTimers();
-                    document.querySelectorAll('.modal-overlay.active, .modal-cart.active, .auth-modal.active').forEach(m => {
-                        m.classList.remove('active');
-                    });
-                    window._modalOpenCount = 0;
-                    document.body.style.overflow = '';
-                    document.querySelectorAll('.filter-btn').forEach(btn => { btn.onclick = null; });
-                    if (typeof actualizarIconoConfigTienda === 'function') actualizarIconoConfigTienda();
-                } catch(_e) { /* nunca debe romper la pantalla ya mostrada */ }
-            }, 0);
+            if (window.cleanupAllTimers) window.cleanupAllTimers();
+            document.querySelectorAll('.filter-btn').forEach(btn => { btn.onclick = null; });
+            if (typeof actualizarIconoConfigTienda === 'function') actualizarIconoConfigTienda();
         }
 
         // Ocultar catálogo y mostrar nichos
@@ -9999,19 +10017,36 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             const ciudad    = document.getElementById('ciudad-input-modal')?.value.trim() || '';
             const codigoPostal = document.getElementById('cp-input-modal')?.value.trim() || '';
 
+            if (!sexo) {
+                showErr('Elegí una opción en "Sexo" — es obligatorio.');
+                return;
+            }
+            if (!provincia) {
+                showErr('Ingresá tu Provincia — es obligatorio.');
+                return;
+            }
+            if (!ciudad) {
+                showErr('Ingresá tu Ciudad — es obligatorio.');
+                return;
+            }
+            if (!codigoPostal) {
+                showErr('Ingresá tu Código Postal — es obligatorio.');
+                return;
+            }
+
             _lsSet('whatsappRevendedor', val);
             _lsSet('cuitRevendedor', cuitFormateado);
-            if (sexo) _lsSet('sexoRevendedor', sexo);
-            if (provincia) _lsSet('provinciaRevendedor', provincia);
-            if (ciudad) _lsSet('ciudadRevendedor', ciudad);
-            if (codigoPostal) _lsSet('codigoPostalRevendedor', codigoPostal);
+            _lsSet('sexoRevendedor', sexo);
+            _lsSet('provinciaRevendedor', provincia);
+            _lsSet('ciudadRevendedor', ciudad);
+            _lsSet('codigoPostalRevendedor', codigoPostal);
             _guardarEnFirestore({
                 whatsappRevendedor: val,
                 cuitRevendedor: cuitFormateado,
-                sexo: sexo || undefined,
-                provincia: provincia || undefined,
-                ciudad: ciudad || undefined,
-                codigoPostal: codigoPostal || undefined
+                sexo: sexo,
+                provincia: provincia,
+                ciudad: ciudad,
+                codigoPostal: codigoPostal
             });
             // Guardado confiable vía Worker (con cuenta de servicio): no depende
             // de si el vendedor tiene sesión de Firebase Auth activa, así que
@@ -10020,13 +10055,9 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
             document.getElementById('whatsappConfirmModal').classList.remove('active');
 
-            // Toast de confirmación con estética de la web
-            const toast = document.getElementById('wa-toast');
-            if (toast) {
-                toast.textContent = '✅ WhatsApp guardado correctamente: +' + val;
-                toast.style.display = 'block';
-                setTimeout(() => { toast.style.display = 'none'; }, 3500);
-            }
+            // Modal de confirmación con la estética de la plataforma —
+            // reemplaza el toast que se veía por unos segundos y ya.
+            document.getElementById('datosVinculadosModal').classList.add('active');
 
             // Si el modal se abrió porque el revendedor intentó compartir su
             // tienda sin tener WhatsApp configurado, retomar esa acción ahora
@@ -11540,16 +11571,25 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     }
                 }, 5000);
 
-                // 4. Modal de WhatsApp/CUIT/Sexo/Provincia/Ciudad/CP si no está configurado
-                var waGuardado = _lsGet('whatsappRevendedor') || (window._ultimoUserDataLogin && window._ultimoUserDataLogin.whatsappRevendedor) || '';
-                if (!waGuardado) {
+                // 4. Modal de WhatsApp/CUIT/Sexo/Provincia/Ciudad/CP si no está
+                // configurado. Se pide de nuevo si falta CUALQUIERA de los
+                // datos — antes solo miraba si había WhatsApp guardado, así
+                // que a un revendedor que ya lo tenía de antes (pero nunca
+                // completó Sexo/Provincia/Ciudad/CP, campos nuevos) el modal
+                // ya no le volvía a aparecer.
+                var waGuardado        = _lsGet('whatsappRevendedor') || (window._ultimoUserDataLogin && window._ultimoUserDataLogin.whatsappRevendedor) || '';
+                var sexoGuardado      = _lsGet('sexoRevendedor') || (window._ultimoUserDataLogin && window._ultimoUserDataLogin.sexo) || '';
+                var provinciaGuardada = _lsGet('provinciaRevendedor') || (window._ultimoUserDataLogin && window._ultimoUserDataLogin.provincia) || '';
+                var ciudadGuardada    = _lsGet('ciudadRevendedor') || (window._ultimoUserDataLogin && window._ultimoUserDataLogin.ciudad) || '';
+                var cpGuardado        = _lsGet('codigoPostalRevendedor') || (window._ultimoUserDataLogin && window._ultimoUserDataLogin.codigoPostal) || '';
+                if (!waGuardado || !sexoGuardado || !provinciaGuardada || !ciudadGuardada || !cpGuardado) {
                     setTimeout(function() {
                         var modal = document.getElementById('whatsappConfirmModal');
                         if (modal) {
                             document.getElementById('whatsapp-input-modal').value = '';
                             modal.classList.add('active');
                         }
-                    }, 600);
+                    }, 1000);
                 }
             }
 
