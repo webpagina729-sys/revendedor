@@ -1629,15 +1629,15 @@
         }
 
         .modal-title {
-            font-size: 22px;
+            font-size: 19px;
             font-weight: 700;
             color: var(--text);
             margin: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: normal;
+            overflow-wrap: break-word;
+            word-break: break-word;
             max-width: 100%;
-            line-height: 1.2;
+            line-height: 1.3;
         }
 
         .modal-close {
@@ -7407,6 +7407,14 @@
             // Permitir apertura si hay usuario Firebase O usuario por código
             if (!user && !wUser) return;
 
+            // 🔧 FIX: si había quedado algún otro modal trabado con la clase
+            // "active" pero invisible, se cierra antes de intentar abrir
+            // este — así nunca se queda "sin abrir nada" por un overlay
+            // fantasma tapando el clic.
+            document.querySelectorAll('.modal-overlay.active').forEach(m => {
+                if (m.id !== 'profileModal') m.classList.remove('active');
+            });
+
             // Mostrar email
             const emailEl = document.getElementById('profileEmail');
             if (emailEl) emailEl.textContent = user ? user.email : (wUser.email || '—');
@@ -7525,6 +7533,9 @@
         }
 
         function openGuideModal() {
+            document.querySelectorAll('.modal-overlay.active').forEach(m => {
+                if (m.id !== 'guideModal') m.classList.remove('active');
+            });
             document.getElementById('guideModal').classList.add('active');
             preventBodyScroll(true);
         }
@@ -9638,7 +9649,21 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         function mostrarInicio() {
             // Limpiar todos los timers y listeners cuando se regresa a inicio
             if (window.cleanupAllTimers) window.cleanupAllTimers();
-            
+
+            // 🔧 FIX: si quedaba algún modal con la clase "active" pero
+            // invisible (por ejemplo, uno que no se cerró bien desde otra
+            // pantalla), ese overlay sigue cubriendo toda la página y
+            // "traga" los clics siguientes — por eso después de tocar
+            // Inicio, Perfil/Guía rápida dejaban de abrir. Forzamos el
+            // cierre de cualquier overlay que haya quedado activo y
+            // liberamos el scroll del body, así siempre queda una pantalla
+            // limpia y clickeable.
+            document.querySelectorAll('.modal-overlay.active, .modal-cart.active, .auth-modal.active').forEach(m => {
+                m.classList.remove('active');
+            });
+            window._modalOpenCount = 0;
+            document.body.style.overflow = '';
+
             // Resetear handlers directos de filtros
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.onclick = null;
@@ -11394,6 +11419,14 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     if (userData) {
                         try { await bvAplicarDatos(codigoGuardado, userData); } catch(e) { /* silenciado */ }
                         bvOcultar();
+                        window._ultimoUserDataLogin = userData;
+                        // 🔧 FIX: el auto-login (cuando ya se eligió "Sí" antes)
+                        // nunca llamaba a esto — por eso el modal de WhatsApp/
+                        // CUIT/Provincia/Ciudad/CP no volvía a aparecer si
+                        // faltaba completarlo. No hace falta preguntar de
+                        // nuevo "¿Guardar sesión?" (ya se sabe la respuesta),
+                        // pero sí seguir con el resto del flujo normal.
+                        _continuarFlujoPostSesion();
                     } else {
                         // El código guardado ya no es válido — no insistir
                         // con "recordar sesión", pedirlo de nuevo a mano.
@@ -12757,7 +12790,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 <div class="modal-overlay" id="promoGiftConfigModal" onclick="if(event.target.id==='promoGiftConfigModal')this.classList.remove('active')">
     <div class="modal-content" style="max-width:440px;" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <h2 class="modal-title" style="font-size:clamp(13px,3.5vw,17px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎁 Selecciona el rango de precios</h2>
+            <h2 class="modal-title" style="font-size:clamp(13px,3.5vw,17px);white-space:normal;overflow-wrap:break-word;">🎁 Selecciona el rango de precios</h2>
             <button type="button" class="modal-close" onclick="document.getElementById('promoGiftConfigModal').classList.remove('active')" aria-label="Cerrar">×</button>
         </div>
 
