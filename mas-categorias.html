@@ -7408,11 +7408,19 @@ function catalogoEfectivoMultishop(p) {
                 if (!stockData[catalogo]) stockData[catalogo] = {};
                 stockData[catalogo][productId] = !!enStock;
                 localStorage.setItem('stockProductosCat', JSON.stringify(stockData));
-                const fbUser = firebase.auth().currentUser;
-                if (fbUser) {
-                    firebase.firestore().collection('usuarios').doc(fbUser.uid)
+                // 🔧 FIX: igual que en index.html — la mayoría de los
+                // revendedores entra con código, sin sesión real de Firebase
+                // Auth, así que antes esto nunca llegaba a Firestore para
+                // ellos (solo quedaba en localStorage de ese navegador).
+                const uid = _getUidParaFirestore();
+                if (uid) {
+                    firebase.firestore().collection('usuarios').doc(uid)
                         .update({ [`stockProductosCat.${catalogo}.${productId}`]: !!enStock })
                         .catch(() => {});
+                } else if (typeof _firestoreUserRefAsync === 'function') {
+                    _firestoreUserRefAsync().then(ref => {
+                        if (ref) ref.update({ [`stockProductosCat.${catalogo}.${productId}`]: !!enStock }).catch(() => {});
+                    }).catch(() => {});
                 }
             } catch(e) {}
         }
