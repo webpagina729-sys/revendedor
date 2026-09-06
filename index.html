@@ -5379,11 +5379,23 @@
                 if (!stockData[catalogo]) stockData[catalogo] = {};
                 stockData[catalogo][productId] = !!enStock;
                 localStorage.setItem('stockProductosCat', JSON.stringify(stockData));
-                const fbUser = firebase.auth().currentUser;
-                if (fbUser) {
-                    firebase.firestore().collection('usuarios').doc(fbUser.uid)
+                // 🔧 FIX: antes esto solo guardaba en Firestore si había una
+                // sesión REAL de Firebase Auth (firebase.auth().currentUser).
+                // La mayoría de los revendedores entra con código, sin esa
+                // sesión — para ellos esto nunca llegaba a guardarse en la
+                // base de datos, solo quedaba en el localStorage de ESE
+                // navegador (inútil para tienda.html, que lo ve un cliente
+                // en otro dispositivo). Ahora usa el mismo resolvedor de UID
+                // que ya usa el resto del panel para código de revendedor.
+                const uid = _getUidParaFirestore();
+                if (uid) {
+                    firebase.firestore().collection('usuarios').doc(uid)
                         .update({ [`stockProductosCat.${catalogo}.${productId}`]: !!enStock })
                         .catch(() => {});
+                } else if (typeof _firestoreUserRefAsync === 'function') {
+                    _firestoreUserRefAsync().then(ref => {
+                        if (ref) ref.update({ [`stockProductosCat.${catalogo}.${productId}`]: !!enStock }).catch(() => {});
+                    }).catch(() => {});
                 }
             } catch(e) {}
         }
@@ -5418,7 +5430,7 @@
             setStockProducto(catalogo, producto.id, enStock);
             actualizarDotsStockModal(enStock);
             if (catalogo === 'calzados' && typeof renderShoesProducts === 'function') renderShoesProducts();
-            else if (catalogo === 'belleza' && typeof renderBellezaProducts === 'function') renderBellezaProducts();
+            else if (String(catalogo).startsWith('belleza') && typeof renderBellezaProducts === 'function') renderBellezaProducts();
             else if (typeof renderProducts === 'function') renderProducts();
         }
 
@@ -5767,7 +5779,7 @@
                 <div class="product-card">
                     <button type="button" aria-label="Modificar precio" onclick="event.stopPropagation();abrirEditarPrecioProducto('${catEfectivo}', ${p.id})" style="position:absolute;top:8px;right:8px;z-index:4;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-light);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s ease;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
                     <div class="product-image" onclick="openZoom('${p.imagen}')" style="position:relative;">
-                        ${stockOverlayHtml('belleza', p.id)}
+                        ${stockOverlayHtml(catEfectivo, p.id)}
                         <div class="zoom-icon">🔍</div>
                         <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${p.imagen}')">
                     </div>
@@ -5777,7 +5789,7 @@
                             <div class="price-current">$${precioMostrado.toLocaleString()}</div>
                             <div class="price-original">$${p.precioOriginal.toLocaleString()}</div>
                         </div>
-                        ${stockDotHtml('belleza', p.id)}
+                        ${stockDotHtml(catEfectivo, p.id)}
                         <button class="btn-more" onclick="openDetailsBelleza(${p.id})">Ver más</button>
                     </div>
                 </div>`;
@@ -5889,7 +5901,7 @@
             const momentoEl = document.getElementById('modal-details-moment');
             if (momentoEl) momentoEl.textContent = currentProduct.momento || (currentProduct._origin === 'maquillaje' ? 'uso diario / cualquier ocasión' : '');
             poblarCarruselYVariantesModal(currentProduct);
-            actualizarDotsStockModal(getStockProducto('belleza', currentProduct.id));
+            actualizarDotsStockModal(getStockProducto(catEfectivo, currentProduct.id));
             document.getElementById('modal-details').classList.add('active');
         }
 
