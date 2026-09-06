@@ -3345,8 +3345,17 @@ function iniciarTienda() {
         return catalogoActual;
     }
 
-    const _stockCat = (vendedor && vendedor.stockProductosCat && vendedor.stockProductosCat[catalogoActual]) || {};
+    // 🔧 FIX: antes se buscaba el estado de stock bajo "catalogoActual"
+    // (ej. "belleza"), pero index.html/mas-categorias.html guardan bajo la
+    // sub-categoría REAL de cada producto (ej. "belleza_maquillaje" o
+    // "belleza_perfume") — esas claves nunca coincidían, así que marcar un
+    // producto de Belleza/Bazar/Juguetería como "Sin Stock" nunca surtía
+    // efecto acá. Ahora se calcula la clave real de CADA producto antes de
+    // filtrar, igual que se hace más abajo para el precio.
+    const _stockPorCat = (vendedor && vendedor.stockProductosCat) || {};
     const rawEnStock = raw.filter(p => {
+        const catKeyProducto = _catalogKeyParaProducto(p);
+        const _stockCat = _stockPorCat[catKeyProducto] || {};
         // Solo se considera "sin stock" si el revendedor lo desactivó explícitamente.
         return !(Object.prototype.hasOwnProperty.call(_stockCat, p.id) && _stockCat[p.id] === false);
     });
