@@ -11495,41 +11495,60 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 localStorage.setItem('codigoRevendedorValidadoFecha', Date.now().toString());
                 localStorage.setItem('codigoVendedorLocal', codigo);
 
-                if (userData.configTienda && !localStorage.getItem('configTienda')) {
-                    localStorage.setItem('configTienda', JSON.stringify(userData.configTienda));
+                // 🔧 NUEVO: helper compartido — mezcla cualquier dato traído
+                // de la nube (Firestore) con lo que hay en localStorage,
+                // dejando que LA NUBE GANE siempre que exista, para que
+                // cualquier dispositivo que entre a la misma cuenta vea lo
+                // mismo. Local solo se conserva para categorías que la nube
+                // todavía no tiene (cambios genuinamente sin sincronizar).
+                function _mergeDatosDesdeNube(datos) {
+                    if (!datos || typeof datos !== 'object') return;
+                    const camposObjeto = ['configTiendaAll','preciosManualCat','preciosIndividualCat','stockProductosCat','coloresTiendaPorCat','coloresExtraTienda'];
+                    camposObjeto.forEach(campo => {
+                        if (datos[campo] && typeof datos[campo] === 'object') {
+                            try {
+                                const localData = JSON.parse(localStorage.getItem(campo) || '{}');
+                                Object.keys(datos[campo]).forEach(cat => { localData[cat] = datos[campo][cat]; });
+                                localStorage.setItem(campo, JSON.stringify(localData));
+                            } catch(_) {}
+                        }
+                    });
+                    if (datos.configTienda) localStorage.setItem('configTienda', JSON.stringify(datos.configTienda));
+                    if (datos.whatsappRevendedor) _lsSet('whatsappRevendedor', datos.whatsappRevendedor);
                 }
-                // 🔧 FIX CRÍTICO: mismo bug que en initializeUserSession — overwrite
-                // completo borraba categorías guardadas localmente (ej. "calzados")
-                // al recargar o re-loguear por código. Ahora es MERGE: solo completa
-                // categorías que falten localmente, nunca pisa lo ya guardado.
-                if (userData.configTiendaAll && typeof userData.configTiendaAll === 'object') {
-                    try {
-                        const localAll = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-                        let cambio = false;
-                        Object.keys(userData.configTiendaAll).forEach(cat => {
-                            if (!localAll[cat]) { localAll[cat] = userData.configTiendaAll[cat]; cambio = true; }
-                        });
-                        if (cambio) localStorage.setItem('configTiendaAll', JSON.stringify(localAll));
-                    } catch(_) {}
-                }
-                if (userData.preciosManualCat && typeof userData.preciosManualCat === 'object') {
-                    try {
-                        const localPrecios = JSON.parse(localStorage.getItem('preciosManualCat') || '{}');
-                        let cambioP = false;
-                        Object.keys(userData.preciosManualCat).forEach(cat => {
-                            if (!localPrecios[cat]) { localPrecios[cat] = userData.preciosManualCat[cat]; cambioP = true; }
-                        });
-                        if (cambioP) localStorage.setItem('preciosManualCat', JSON.stringify(localPrecios));
-                    } catch(_) {}
-                }
-                if (userData.whatsappRevendedor && !_lsGet('whatsappRevendedor')) {
-                    _lsSet('whatsappRevendedor', userData.whatsappRevendedor);
-                }
+
+                _mergeDatosDesdeNube(userData);
 
                 var fbUser = firebase.auth().currentUser;
 
                 // Obtener UID real desde Firestore (por codigoVendedor) si firebase.auth no lo tiene
                 var _uidReal = fbUser ? fbUser.uid : (userData.uid || null);
+
+                // 🔧 NUEVO: además de lo que ya vino en "userData" (la
+                // respuesta del login), se trae el documento COMPLETO de
+                // Firestore por UID y se vuelve a mezclar con el mismo
+                // criterio (la nube gana) — así no importa qué campos
+                // puntuales haya incluido el Worker de login, siempre queda
+                // la versión más actualizada de precios/stock/colores sin
+                // importar desde qué dispositivo se entre.
+                function _traerYMergearDocCompleto(uid) {
+                    if (!uid) return;
+                    firebase.firestore().collection('usuarios').doc(uid).get()
+                        .then(function(doc) {
+                            if (doc.exists) {
+                                _mergeDatosDesdeNube(doc.data());
+                                // Repintar con los datos ya actualizados —
+                                // sin esto, el catálogo se quedaba con lo
+                                // viejo hasta la próxima recarga manual.
+                                try {
+                                    if (window.currentCatalog === 'calzados' && typeof renderShoesProducts === 'function') renderShoesProducts();
+                                    else if (window.currentCatalog === 'belleza' && typeof renderBellezaProducts === 'function') renderBellezaProducts();
+                                    else if (typeof renderProducts === 'function') renderProducts();
+                                } catch(_e) {}
+                            }
+                        }).catch(function(){});
+                }
+
                 // Si no tenemos uid real todavía, buscarlo en Firestore para futuras escrituras
                 if (!_uidReal) {
                     firebase.firestore().collection('usuarios')
@@ -11538,8 +11557,11 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                             if (!sn.empty) {
                                 var _uid = sn.docs[0].id;
                                 if (window.currentUser) window.currentUser.uid = _uid;
+                                _traerYMergearDocCompleto(_uid);
                             }
                         }).catch(function(){});
+                } else {
+                    _traerYMergearDocCompleto(_uidReal);
                 }
 
                 window.currentUser = {
