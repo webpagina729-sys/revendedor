@@ -3053,6 +3053,18 @@ async function cargarVendedor() {
                     vendedor.preciosManualCat[catKey] = parsed._preciosManual;
                 }
 
+                // 🔧 NUEVO: precio "Enlace Individual" — un precio propio de
+                // ESTE enlace puntual, que NO existe en la tienda general
+                // (nunca se guardó en preciosManualCat). Se aplica como si
+                // fuera el precio manual de ese producto SOLO en esta
+                // sesión de tienda.html, sin modificar nada de lo que ven
+                // los demás clientes en el catálogo general.
+                if (parsed._precioIndividual && parsed._precioIndividual.productId != null) {
+                    vendedor.preciosManualCat = vendedor.preciosManualCat || {};
+                    vendedor.preciosManualCat[catKey] = vendedor.preciosManualCat[catKey] || {};
+                    vendedor.preciosManualCat[catKey][parsed._precioIndividual.productId] = parsed._precioIndividual.precio;
+                }
+
                 // 🔧 Categoría COMPLETA compartida (Bazar/Juguetería/Belleza/
                 // Multishop, sin sub puntual): el enlace trae la config y el
                 // precio manual de CADA sub-categoría por separado. Si no se
@@ -3410,10 +3422,21 @@ function iniciarTienda() {
 
     // 🔗 Deep link a un producto puntual (usado por "Vista previa" y
     // "Compartir tienda desde acá" del panel de precios por producto).
+    // 🔧 FIX: antes esto solo abría el modal de ESE producto pero el
+    // cliente igual podía cerrarlo y navegar el catálogo completo. Ahora,
+    // cuando el enlace es de un producto individual, el catálogo queda
+    // restringido a ÚNICAMENTE ese producto — no se puede ver ni comprar
+    // ningún otro desde este enlace.
     const productoParam = urlParams.get('producto');
     if (productoParam) {
         const pid = Number(productoParam);
-        if (!isNaN(pid) && todosProductos.some(p => p.id === pid)) {
+        const encontrado = todosProductos.find(p => p.id === pid);
+        if (encontrado) {
+            todosProductos = [encontrado];
+            productosFilt = [encontrado];
+            const filtersBar = document.getElementById('filters-bar');
+            if (filtersBar) filtersBar.style.display = 'none';
+            renderizarProductos();
             setTimeout(() => abrirModal(pid), 150);
         }
     }
@@ -3604,11 +3627,11 @@ function cerrarModalProducto() {
 function agregarDesdeModal() {
     if (!productoModal) return;
     if (productoModal.talle && productoModal.talle.length > 0 && !talleSelec) {
-        alert('Por favor elegí un talle primero.');
+        mostrarToast('Elegí un talle para continuar');
         return;
     }
     if (productoModal.variantes && productoModal.variantes.length > 0 && !varianteSelec) {
-        alert('Por favor elegí una variante primero.');
+        mostrarToast('Elegí una variante para continuar');
         return;
     }
     agregarAlCarritoObj(productoModal, talleSelec, varianteSelec);
@@ -3738,7 +3761,7 @@ function mostrarToast(msg) {
     if (!toast) {
         toast = document.createElement('div');
         toast.id = 'toast';
-        toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:2000;transition:opacity .3s;pointer-events:none;';
+        toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:2000;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:92vw;text-align:center;';
         document.body.appendChild(toast);
     }
     toast.textContent = msg;
@@ -4172,6 +4195,14 @@ async function enviarPedidoConDatos() {
         total,
         tipoEntrega: tipo,
         estado: 'pendiente',
+        // 🔧 NUEVO: los Términos y Condiciones / Política de Privacidad ya
+        // se guardaban en un registro legal aparte (clientes/aceptaciones),
+        // pero no dentro del propio pedido. Ahora también quedan grabados
+        // acá, como parte de los datos del pedido en sí — el checkbox de
+        // abajo ya es obligatorio para poder confirmar la compra.
+        terminosCondicionesAceptado: !!(document.getElementById('legal-check-terminos') && document.getElementById('legal-check-terminos').checked),
+        politicaPrivacidadAceptado: !!(document.getElementById('legal-check-privacidad') && document.getElementById('legal-check-privacidad').checked),
+        versionDocumentoLegal: (typeof VERSION_DOCUMENTO_LEGAL !== 'undefined' ? VERSION_DOCUMENTO_LEGAL : ''),
     };
 
     // ── El pedido se registra ANTES de redirigir a WhatsApp ────────
