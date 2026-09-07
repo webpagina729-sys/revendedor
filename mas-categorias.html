@@ -4239,6 +4239,7 @@
             <div id="margen-sub-rangos-container" style="margin-bottom:6px;"></div>
             <button type="button" onclick="agregarRangoConfig('','','', 'margen-sub-rangos-container')" style="background:none;border:1px dashed var(--border);border-radius:var(--radius);padding:7px 10px;font-size:12px;color:var(--text-light);cursor:pointer;width:100%;margin-bottom:14px;">+ Agregar rango</button>
             <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;padding:10px;font-size:13px;" onclick="guardarMargenSubBelleza()">Guardar precios</button>
+            <button type="button" class="confirmation-button" style="width:100%;background:#fee2e2;color:#b91c1c;margin-bottom:8px;font-weight:700;padding:10px;font-size:13px;" onclick="reiniciarMargenSubACfgGeneral()">♻️ Reiniciar a config. general</button>
             <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);padding:10px;font-size:13px;" onclick="cerrarEditarMargenSubModal()">Cancelar</button>
         </div>
     </div>
@@ -5868,12 +5869,18 @@ window.productsMultishop = [
 // sub-categoría, igual que ya hace Belleza con maquillaje/perfume.
 function catalogoEfectivoBazar(p) { return p._bazarSub === 'melamina' ? 'bazar_melamina' : 'bazar_bazar'; }
 function catalogoEfectivoJugueteria(p) { return p._jugSub === 'peluches' ? 'jugueteria_peluches' : 'jugueteria_juguetes'; }
+// 🔧 FIX: antes esto devolvía las MISMAS claves que usan Belleza/Bazar/
+// Juguetería directamente ('belleza_maquillaje', 'bazar_melamina', etc.),
+// así que configurar el margen "en Multishop" en realidad pisaba (o leía)
+// la configuración de la categoría ORIGINAL — sin ninguna independencia
+// real. Ahora cada clave lleva el prefijo "multishop_" para que su
+// configuración sea 100% propia, aunque comparta los mismos productos.
 function catalogoEfectivoMultishop(p) {
-    if (p._multiSub === 'belleza') return catalogoEfectivoBelleza(p);
-    if (p._multiSub === 'bazar') return catalogoEfectivoBazar(p);
-    if (p._multiSub === 'jugueteria') return catalogoEfectivoJugueteria(p);
-    if (p._multiSub === 'libreria') return 'libreria';
-    return 'electronicos';
+    if (p._multiSub === 'belleza') return 'multishop_' + catalogoEfectivoBelleza(p);
+    if (p._multiSub === 'bazar') return 'multishop_' + catalogoEfectivoBazar(p);
+    if (p._multiSub === 'jugueteria') return 'multishop_' + catalogoEfectivoJugueteria(p);
+    if (p._multiSub === 'libreria') return 'multishop_libreria';
+    return 'multishop_electronicos';
 }
 
         // Agregar categoría 'adultos' a todos los productos de zapatillas
@@ -5967,6 +5974,19 @@ function catalogoEfectivoMultishop(p) {
 
         function abrirEditarMargenSubBelleza(sub) {
             const catConfig = 'belleza_' + sub;
+            // 🔧 NUEVO: exige tener configurado el margen general de Belleza
+            // y Cuidado Personal antes de poder editar Maquillaje/Perfume
+            // por separado.
+            const allConfigCheck = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+            if (!allConfigCheck['belleza']) {
+                const toast = document.getElementById('wa-toast');
+                if (toast) {
+                    toast.textContent = '⚠️ Primero configurá el margen general de Belleza y Cuidado Personal desde "Configurar mi tienda".';
+                    toast.style.display = 'block';
+                    setTimeout(() => { toast.style.display = 'none'; }, 4000);
+                }
+                return;
+            }
             window._editandoMargenSub = catConfig;
             const title = document.getElementById('editarMargenSubTitle');
             if (title) title.textContent = 'Editar precios — ' + (sub === 'maquillaje' ? 'Maquillaje' : 'Perfumes');
@@ -7251,11 +7271,8 @@ function catalogoEfectivoMultishop(p) {
             }
         }
         function _catConfigDeSubMultishop(sub) {
-            if (sub === 'belleza') return 'belleza';
-            if (sub === 'bazar') return 'bazar';
-            if (sub === 'jugueteria') return 'jugueteria';
-            if (sub === 'libreria') return 'libreria';
-            return 'electronicos';
+            // 🔧 FIX: claves propias de Multishop, no las de la categoría original.
+            return 'multishop_' + sub;
         }
 
         async function compartirEnlaceSubGenerico(catConfig, label) {
@@ -7276,9 +7293,39 @@ function catalogoEfectivoMultishop(p) {
             }
         }
 
+        // 🔧 NUEVO: devuelve la clave de configuración GENERAL de la que
+        // depende una opción puntual, para exigir que esté configurada
+        // antes de poder editar la opción individualmente.
+        function _categoriaGeneralDe(catConfig) {
+            if (catConfig.startsWith('multishop_')) return 'multishop';
+            const mapa = {
+                belleza_maquillaje: 'belleza', belleza_perfume: 'belleza',
+                bazar_bazar: 'bazar', bazar_melamina: 'bazar',
+                jugueteria_juguetes: 'jugueteria', jugueteria_peluches: 'jugueteria'
+            };
+            return mapa[catConfig] || null;
+        }
+
         // Editor de márgenes por sub-categoría — mismo modal (#editarMargenSubModal)
         // y mismo guardado genérico (configTiendaAll[catConfig] + Firestore) que Belleza.
         function abrirEditarMargenSubGenerico(catConfig, label) {
+            // 🔧 NUEVO: no se puede configurar el margen de una opción
+            // puntual sin haber configurado antes el margen general de
+            // toda la categoría — evita quedar con opciones "sueltas" sin
+            // ninguna base de precio detrás.
+            const catGeneral = _categoriaGeneralDe(catConfig);
+            if (catGeneral) {
+                const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                if (!allConfig[catGeneral]) {
+                    const toast = document.getElementById('wa-toast');
+                    if (toast) {
+                        toast.textContent = '⚠️ Primero configurá el margen general de la categoría desde "Configurar mi tienda".';
+                        toast.style.display = 'block';
+                        setTimeout(() => { toast.style.display = 'none'; }, 4000);
+                    }
+                    return;
+                }
+            }
             window._editandoMargenSub = catConfig;
             const title = document.getElementById('editarMargenSubTitle');
             if (title) title.textContent = 'Editar precios — ' + label;
@@ -7533,9 +7580,72 @@ function catalogoEfectivoMultishop(p) {
             try {
                 const cat = catalogo || window.currentCatalog || 'general';
                 const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-                return allConfig[cat] || (cat === (JSON.parse(localStorage.getItem('configTienda') || '{}').categoria) ? JSON.parse(localStorage.getItem('configTienda') || 'null') : null);
+                if (allConfig[cat]) return allConfig[cat];
+                // 🔧 FIX: si una OPCIÓN específica dentro de una categoría
+                // compuesta (Belleza→Maquillaje/Perfume, Bazar→Bazar/Melamina,
+                // Juguetería→Juguetes/Peluches, o cualquier nivel de
+                // Multishop) todavía no tiene su propio margen configurado,
+                // se cae en cascada al margen GENERAL de esa categoría —
+                // nunca queda sin margen (precio mayorista puro) mientras
+                // haya una configuración general disponible.
+                const cascada = {
+                    belleza_maquillaje: 'belleza', belleza_perfume: 'belleza',
+                    bazar_bazar: 'bazar', bazar_melamina: 'bazar',
+                    jugueteria_juguetes: 'jugueteria', jugueteria_peluches: 'jugueteria'
+                };
+                if (cascada[cat] && allConfig[cascada[cat]]) return allConfig[cascada[cat]];
+                // Multishop tiene su PROPIA configuración, independiente de
+                // Belleza/Bazar/Juguetería/Librería aunque comparta los mismos
+                // productos. Sus claves van prefijadas "multishop_..." (ej.
+                // "multishop_belleza_maquillaje") y caen en cascada a un nivel
+                // más general DENTRO de Multishop — nunca a la categoría original.
+                if (cat.startsWith('multishop_')) {
+                    const partes = cat.split('_'); // ["multishop","belleza","maquillaje"]
+                    if (partes.length === 3) {
+                        const intermedio = `${partes[0]}_${partes[1]}`;
+                        if (allConfig[intermedio]) return allConfig[intermedio];
+                    }
+                    if (allConfig['multishop']) return allConfig['multishop'];
+                }
+                return cat === (JSON.parse(localStorage.getItem('configTienda') || '{}').categoria) ? JSON.parse(localStorage.getItem('configTienda') || 'null') : null;
             } catch(e) {
                 return null;
+            }
+        }
+
+        // 🔧 NUEVO: "reiniciar" dentro del editor de una OPCIÓN puntual
+        // (lápiz de Maquillaje/Perfume, Bazar/Melamina, Multishop→Belleza,
+        // etc.) — a diferencia del reinicio general (que borra TODO y
+        // vuelve al precio mayorista puro), esto solo borra el override de
+        // ESA opción, y el precio cae automáticamente a la configuración
+        // general de la categoría (por la cascada de arriba) — nunca al
+        // precio mayorista directamente.
+        async function reiniciarMargenSubACfgGeneral() {
+            const catConfig = window._editandoMargenSub;
+            if (!catConfig) return;
+            const confirmado = await window.pedirConfirmacionReiniciar(
+                'Esto borra el margen específico de esta opción y vuelve a usar el margen general configurado para toda la categoría.'
+            );
+            if (!confirmado) return;
+            try {
+                const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
+                delete allConfig[catConfig];
+                localStorage.setItem('configTiendaAll', JSON.stringify(allConfig));
+                const fbUser = firebase.auth().currentUser;
+                const uid = (typeof _getUidParaFirestore === 'function' && _getUidParaFirestore()) || (fbUser && fbUser.uid);
+                if (uid) {
+                    await firebase.firestore().collection('usuarios').doc(uid)
+                        .update({ [`configTiendaAll.${catConfig}`]: firebase.firestore.FieldValue.delete() })
+                        .catch(() => {});
+                }
+            } catch(e) {}
+            document.getElementById('editarMargenSubModal').classList.remove('active');
+            if (typeof renderProducts === 'function') renderProducts();
+            const toast = document.getElementById('wa-toast');
+            if (toast) {
+                toast.textContent = '♻️ Esta opción vuelve a usar el margen general de la categoría.';
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 3500);
             }
         }
 
@@ -11760,15 +11870,63 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 alert('Ingresá un precio válido.');
                 return;
             }
+            // 🔧 NUEVO: pregunta a dónde va el precio — "Tienda general"
+            // (como antes) o "Enlace Individual" (precio propio solo para
+            // cuando se comparte ESE producto puntual).
+            abrirModalDestinoPrecio(catalogo, productId, Math.round(precio));
+        }
+
+        function abrirModalDestinoPrecio(catalogo, productId, precio) {
+            let modal = document.getElementById('destinoPrecioModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'destinoPrecioModal';
+                modal.className = 'modal-overlay';
+                document.body.appendChild(modal);
+            }
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width:380px;" onclick="event.stopPropagation()">
+                    <div class="modal-header" style="justify-content:center;"><h2 class="modal-title" style="text-align:center;">¿A dónde querés enviar este precio?</h2></div>
+                    <p style="font-size:13px;color:var(--text-light);text-align:center;margin:-6px 0 16px;">Precio a guardar: <strong style="color:var(--text);">$${precio.toLocaleString()}</strong></p>
+                    <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;padding:11px;font-size:13px;" onclick="_confirmarDestinoPrecio('general')">🏬 Tienda general</button>
+                    <button type="button" class="confirmation-button" style="width:100%;background:#eef2ff;color:#3730a3;margin-bottom:8px;font-weight:700;padding:11px;font-size:13px;" onclick="_confirmarDestinoPrecio('individual')">🔗 Enlace Individual</button>
+                    <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);padding:10px;font-size:13px;" onclick="document.getElementById('destinoPrecioModal').classList.remove('active')">Cancelar</button>
+                </div>`;
+            modal.onclick = function(e) { if (e.target.id === 'destinoPrecioModal') modal.classList.remove('active'); };
+            window._destinoPrecioPendiente = { catalogo, productId, precio };
+            modal.classList.add('active');
+        }
+
+        function _confirmarDestinoPrecio(destino) {
+            const d = window._destinoPrecioPendiente;
+            if (!d) return;
+            document.getElementById('destinoPrecioModal').classList.remove('active');
+            if (destino === 'general') {
+                _guardarPrecioTiendaGeneral(d.catalogo, d.productId, d.precio);
+            } else {
+                _guardarPrecioEnlaceIndividual(d.catalogo, d.productId, d.precio);
+            }
+            window._destinoPrecioPendiente = null;
+        }
+
+        function _refrescarGridActual() {
+            if (window.currentCatalog === 'calzados') { renderShoesProducts(); }
+            else if (window.currentCatalog === 'bazar') { renderBazarProducts(); }
+            else if (window.currentCatalog === 'jugueteria') { renderJugueteriaProducts(); }
+            else if (window.currentCatalog === 'libreria') { renderLibreriaProducts(); }
+            else if (window.currentCatalog === 'multishop') { renderMultishopProducts(); }
+            else { renderProducts(); }
+        }
+
+        function _guardarPrecioTiendaGeneral(catalogo, productId, precio) {
             const precios = JSON.parse(localStorage.getItem('preciosManualCat') || '{}');
             if (!precios[catalogo]) precios[catalogo] = {};
-            precios[catalogo][productId] = Math.round(precio);
+            precios[catalogo][productId] = precio;
             localStorage.setItem('preciosManualCat', JSON.stringify(precios));
             const fbUser = firebase.auth().currentUser;
             if (fbUser) {
-                firebase.firestore().collection('usuarios').doc(fbUser.uid).update({ [`preciosManualCat.${catalogo}.${productId}`]: Math.round(precio) }).catch(() => {});
+                firebase.firestore().collection('usuarios').doc(fbUser.uid).update({ [`preciosManualCat.${catalogo}.${productId}`]: precio }).catch(() => {});
             }
-            // ── Sincronizar precio manual con worker preciomanual ──────────────
             try {
                 const codigoVendedor = (window.currentUser && window.currentUser.codigoVendedor)
                     || localStorage.getItem('codigoVendedorLocal')
@@ -11777,18 +11935,39 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     fetch('https://preciomanual.tuweb.workers.dev', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codigoVendedor, tipo: 'precio', catalogo, productId, precio: Math.round(precio) })
+                        body: JSON.stringify({ codigoVendedor, tipo: 'precio', catalogo, productId, precio })
                     }).catch(() => {});
                 }
             } catch(e) {}
-            // ─────────────────────────────────────────────────────────────────
             document.getElementById('editarPrecioProductoModal').classList.remove('active');
-            if (window.currentCatalog === 'calzados') { renderShoesProducts(); }
-            else if (window.currentCatalog === 'bazar') { renderBazarProducts(); }
-            else if (window.currentCatalog === 'jugueteria') { renderJugueteriaProducts(); }
-            else if (window.currentCatalog === 'libreria') { renderLibreriaProducts(); }
-            else if (window.currentCatalog === 'multishop') { renderMultishopProducts(); }
-            else { renderProducts(); }
+            _refrescarGridActual();
+            const toast = document.getElementById('wa-toast');
+            if (toast) {
+                toast.textContent = '✅ Precio actualizado en la tienda general.';
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 3000);
+            }
+        }
+
+        // 🔧 NUEVO: precio "Enlace Individual" — estructura SEPARADA de
+        // preciosManualCat, nunca modifica lo que ven los demás clientes en
+        // el catálogo general. Solo se usa al compartir ESE producto puntual.
+        function _guardarPrecioEnlaceIndividual(catalogo, productId, precio) {
+            const precios = JSON.parse(localStorage.getItem('preciosIndividualCat') || '{}');
+            if (!precios[catalogo]) precios[catalogo] = {};
+            precios[catalogo][productId] = precio;
+            localStorage.setItem('preciosIndividualCat', JSON.stringify(precios));
+            const fbUser = firebase.auth().currentUser;
+            if (fbUser) {
+                firebase.firestore().collection('usuarios').doc(fbUser.uid).update({ [`preciosIndividualCat.${catalogo}.${productId}`]: precio }).catch(() => {});
+            }
+            document.getElementById('editarPrecioProductoModal').classList.remove('active');
+            const toast = document.getElementById('wa-toast');
+            if (toast) {
+                toast.textContent = '🔗 Precio individual guardado — compartí el enlace del producto para usarlo.';
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 4000);
+            }
         }
 
         async function eliminarConfigTienda() {
@@ -12934,7 +13113,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             belleza: ['belleza_maquillaje', 'belleza_perfume'],
             bazar: ['bazar_bazar', 'bazar_melamina'],
             jugueteria: ['jugueteria_juguetes', 'jugueteria_peluches'],
-            multishop: ['belleza_maquillaje', 'belleza_perfume', 'bazar_bazar', 'bazar_melamina', 'jugueteria_juguetes', 'jugueteria_peluches', 'libreria', 'electronicos']
+            multishop: [
+                'multishop_belleza', 'multishop_belleza_maquillaje', 'multishop_belleza_perfume',
+                'multishop_bazar', 'multishop_bazar_bazar', 'multishop_bazar_melamina',
+                'multishop_jugueteria', 'multishop_jugueteria_juguetes', 'multishop_jugueteria_peluches',
+                'multishop_libreria', 'multishop_electronicos'
+            ]
         };
 
         function armarCfgFullYPromo(catConfig) {
@@ -12997,6 +13181,26 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (catConfig === 'bazar_melamina') return { cat: 'bazar', sub: 'melamina' };
             if (catConfig === 'jugueteria_juguetes') return { cat: 'jugueteria', sub: 'juguetes' };
             if (catConfig === 'jugueteria_peluches') return { cat: 'jugueteria', sub: 'peluches' };
+            // 🔧 FIX: claves propias de Multishop (independientes) — todas
+            // enrutan a la categoría "multishop" en tienda.html, con el
+            // sub-filtro que corresponda según la profundidad de la clave.
+            if (catConfig.startsWith('multishop_')) {
+                const resto = catConfig.slice('multishop_'.length); // ej. "belleza_maquillaje"
+                const mapaSub = {
+                    'belleza_maquillaje': 'belleza-maquillaje',
+                    'belleza_perfume': 'belleza-perfume',
+                    'bazar_bazar': 'bazar-bazar',
+                    'bazar_melamina': 'bazar-melamina',
+                    'jugueteria_juguetes': 'jugueteria-juguetes',
+                    'jugueteria_peluches': 'jugueteria-peluches',
+                    'belleza': 'belleza',
+                    'bazar': 'bazar',
+                    'jugueteria': 'jugueteria',
+                    'libreria': 'libreria',
+                    'electronicos': 'electronicos'
+                };
+                return { cat: 'multishop', sub: mapaSub[resto] || resto };
+            }
             return { cat: catConfig, sub: null };
         }
 
@@ -13032,6 +13236,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 esperas++;
             }
             const { cfgFull, promo } = armarCfgFullYPromo(catConfig);
+            // 🔧 NUEVO: si este producto tiene un precio "Enlace Individual"
+            // guardado, se embebe directo en el enlace — sin tocar ni
+            // depender de la configuración general de la tienda.
+            try {
+                const preciosIndividual = JSON.parse(localStorage.getItem('preciosIndividualCat') || '{}');
+                const precioInd = preciosIndividual[catConfig] && preciosIndividual[catConfig][productId];
+                if (precioInd && precioInd > 0) {
+                    cfgFull._precioIndividual = { productId, precio: Math.round(precioInd) };
+                }
+            } catch(e) {}
             const { cat, sub } = derivarRutaYSub(catConfig);
             const slugId = await armarSlugRevendedor();
             return await acortarEnlace(slugId, codigo, cat, cfgFull, promo, productId, sub);
