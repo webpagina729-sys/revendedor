@@ -5390,8 +5390,30 @@
         // ===== STOCK POR PRODUCTO (solo se configura desde index.html) =====
         // Por defecto TODO producto está en stock; solo se guarda una entrada
         // cuando el revendedor lo desactiva manualmente.
+        // 🔧 NUEVO: stock GLOBAL de la plataforma (gestionado desde
+        // pedidos.html) — si el dueño de la plataforma marca un producto
+        // como sin stock, desaparece para TODOS los revendedores, sin
+        // importar lo que cada uno haya configurado individualmente.
+        window.STOCK_GLOBAL_PLATAFORMA = {};
+        fetch('https://panelgestionestados.tuweb.workers.dev/api/stock-global')
+            .then(r => r.json())
+            .then(data => {
+                if (data && data.ok) {
+                    window.STOCK_GLOBAL_PLATAFORMA = data.stock || {};
+                    if (typeof renderProducts === 'function') renderProducts();
+                }
+            })
+            .catch(() => {});
+
         function getStockProducto(catalogo, productId) {
             try {
+                // El stock global manda primero: si está explícitamente
+                // marcado sin stock ahí, no hay override individual que
+                // lo pueda volver a mostrar.
+                const global = window.STOCK_GLOBAL_PLATAFORMA[catalogo];
+                if (global && Object.prototype.hasOwnProperty.call(global, productId) && global[productId] === false) {
+                    return false;
+                }
                 const stockData = JSON.parse(localStorage.getItem('stockProductosCat') || '{}');
                 if (stockData[catalogo] && Object.prototype.hasOwnProperty.call(stockData[catalogo], productId)) {
                     return !!stockData[catalogo][productId];
