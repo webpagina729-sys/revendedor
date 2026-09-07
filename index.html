@@ -3290,6 +3290,26 @@
     </script>
 </head>
 <body>
+    <!-- 🔧 NUEVO: overlay de carga al Aprobar/No aprobar un pedido — antes
+         no pasaba nada visible hasta que el pedido desaparecía de la
+         lista, así que parecía que el botón no tenía ninguna función.
+         Mismo estilo de pelotitas que usa mas-categorias.html en el
+         inicio, pero con el fondo de la página difuminado en vez de
+         blanco sólido, para no tapar todo de golpe. -->
+    <div id="aprobar-loading-overlay" style="position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+        <div style="display:flex;gap:8px;">
+            <span class="aprobar-loading-dot" style="width:12px;height:12px;border-radius:50%;background:#0066ff;animation:aprobarLoadingBounce 1s ease-in-out infinite;animation-delay:0s;"></span>
+            <span class="aprobar-loading-dot" style="width:12px;height:12px;border-radius:50%;background:#00a650;animation:aprobarLoadingBounce 1s ease-in-out infinite;animation-delay:.15s;"></span>
+            <span class="aprobar-loading-dot" style="width:12px;height:12px;border-radius:50%;background:#0066ff;animation:aprobarLoadingBounce 1s ease-in-out infinite;animation-delay:.3s;"></span>
+            <span class="aprobar-loading-dot" style="width:12px;height:12px;border-radius:50%;background:#00a650;animation:aprobarLoadingBounce 1s ease-in-out infinite;animation-delay:.45s;"></span>
+        </div>
+    </div>
+    <style>
+        @keyframes aprobarLoadingBounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: .6; }
+            40% { transform: translateY(-10px); opacity: 1; }
+        }
+    </style>
     <!-- HEADER TOP BAR -->
     <header class="header-top">
         <div class="header-top-inner">
@@ -8905,6 +8925,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         async function cambiarEstadoPedido(pedidoId, nuevoEstado) {
+            // 🔧 NUEVO: feedback visual inmediato — antes no pasaba nada
+            // hasta que el pedido desaparecía de la lista, parecía que el
+            // botón no hacía nada.
+            const _loadingOverlay = document.getElementById('aprobar-loading-overlay');
+            if (_loadingOverlay) _loadingOverlay.style.display = 'flex';
+            try {
+                await _cambiarEstadoPedidoInterno(pedidoId, nuevoEstado);
+            } finally {
+                if (_loadingOverlay) _loadingOverlay.style.display = 'none';
+            }
+        }
+
+        async function _cambiarEstadoPedidoInterno(pedidoId, nuevoEstado) {
             const user = await esperarUsuarioFirebaseActual();
             const pedido = (window.pedidosRecibidosCache || []).find(x => x.id === pedidoId);
             // Si es aprobado: agregar al carrito principal
@@ -9077,8 +9110,18 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (!confirm(`¿Aprobar ${pendientes.length} pedido(s) pendiente(s)?`)) return;
             const btn = document.getElementById('pr-aprobar-todos');
             if (btn) { btn.disabled = true; btn.textContent = 'Aprobando…'; }
-            for (const p of pendientes) {
-                await cambiarEstadoPedido(p.id, 'aprobado');
+            // 🔧 NUEVO: se muestra el overlay UNA sola vez para todo el lote
+            // (no una vez por pedido) — se llama a la función interna
+            // directamente, sin pasar por el wrapper que abre/cierra el
+            // overlay en cada llamada individual.
+            const _loadingOverlay = document.getElementById('aprobar-loading-overlay');
+            if (_loadingOverlay) _loadingOverlay.style.display = 'flex';
+            try {
+                for (const p of pendientes) {
+                    await _cambiarEstadoPedidoInterno(p.id, 'aprobado');
+                }
+            } finally {
+                if (_loadingOverlay) _loadingOverlay.style.display = 'none';
             }
             if (btn) { btn.disabled = false; btn.textContent = '✓ Aprobar todos'; }
         }
