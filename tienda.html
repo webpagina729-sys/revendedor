@@ -4013,11 +4013,12 @@ function cerrarEntrega() {
 function elegirEntrega(tipo) {
     cerrarEntrega();
     window._tipoEntregaElegido = tipo;
-    if (_lsGet && _lsGet('legalesAceptados') === '1') {
-        abrirCheckout();
-    } else {
-        abrirModalLegales();
-    }
+    // 🔧 FIX: antes, si el cliente ya había aceptado los términos UNA VEZ
+    // en ese navegador (flag guardado en localStorage), el modal se
+    // saltaba para siempre en los pedidos siguientes — por eso parecía
+    // que "no aparecía". La aceptación es obligatoria en CADA pedido, así
+    // que el modal se muestra siempre, sin importar lo que haya pasado antes.
+    abrirModalLegales();
 }
 
 // ── Modal: aceptación de Términos y Condiciones / Política de Privacidad ──
