@@ -865,20 +865,41 @@
         <div class="entrega-title">¿Cómo recibís tu pedido?</div>
         <div class="entrega-sub">Elegí la forma de entrega que mejor te quede 🛍️</div>
         <div class="entrega-opciones">
-            <div class="entrega-opcion" onclick="elegirEntrega('retiro')">
+            <div class="entrega-opcion" onclick="mostrarAvisoEntrega('retiro')">
                 <div class="eo-icon">🏪</div>
                 <div class="eo-label">Retirar</div>
                 <div class="eo-desc">Coordinamos el punto de encuentro</div>
                 <div class="eo-costo">+ $1.000</div>
             </div>
-            <div class="entrega-opcion" onclick="elegirEntrega('domicilio')">
+            <div class="entrega-opcion" onclick="mostrarAvisoEntrega('domicilio')">
                 <div class="eo-icon">🚚</div>
                 <div class="eo-label">Recibir a domicilio</div>
                 <div class="eo-desc">Te lo llevamos hasta tu puerta</div>
-                <div class="eo-costo">+ $12.000</div>
             </div>
         </div>
         <button class="entrega-cancel" onclick="cerrarEntrega()">Cancelar</button>
+    </div>
+</div>
+
+<!-- 🔧 NUEVO: aviso antes de continuar con "Recibir a domicilio". -->
+<div class="promo-float-overlay" id="avisoDomicilioModal">
+    <div class="promo-float-box">
+        <span class="promo-float-tag">🚚 Recibir a domicilio</span>
+        <div class="promo-float-sub" style="font-size:14px;color:var(--text);line-height:1.5;margin-top:6px;">Si deseas elegir transporte... Arreglá con tu revendedor el transporte deseado y pagás al recibir.</div>
+        <div class="promo-float-actions" style="margin-top:14px;">
+            <button class="promo-float-btn primary" style="width:100%;" onclick="document.getElementById('avisoDomicilioModal').classList.remove('active');elegirEntrega('domicilio');">Aceptar</button>
+        </div>
+    </div>
+</div>
+
+<!-- 🔧 NUEVO: aviso antes de continuar con "Retirar por sucursal". -->
+<div class="promo-float-overlay" id="avisoRetiroModal">
+    <div class="promo-float-box">
+        <span class="promo-float-tag">🏪 Retirar por sucursal</span>
+        <div class="promo-float-sub" style="font-size:14px;color:var(--text);line-height:1.5;margin-top:6px;">El costo de este retiro es valorar el día de gestión de cada revendedor para entregar los pedidos. Si el revendedor lo desea, no lo abonás.</div>
+        <div class="promo-float-actions" style="margin-top:14px;">
+            <button class="promo-float-btn primary" style="width:100%;" onclick="document.getElementById('avisoRetiroModal').classList.remove('active');elegirEntrega('retiro');">Aceptar</button>
+        </div>
     </div>
 </div>
 
@@ -3439,6 +3460,11 @@ function iniciarTienda() {
             renderizarProductos();
             setTimeout(() => abrirModal(pid), 150);
         }
+    } else {
+        // 🔧 NUEVO: solo en la tienda completa (no en un enlace de producto
+        // puntual) se ofrece iniciar sesión como cliente devuelto, y se
+        // revisa si tiene un regalo de "cliente del mes" pendiente.
+        setTimeout(() => { ofrecerLoginCliente(); verificarRegaloPendiente(); }, 600);
     }
 }
 
@@ -4010,6 +4036,18 @@ function cerrarEntrega() {
     document.getElementById('modal-entrega').classList.remove('active');
 }
 
+// 🔧 NUEVO: antes de continuar al flujo de datos de envío, se muestra un
+// aviso puntual según el tipo de entrega elegido — al tocar "Aceptar"
+// continúa exactamente igual que antes (elegirEntrega).
+function mostrarAvisoEntrega(tipo) {
+    document.getElementById('modal-entrega').classList.remove('active');
+    if (tipo === 'domicilio') {
+        document.getElementById('avisoDomicilioModal').classList.add('active');
+    } else {
+        document.getElementById('avisoRetiroModal').classList.add('active');
+    }
+}
+
 function elegirEntrega(tipo) {
     cerrarEntrega();
     window._tipoEntregaElegido = tipo;
@@ -4092,6 +4130,7 @@ function abrirCheckout() {
     const ciudadRow = document.getElementById('co-ciudad') && document.getElementById('co-ciudad').closest('.checkout-row');
 
     document.getElementById('co-btn-submit').textContent = 'Confirmar pedido';
+    precargarDatosClienteLogueado();
     document.getElementById('modal-checkout').classList.add('active');
 }
 
@@ -4240,11 +4279,8 @@ async function enviarPedidoConDatos() {
         await _conLimiteDeTiempo(_registrarPedido(), 6000);
         document.getElementById('co-status').style.display = 'block';
         btn.textContent = '✓ Pedido confirmado';
-        // La aceptación de términos se manda siempre, haya llegado o no a
-        // confirmarse el pedidoId dentro del límite de tiempo — es un
-        // registro legal del consentimiento del cliente, no debe depender
-        // de la latencia del servidor de pedidos.
         registrarAceptacionLegales(_pedidoIdConfirmado || '', nombre, apellido, telefono, payload.codigoVendedor, fecha, hora);
+        _guardarClienteLocalParaLogin(nombre, apellido, telefono, direccion, provincia, ciudad, cp);
         setTimeout(function() {
             cerrarCheckout();
             cerrarCarrito();
@@ -4252,10 +4288,27 @@ async function enviarPedidoConDatos() {
         }, 400);
     } catch(e) {
         registrarAceptacionLegales('', nombre, apellido, telefono, payload.codigoVendedor, fecha, hora);
+        _guardarClienteLocalParaLogin(nombre, apellido, telefono, direccion, provincia, ciudad, cp);
         cerrarCheckout();
         cerrarCarrito();
         _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, total);
     }
+}
+
+// 🔧 NUEVO: guarda los datos del cliente localmente (en ESTE navegador)
+// para poder ofrecerle "¿Iniciar sesión como Nombre Apellido?" la
+// próxima vez que entre a tienda.html — así no tiene que volver a
+// tipear todo. Los datos "de verdad" ya quedan guardados del lado del
+// servidor vía registrarAceptacionLegales (subcolección de Clientes del
+// revendedor); esto es solo la comodidad de auto-completar en este
+// dispositivo puntual.
+function _guardarClienteLocalParaLogin(nombre, apellido, telefono, direccion, provincia, ciudad, cp) {
+    try {
+        localStorage.setItem('rw_cliente_login_v1', JSON.stringify({
+            nombre, apellido, telefono, direccion, provincia, ciudad, cp,
+            guardadoEn: Date.now()
+        }));
+    } catch(_) {}
 }
 
 // ── Registrar la aceptación de Términos y Condiciones / Política de ──
@@ -4875,6 +4928,79 @@ window.elegirRegalo = function(id) {
     mostrarToast('🎁 ¡Regalo agregado!');
 };
 
+// ═══════════════════════════════════════════════════════════
+// LOGIN DE CLIENTE DEVUELTO — "¿Iniciar sesión como Nombre?"
+// ═══════════════════════════════════════════════════════════
+function ofrecerLoginCliente() {
+    if (sessionStorage.getItem('rw_cliente_login_ofrecido')) return; // 1 vez por sesión
+    let datos = null;
+    try { datos = JSON.parse(localStorage.getItem('rw_cliente_login_v1') || 'null'); } catch(_) {}
+    if (!datos || !datos.nombre) return;
+    sessionStorage.setItem('rw_cliente_login_ofrecido', '1');
+    document.getElementById('clienteLoginTitle').textContent = `¿Iniciar sesión como ${datos.nombre} ${datos.apellido||''}`.trim() + '?';
+    document.getElementById('clienteLoginModal').classList.add('active');
+}
+
+function confirmarLoginCliente() {
+    document.getElementById('clienteLoginModal').classList.remove('active');
+    let datos = null;
+    try { datos = JSON.parse(localStorage.getItem('rw_cliente_login_v1') || 'null'); } catch(_) {}
+    if (!datos) return;
+    window._clienteLogueado = datos;
+    mostrarToast(`✓ Hola de nuevo, ${datos.nombre}`);
+}
+
+// Precarga los datos guardados en el formulario de checkout, si el
+// cliente inició sesión — se llama al abrir el modal de datos de envío.
+function precargarDatosClienteLogueado() {
+    const d = window._clienteLogueado;
+    if (!d) return;
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    set('co-nombre', d.nombre);
+    set('co-apellido', d.apellido);
+    set('co-telefono', d.telefono);
+    set('co-direccion', d.direccion);
+    set('co-provincia', d.provincia);
+    set('co-ciudad', d.ciudad);
+    set('co-cp', d.cp);
+}
+
+// ═══════════════════════════════════════════════════════════
+// BONO "CLIENTE DEL MES" — enviado desde index(1).html
+// ═══════════════════════════════════════════════════════════
+async function verificarRegaloPendiente() {
+    try {
+        const uidVendedor = vendedor && (vendedor.uid || vendedor.userId || vendedor.id);
+        let datosCliente = null;
+        try { datosCliente = JSON.parse(localStorage.getItem('rw_cliente_login_v1') || 'null'); } catch(_) {}
+        if (!uidVendedor || !datosCliente || !datosCliente.telefono) return;
+
+        const telLimpio = String(datosCliente.telefono).replace(/\D/g, '');
+        const snap = await db.collection('usuarios').doc(uidVendedor).collection('regalos')
+            .where('estado', '==', 'pendiente').get();
+        const regalo = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+            .find(g => String(g.tel || '').replace(/\D/g, '') === telLimpio);
+        if (!regalo) return;
+
+        // Ya se mostró este regalo en este navegador — no repetir en cada visita.
+        const vistos = JSON.parse(localStorage.getItem('rw_regalos_vistos_v1') || '[]');
+        if (vistos.includes(regalo.id)) return;
+        vistos.push(regalo.id);
+        localStorage.setItem('rw_regalos_vistos_v1', JSON.stringify(vistos));
+
+        const puestoLabel = regalo.puesto === 1 ? '1°' : regalo.puesto === 2 ? '2°' : '3°';
+        const medalla = regalo.puesto === 1 ? '🥇' : regalo.puesto === 2 ? '🥈' : '🥉';
+        document.getElementById('regaloMesTag').textContent = `${medalla} Cliente del mes`;
+        document.getElementById('regaloMesTexto').textContent =
+            `Ganaste un bono de $${Math.round(regalo.monto).toLocaleString()} por salir en el Puesto ${puestoLabel} de clientes del mes`;
+        document.getElementById('regaloMesModal').classList.add('active');
+        lanzarConfeti();
+    } catch(e) { /* silencioso — no debe romper la carga de la tienda */ }
+}
+function cerrarRegaloMesModal() {
+    document.getElementById('regaloMesModal').classList.remove('active');
+}
+
 function lanzarConfeti() {
     const colors = ['#ff6b6b', '#ffd93d', '#6bcf7f', '#4d96ff', '#ff8cc8', '#a78bfa'];
     for (let i = 0; i < 60; i++) {
@@ -5089,6 +5215,35 @@ enviarPedidoConDatos = async function() {
         <div class="promo-float-imgs" id="comboFloatImgs"></div>
         <div class="promo-float-actions">
             <button class="promo-float-btn primary" style="width:100%;" onclick="document.getElementById('comboFloatModal').classList.remove('active');abrirCatalogoCombos();">Ver combo</button>
+        </div>
+    </div>
+</div>
+
+<!-- 🔧 NUEVO: "¿Iniciar sesión como Nombre Apellido?" — cliente que ya
+     compró antes en este mismo navegador. -->
+<div class="promo-float-overlay" id="clienteLoginModal">
+    <div class="promo-float-box">
+        <button class="promo-float-close" onclick="document.getElementById('clienteLoginModal').classList.remove('active')">×</button>
+        <span class="promo-float-tag">👋 Bienvenido de nuevo</span>
+        <div class="promo-float-title" id="clienteLoginTitle">¿Iniciar sesión?</div>
+        <div class="promo-float-sub">Así no tenés que volver a completar tus datos de envío.</div>
+        <div class="promo-float-actions">
+            <button class="promo-float-btn secondary" style="width:100%;" onclick="document.getElementById('clienteLoginModal').classList.remove('active')">No, gracias</button>
+            <button class="promo-float-btn primary" style="width:100%;" onclick="confirmarLoginCliente()">Sí, iniciar sesión</button>
+        </div>
+    </div>
+</div>
+
+<!-- 🔧 NUEVO: bono de "Cliente del mes", enviado desde index(1).html —
+     misma estética que combos/promociones, con confeti al aparecer. -->
+<div class="promo-float-overlay" id="regaloMesModal">
+    <div class="promo-float-box">
+        <button class="promo-float-close" onclick="cerrarRegaloMesModal()">×</button>
+        <span class="promo-float-tag" id="regaloMesTag">🏆 Cliente del mes</span>
+        <div class="promo-float-title">¡Felicidades!</div>
+        <div class="promo-float-sub" id="regaloMesTexto" style="font-size:15px;font-weight:700;color:var(--text);"></div>
+        <div class="promo-float-actions">
+            <button class="promo-float-btn primary" style="width:100%;" onclick="cerrarRegaloMesModal()">¡Genial!</button>
         </div>
     </div>
 </div>
