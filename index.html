@@ -7987,10 +7987,14 @@
             });
 
             // ✅ Sincronizar configuración de tiendas (por categoría) desde Firestore → localStorage.
-            // Es un MERGE (no overwrite): completa categorías que existan en Firestore pero no
-            // localmente (ej. configuradas desde otro dispositivo), sin pisar cambios locales
-            // más recientes de la misma categoría. Esto incluye color principal, colores extra
-            // y rangos de precio — todo lo que el revendedor configuró para su tienda.
+            // 🔧 FIX: esto era "merge solo si falta localmente" — la MISMA falla
+            // que ya se había arreglado en el login por código (bvAplicarDatos),
+            // pero nunca se aplicó acá. Por eso "Tiendas guardadas" no aparecía
+            // al entrar desde la PC/Notebook (esta es la vía de login real de
+            // Firebase Auth, distinta a la de código): si esta PC ya tenía ALGO
+            // local para una categoría, nunca se enteraba de cambios hechos
+            // desde el celular para esa misma categoría. Ahora la nube
+            // (Firestore) SIEMPRE gana cuando existe.
             firebase.firestore().collection('usuarios').doc(authUser.uid).get().then(doc => {
                 if (!doc.exists) return;
                 const fd = doc.data();
@@ -7998,7 +8002,7 @@
                     if (fd.configTiendaAll && typeof fd.configTiendaAll === 'object') {
                         const localAll = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
                         Object.keys(fd.configTiendaAll).forEach(cat => {
-                            if (!localAll[cat]) localAll[cat] = fd.configTiendaAll[cat];
+                            localAll[cat] = fd.configTiendaAll[cat];
                         });
                         localStorage.setItem('configTiendaAll', JSON.stringify(localAll));
                     }
@@ -8007,7 +8011,7 @@
                     if (fd.coloresTiendaPorCat && typeof fd.coloresTiendaPorCat === 'object') {
                         const localColores = JSON.parse(localStorage.getItem('coloresTiendaPorCat') || '{}');
                         Object.keys(fd.coloresTiendaPorCat).forEach(cat => {
-                            if (!localColores[cat]) localColores[cat] = fd.coloresTiendaPorCat[cat];
+                            localColores[cat] = fd.coloresTiendaPorCat[cat];
                         });
                         localStorage.setItem('coloresTiendaPorCat', JSON.stringify(localColores));
                     }
@@ -8016,12 +8020,27 @@
                     if (fd.coloresExtraTienda && typeof fd.coloresExtraTienda === 'object') {
                         const localExtra = JSON.parse(localStorage.getItem('coloresExtraTienda') || '{}');
                         Object.keys(fd.coloresExtraTienda).forEach(cat => {
-                            if (!localExtra[cat]) localExtra[cat] = fd.coloresExtraTienda[cat];
+                            localExtra[cat] = fd.coloresExtraTienda[cat];
                         });
                         localStorage.setItem('coloresExtraTienda', JSON.stringify(localExtra));
                     }
                 } catch(e) {}
+                try {
+                    if (fd.preciosManualCat && typeof fd.preciosManualCat === 'object') {
+                        const localPrecios = JSON.parse(localStorage.getItem('preciosManualCat') || '{}');
+                        Object.keys(fd.preciosManualCat).forEach(cat => {
+                            localPrecios[cat] = fd.preciosManualCat[cat];
+                        });
+                        localStorage.setItem('preciosManualCat', JSON.stringify(localPrecios));
+                    }
+                } catch(e) {}
                 if (typeof window.refrescarMisTiendasFab === 'function') window.refrescarMisTiendasFab();
+                // Repintar con los datos ya actualizados, igual que en bvAplicarDatos.
+                try {
+                    if (window.currentCatalog === 'calzados' && typeof renderShoesProducts === 'function') renderShoesProducts();
+                    else if (window.currentCatalog === 'belleza' && typeof renderBellezaProducts === 'function') renderBellezaProducts();
+                    else if (typeof renderProducts === 'function') renderProducts();
+                } catch(_e) {}
             }).catch(() => {});
 
             // Actualizar interfaz
@@ -8484,6 +8503,10 @@
                 // (Belleza, Bazar, Juguetería, Librería, Multishop) nunca
                 // llegaban bien clasificadas al panel de gestión.
                 nicho: raw.nicho || raw.categoria || null,
+                // 🔑 NUEVO: elección de entrega que hizo el CLIENTE en
+                // tienda.html ("retirar"/"domicilio") — se perdía acá,
+                // nunca llegaba hasta panelGestion ni a pedidos.html.
+                tipoEntrega: raw.tipoEntrega || '',
                 _origenWorker: true,
                 _raw: raw
             };
@@ -9052,7 +9075,21 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                             estadoAprobacion: 'aprobado',
                             categoria:      nicho,
                             nicho:          nicho,
+                            // 🔑 NUEVO: se propaga la elección de entrega del
+                            // cliente hasta panelGestion, para que
+                            // pedidos.html pueda separar "Pedidos Locales"
+                            // (retirar) de "Pedidos Enviados" (domicilio).
+                            tipoEntrega:    pedido.tipoEntrega || '',
                             cliente:        ((cli.nombre || '') + ' ' + (cli.apellido || '')).trim() || cli.email || '',
+                            // 🔑 NUEVO: versión estructurada del cliente
+                            // (además del texto de arriba, que se deja
+                            // igual para no romper nada que ya lo use) —
+                            // la necesita pedidos.html para "Sus Clientes".
+                            clienteInfo: {
+                                nombre: cli.nombre || '',
+                                apellido: cli.apellido || '',
+                                telefono: cli.telefono || ''
+                            },
                             telefono:       cli.telefono || '',
                             // 🔧 FIX: antes "direccion" tomaba la CIUDAD por
                             // error — ahora cada dato va en su propio campo.
@@ -10984,8 +11021,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                             const safeLabel = String(labelC).replace(/</g,'&lt;').replace(/>/g,'&gt;');
                             return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
                                 <span style="flex:1;min-width:0;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeLabel}</span>
-                                <button type="button" onclick="copiarEnlaceTiendaGuardada('${safeCat}', this)" title="Copiar enlace" aria-label="Copiar enlace" style="flex-shrink:0;padding:7px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:var(--gray-light);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);cursor:pointer;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                <button type="button" onclick="abrirCompartirTiendaGuardada('${safeCat}', this, event)" title="Compartir" aria-label="Compartir" style="flex-shrink:0;padding:7px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:var(--gray-light);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);cursor:pointer;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                                 </button>
                             </div>`;
                         }).join('');
@@ -12759,8 +12796,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                                     <button type="button" class="mt-btn mt-btn-edit" onclick="editarTiendaGuardada('${safeCat}')" title="Editar" aria-label="Editar">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
                                     </button>
-                                    <button type="button" class="mt-btn mt-btn-copy" onclick="copiarEnlaceTiendaGuardada('${safeCat}', this)" title="Copiar enlace" aria-label="Copiar enlace">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    <button type="button" class="mt-btn mt-btn-share" onclick="abrirCompartirTiendaGuardada('${safeCat}', this, event)" title="Compartir" aria-label="Compartir">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                                     </button>
                                     <button type="button" class="mt-btn mt-btn-del" onclick="eliminarTiendaGuardada('${safeCat}')" title="Eliminar" aria-label="Eliminar">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
@@ -12809,7 +12846,84 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             } catch(e) { console.error(e); }
         };
 
-        window.copiarEnlaceTiendaGuardada = function(cat, btn) {
+        // 🔧 NUEVO: reemplaza "Copiar enlace" por un ícono de compartir — al
+// tocar, abre un cuadrito con "Copiar enlace" arriba y, debajo,
+// WhatsApp + el resto de redes (Instagram, Messenger, etc. vía el panel
+// nativo de compartir del celular, que es la única forma real de
+// compartir directo a esas apps desde la web).
+window.abrirCompartirTiendaGuardada = function(cat, btn, ev) {
+    if (ev) ev.stopPropagation();
+    let waGuardado = (_lsGet('whatsappRevendedor') || '').replace(/\D/g, '');
+    if (!waGuardado || waGuardado.length < 10) {
+        if (typeof window.openWhatsappConfirmModal === 'function') {
+            window._pendingCopiarEnlaceTiendaGuardada = { cat, btn };
+            window.openWhatsappConfirmModal();
+            return;
+        }
+    }
+
+    document.querySelectorAll('.mt-share-pop').forEach(p => p.remove());
+
+    const pop = document.createElement('div');
+    pop.className = 'mt-share-pop';
+    pop.style.cssText = 'position:absolute;z-index:99999;background:var(--bg-card,#fff);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:8px;display:flex;flex-direction:column;gap:4px;min-width:190px;';
+    pop.innerHTML = `
+        <button type="button" class="mt-share-opt" data-act="copiar" style="display:flex;align-items:center;gap:9px;padding:9px 10px;border:none;background:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);text-align:left;width:100%">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copiar enlace
+        </button>
+        <div style="height:1px;background:var(--border);margin:2px 0"></div>
+        <button type="button" class="mt-share-opt" data-act="whatsapp" style="display:flex;align-items:center;gap:9px;padding:9px 10px;border:none;background:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);text-align:left;width:100%">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#25D366"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.005c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.9-7C17.17 3.03 14.69 2 12.04 2m0 1.67c2.2 0 4.27.86 5.82 2.42a8.2 8.2 0 0 1 2.42 5.82c0 4.54-3.7 8.23-8.24 8.23-1.4 0-2.77-.35-4-1.02l-.28-.16-2.98.78.8-2.9-.18-.3a8.18 8.18 0 0 1-1.13-4.14c0-4.54 3.7-8.23 8.23-8.23m-4.53 4.7c-.16 0-.42.06-.64.3-.22.24-.85.83-.85 2.02 0 1.19.87 2.34.99 2.5.12.16 1.7 2.7 4.2 3.68 2.07.82 2.49.66 2.94.62.45-.04 1.44-.59 1.64-1.16.2-.57.2-1.05.14-1.16-.06-.1-.22-.16-.46-.28-.24-.12-1.44-.71-1.66-.79-.22-.08-.38-.12-.55.12-.16.24-.62.79-.76.95-.14.16-.28.18-.52.06-.24-.12-1.02-.38-1.94-1.2-.72-.64-1.2-1.44-1.34-1.68-.14-.24-.02-.37.1-.49.11-.11.24-.28.36-.42.11-.14.15-.24.23-.4.08-.16.04-.3-.02-.42-.06-.12-.55-1.34-.76-1.83-.2-.48-.4-.42-.55-.42h-.47Z"/></svg>
+            WhatsApp
+        </button>
+        <button type="button" class="mt-share-opt" data-act="mas" style="display:flex;align-items:center;gap:9px;padding:9px 10px;border:none;background:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);text-align:left;width:100%">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Instagram, Messenger y más
+        </button>`;
+    document.body.appendChild(pop);
+
+    const rect = btn.getBoundingClientRect();
+    pop.style.top = (window.scrollY + rect.bottom + 6) + 'px';
+    let left = window.scrollX + rect.right - pop.offsetWidth;
+    if (left < 8) left = 8;
+    pop.style.left = left + 'px';
+
+    const cerrar = () => { pop.remove(); document.removeEventListener('click', cerrarFuera); };
+    const cerrarFuera = (e) => { if (!pop.contains(e.target) && e.target !== btn) cerrar(); };
+    setTimeout(() => document.addEventListener('click', cerrarFuera), 0);
+
+    pop.querySelectorAll('.mt-share-opt').forEach(b => {
+        b.addEventListener('click', async () => {
+            const act = b.dataset.act;
+            cerrar();
+            const link = await generarEnlaceCorto(cat);
+            if (act === 'copiar') {
+                try {
+                    await navigator.clipboard.writeText(link);
+                    mostrarToastOk('Enlace copiado');
+                } catch(_) {
+                    const ta = document.createElement('textarea');
+                    ta.value = link; ta.style.cssText = 'position:fixed;opacity:0;';
+                    document.body.appendChild(ta); ta.focus(); ta.select();
+                    document.execCommand('copy'); document.body.removeChild(ta);
+                    mostrarToastOk('Enlace copiado');
+                }
+            } else if (act === 'whatsapp') {
+                window.open(`https://wa.me/?text=${encodeURIComponent(link)}`, '_blank');
+            } else if (act === 'mas') {
+                if (navigator.share) {
+                    navigator.share({ url: link, title: 'Mi tienda' }).catch(() => {});
+                } else {
+                    try { await navigator.clipboard.writeText(link); } catch(_) {}
+                    mostrarToastOk('Enlace copiado — pegalo en Instagram o Messenger');
+                }
+            }
+        });
+    });
+};
+
+window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             // 🔒 Misma medida de seguridad que abrirVerTienda: sin WhatsApp
             // configurado no se puede copiar ningún enlace para compartir.
             let waGuardado = (_lsGet('whatsappRevendedor') || '').replace(/\D/g, '');
@@ -13089,9 +13203,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             <h2 class="modal-title">Elegí los productos</h2>
             <button type="button" class="modal-close" onclick="document.getElementById('comboCatalogoModal').classList.remove('active')" aria-label="Cerrar">×</button>
         </div>
-        <div id="comboCatalogoGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-height:52vh;overflow-y:auto;padding-bottom:4px;"></div>
-        <button type="button" id="comboCatalogoVerMasBtn" onclick="cargarMasComboProductos()" style="width:100%;background:var(--gray-light);border:1px dashed var(--border);border-radius:8px;padding:9px;font-size:12.5px;font-weight:600;color:var(--text);cursor:pointer;margin:10px 0;">Ver más</button>
-        <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="guardarSeleccionCombo()">Guardar</button>
+        <!-- 🔧 FIX: antes este cuadro no se diferenciaba del resto del modal
+             (mismo fondo, sin borde) — ahora queda claramente encuadrado. -->
+        <div id="comboCatalogoBox" style="background:var(--gray-light);border:1px solid var(--border);border-radius:12px;padding:10px;">
+            <div id="comboCatalogoGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-height:52vh;overflow-y:auto;padding-bottom:4px;scroll-behavior:smooth;"></div>
+        </div>
+        <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-top:10px;" onclick="guardarSeleccionCombo()">Guardar</button>
     </div>
 </div>
 
@@ -13428,15 +13545,24 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
         async function comboFetch(path, opts) {
             const ctrl = new AbortController();
-            const timeoutId = setTimeout(() => ctrl.abort(), 5000);
+            const timeoutId = setTimeout(() => ctrl.abort(), 10000);
             try {
                 const res = await fetch(COMBO_WORKER + path, { ...opts, signal: ctrl.signal });
                 clearTimeout(timeoutId);
-                if (!res.ok) return null;
+                if (!res.ok) {
+                    // 🔧 FIX: antes esto devolvía null sin decir nada — "no se
+                    // pudo guardar" sin ninguna pista de por qué. Ahora se
+                    // intenta leer el mensaje real que manda el Worker.
+                    let detalle = null;
+                    try { detalle = await res.json(); } catch(_) {}
+                    console.warn('comboFetch error', res.status, path, detalle);
+                    return { ok: false, error: (detalle && detalle.error) || `Error del servidor (código ${res.status})` };
+                }
                 return await res.json();
             } catch(e) {
                 clearTimeout(timeoutId);
-                return null;
+                console.warn('comboFetch excepción', path, e);
+                return { ok: false, error: e.name === 'AbortError' ? 'El servidor tardó demasiado en responder' : 'Sin conexión con el servidor' };
             }
         }
 
@@ -13486,14 +13612,32 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             const productos = getProductosPorCatalogo(cat);
             const grid = document.getElementById('comboCatalogoGrid');
             const hastaAhora = productos.slice(0, window._comboCatalogoMostrados);
-            grid.innerHTML = hastaAhora.map(p => comboProductCardHtml(p)).join('');
-            const btnVerMas = document.getElementById('comboCatalogoVerMasBtn');
-            btnVerMas.style.display = window._comboCatalogoMostrados >= productos.length ? 'none' : 'block';
+            const hayMas = window._comboCatalogoMostrados < productos.length;
+            // 🔧 FIX: "Ver más" ahora es un texto azul DENTRO del propio
+            // catálogo (cortina deslizable hacia abajo), no un botón aparte
+            // que dejaba la sensación de que no hacía nada.
+            grid.innerHTML = hastaAhora.map(p => comboProductCardHtml(p)).join('') +
+                (hayMas ? `<button type="button" onclick="cargarMasComboProductos()" style="grid-column:1 / -1;background:none;border:none;color:var(--blue,#0b5fff);font-size:13px;font-weight:700;padding:10px 0;cursor:pointer;text-align:center;">Ver más productos ↓</button>` : '');
         }
 
         window.cargarMasComboProductos = function() {
+            const grid = document.getElementById('comboCatalogoGrid');
+            const previos = grid.querySelectorAll('label').length;
             window._comboCatalogoMostrados += COMBO_CATALOGO_PASO;
             renderComboCatalogoGrid();
+            // Animación de aparición para los productos recién agregados +
+            // scroll automático hasta ellos, para que sea evidente que "Ver
+            // más" sí hizo algo.
+            const nuevos = Array.from(grid.querySelectorAll('label')).slice(previos);
+            nuevos.forEach((el, i) => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(8px)';
+                el.style.transition = 'opacity .35s ease, transform .35s ease';
+                setTimeout(() => { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }, 20 + i * 25);
+            });
+            if (nuevos[0]) {
+                setTimeout(() => nuevos[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+            }
         };
 
         // Al tocar "Guardar" en el catálogo completo: se cierra ese modal y
