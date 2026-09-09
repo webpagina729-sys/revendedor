@@ -3886,6 +3886,45 @@
     </div>
 
     <!-- MODAL PERFIL -->
+    <!-- 🔧 NUEVO: aviso al entrar a una categoría cuando la plataforma
+         quitó o volvió a agregar productos del stock global. Carrusel de
+         imágenes chicas en fila, con zoom en la del medio. -->
+    <div class="modal-overlay" id="avisoStockGlobalModal">
+        <div class="modal-content" style="max-width:400px;text-align:center;">
+            <div class="modal-header" style="justify-content:center;">
+                <h2 class="modal-title" id="avisoStockGlobalTitulo" style="text-align:center;"></h2>
+            </div>
+            <div id="avisoStockGlobalCarrusel" style="display:flex;align-items:center;justify-content:center;gap:6px;margin:14px 0 18px;overflow-x:auto;padding:10px 0;"></div>
+            <p id="avisoStockGlobalTexto" style="font-size:13px;color:var(--text-light);line-height:1.5;margin-bottom:18px;"></p>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="cerrarAvisoStockGlobal()">Ok, continuar</button>
+        </div>
+    </div>
+
+    <!-- 🔧 NUEVO: tutorial de cómo gestionar el stock, aparece 1s después
+         de cerrar el aviso anterior — se puede desactivar para siempre. -->
+    <div class="modal-overlay" id="tutorialStockModal">
+        <div class="modal-content" style="max-width:380px;">
+            <div class="modal-header" style="justify-content:center;">
+                <h2 class="modal-title" style="text-align:center;">Para modificar tu catálogo</h2>
+            </div>
+            <p style="font-size:13.5px;color:var(--text-light);line-height:1.6;text-align:center;margin-bottom:16px;">Podés quitar y agregar productos desde las opciones de <strong>Ver Más</strong>, dentro de cada producto:</p>
+            <div style="display:flex;gap:22px;align-items:center;justify-content:center;margin-bottom:20px;padding:14px;background:var(--gray-light);border-radius:10px;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text);">
+                    <span style="width:12px;height:12px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px 2px rgba(34,197,94,.7);display:inline-block;"></span>
+                    En stock
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text);">
+                    <span style="width:12px;height:12px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px 2px rgba(239,68,68,.7);display:inline-block;"></span>
+                    Sin stock
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;">
+                <button type="button" class="confirmation-button" style="background:#f5f5f5;color:var(--text);" onclick="cerrarTutorialStock(true)">No volver a mostrar</button>
+                <button type="button" class="confirmation-button confirmation-button-primary" onclick="cerrarTutorialStock(false)">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 🔧 NUEVO: confirmación al quitar/agregar un producto del stock de
          tienda.html — independiente del stock global de pedidos.html. -->
     <div class="modal-overlay" id="stockConfirmModal" onclick="if(event.target.id==='stockConfirmModal')this.classList.remove('active')">
@@ -5425,9 +5464,103 @@
                 if (data && data.ok) {
                     window.STOCK_GLOBAL_PLATAFORMA = data.stock || {};
                     if (typeof renderProducts === 'function') renderProducts();
+                    if (window.currentCatalog) chequearCambiosStockGlobal(window.currentCatalog);
                 }
             })
             .catch(() => {});
+
+        // 🔧 NUEVO: aviso al entrar a una categoría cuando la plataforma
+        // quitó o volvió a agregar productos del stock global desde
+        // pedidos.html. Compara el estado actual contra la última vez que
+        // el revendedor vio esta categoría (guardado en localStorage), y
+        // si hay diferencias, arma el aviso con carrusel de imágenes.
+        function _clavesStockDeCatalogo(catalogo) {
+            if (catalogo === 'belleza') return ['belleza_maquillaje', 'belleza_perfume'];
+            return [catalogo];
+        }
+
+        function _productosDeClaveStock(claveStock) {
+            if (claveStock === 'belleza_maquillaje') return (window.productsBelleza || []).filter(p => p._origin === 'maquillaje');
+            if (claveStock === 'belleza_perfume') return (window.productsBelleza || []).filter(p => p._origin !== 'maquillaje');
+            if (claveStock === 'calzados') return window.shoes || [];
+            if (claveStock === 'perfumes') return window.products || [];
+            return [];
+        }
+
+        function chequearCambiosStockGlobal(catalogo) {
+            if (!catalogo || !window.STOCK_GLOBAL_PLATAFORMA) return;
+            const claves = _clavesStockDeCatalogo(catalogo);
+            const quitados = [];
+            const agregados = [];
+
+            claves.forEach(clave => {
+                const actual = window.STOCK_GLOBAL_PLATAFORMA[clave] || {};
+                let visto = {};
+                try { visto = JSON.parse(localStorage.getItem('stockGlobalVisto_' + clave) || '{}'); } catch(e) {}
+                const productos = _productosDeClaveStock(clave);
+                const porId = {};
+                productos.forEach(p => { porId[p.id] = p; });
+
+                Object.keys(actual).forEach(pid => {
+                    const estaba = Object.prototype.hasOwnProperty.call(visto, pid) ? visto[pid] : true;
+                    const ahora = actual[pid];
+                    if (estaba !== false && ahora === false && porId[pid]) {
+                        quitados.push(porId[pid]);
+                    } else if (estaba === false && ahora !== false && porId[pid]) {
+                        agregados.push(porId[pid]);
+                    }
+                });
+
+                localStorage.setItem('stockGlobalVisto_' + clave, JSON.stringify(actual));
+            });
+
+            if (quitados.length) mostrarAvisoStockGlobal(quitados, false);
+            else if (agregados.length) mostrarAvisoStockGlobal(agregados, true);
+        }
+
+        function _carruselAvisoStockHtml(productos) {
+            const medio = Math.floor(productos.length / 2);
+            return productos.slice(0, 8).map((p, i) => {
+                const esMedio = i === medio;
+                const tam = esMedio ? '76px' : '54px';
+                return `<img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${p.imagen}')"
+                    style="width:${tam};height:${tam};object-fit:cover;border-radius:10px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.18);transition:all .2s;${esMedio ? 'z-index:2;transform:translateY(-4px);' : 'opacity:.85;'}">`;
+            }).join('');
+        }
+
+        function mostrarAvisoStockGlobal(productos, seAgregaron) {
+            const modal = document.getElementById('avisoStockGlobalModal');
+            const titulo = document.getElementById('avisoStockGlobalTitulo');
+            const carrusel = document.getElementById('avisoStockGlobalCarrusel');
+            const texto = document.getElementById('avisoStockGlobalTexto');
+            if (!modal || !titulo || !carrusel || !texto) return;
+
+            const esPlural = productos.length > 1;
+            if (seAgregaron) {
+                titulo.textContent = esPlural ? 'Productos ya disponibles!' : 'Producto ya disponible!';
+                texto.textContent = '';
+            } else {
+                titulo.textContent = esPlural ? 'Productos quitados del stock hasta nuevo ingreso' : 'Producto quitado del stock hasta nuevo ingreso';
+                texto.textContent = 'Tu tienda seguirá funcionando normalmente sin ' + (esPlural ? 'estos productos' : 'este producto') + ' y reaparecerá' + (esPlural ? 'n' : '') + ' automáticamente cuando esté' + (esPlural ? 'n' : '') + ' disponible' + (esPlural ? 's' : '') + '.';
+            }
+            carrusel.innerHTML = _carruselAvisoStockHtml(productos);
+            modal.classList.add('active');
+        }
+
+        function cerrarAvisoStockGlobal() {
+            document.getElementById('avisoStockGlobalModal')?.classList.remove('active');
+            // 1 segundo después, el tutorial de cómo gestionar el stock —
+            // salvo que el revendedor ya haya pedido no verlo más.
+            if (localStorage.getItem('tutorialStockOculto') === '1') return;
+            setTimeout(() => {
+                document.getElementById('tutorialStockModal')?.classList.add('active');
+            }, 1000);
+        }
+
+        function cerrarTutorialStock(noVolverAMostrar) {
+            if (noVolverAMostrar) localStorage.setItem('tutorialStockOculto', '1');
+            document.getElementById('tutorialStockModal')?.classList.remove('active');
+        }
 
         function getStockProducto(catalogo, productId) {
             try {
@@ -5494,6 +5627,34 @@
             if (dotNo) dotNo.style.cssText = !enStock
                 ? 'width:12px;height:12px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px 2px rgba(239,68,68,.7);display:inline-block;'
                 : 'width:12px;height:12px;border-radius:50%;background:#d1d5db;display:inline-block;';
+
+            // 🔧 NUEVO: si el producto fue quitado de stock desde
+            // pedidos.html (stock global de la plataforma), el revendedor
+            // NO debe poder gestionarlo — solo puede manejar el stock de
+            // sus propios productos disponibles. Se deshabilitan los
+            // botones y se avisa por qué.
+            const catalogo = window.currentProductCatalog || window.currentCatalog;
+            const producto = window.currentProduct || currentProduct;
+            const btnSi = document.getElementById('modal-stock-btn-si');
+            const btnNo = document.getElementById('modal-stock-btn-no');
+            let avisoGlobal = document.getElementById('modal-stock-aviso-global');
+            const contenedor = btnNo ? btnNo.parentElement : null;
+            if (!avisoGlobal && contenedor && contenedor.parentElement) {
+                avisoGlobal = document.createElement('div');
+                avisoGlobal.id = 'modal-stock-aviso-global';
+                avisoGlobal.style.cssText = 'font-size:11.5px;color:#b45309;margin-top:8px;display:none;';
+                contenedor.parentElement.appendChild(avisoGlobal);
+            }
+            const global = (window.STOCK_GLOBAL_PLATAFORMA && producto) ? window.STOCK_GLOBAL_PLATAFORMA[catalogo] : null;
+            const quitadoGlobal = !!(global && Object.prototype.hasOwnProperty.call(global, producto.id) && global[producto.id] === false);
+            [btnSi, btnNo].forEach(b => {
+                if (!b) return;
+                b.disabled = quitadoGlobal;
+                b.style.opacity = quitadoGlobal ? '.4' : '1';
+                b.style.cursor = quitadoGlobal ? 'not-allowed' : 'pointer';
+            });
+            if (avisoGlobal) avisoGlobal.style.display = quitadoGlobal ? 'block' : 'none';
+            if (avisoGlobal) avisoGlobal.textContent = 'Este producto fue quitado de stock por la plataforma — no se puede gestionar hasta que vuelva a estar disponible.';
         }
 
         function setStockProductoModal(enStock) {
@@ -5515,6 +5676,15 @@
         // propio catálogo (que sigue mostrando todo, con la etiqueta
         // "Sin stock" nada más).
         function pedirConfirmacionStock(enStockNuevo) {
+            // 🔧 NUEVO: si el producto está quitado por el stock global de
+            // la plataforma, el revendedor no puede gestionarlo — refuerzo
+            // por si el botón deshabilitado se saltea de alguna forma.
+            const catalogo = window.currentProductCatalog || window.currentCatalog;
+            const producto = window.currentProduct || currentProduct;
+            const global = (window.STOCK_GLOBAL_PLATAFORMA && producto) ? window.STOCK_GLOBAL_PLATAFORMA[catalogo] : null;
+            if (global && producto && Object.prototype.hasOwnProperty.call(global, producto.id) && global[producto.id] === false) {
+                return;
+            }
             const modal = document.getElementById('stockConfirmModal');
             const titulo = document.getElementById('stockConfirmTitulo');
             const btnAceptar = document.getElementById('stockConfirmAceptarBtn');
@@ -9909,6 +10079,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 
                 updateCartCount();
                 if (typeof actualizarIconoConfigTienda === 'function') actualizarIconoConfigTienda();
+                if (window.currentCatalog) chequearCambiosStockGlobal(window.currentCatalog);
             } catch (error) {
                 // Error silencioso
             } finally {
