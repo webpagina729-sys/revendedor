@@ -8,6 +8,8 @@
     <link rel="icon" type="image/png" href="logo.png">
     <link rel="shortcut icon" type="image/png" href="logo.png">
     <link rel="apple-touch-icon" href="logo.png">
+    <!-- 🔒 NUEVO: Cloudflare Turnstile — protección anti-bot para el login. -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -9495,6 +9497,10 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 placeholder="Código de revendedor" 
                 onkeyup="if(event.key === 'Enter') validarCodigoRevendedor()"
             >
+            <!-- 🔒 NUEVO: Cloudflare Turnstile — protección anti-bot para el
+                 login por código. Modo invisible, no agrega fricción visual;
+                 solo muestra un desafío si Cloudflare detecta tráfico riesgoso. -->
+            <div class="cf-turnstile" id="turnstile-login" data-sitekey="0x4AAAAAAEuP7UTtW1odDnHM" data-size="invisible" data-callback="onTurnstileLoginOk"></div>
             <button class="codigo-modal-button" onclick="validarCodigoRevendedor()">Ingresar</button>
             <button class="codigo-modal-close" onclick="cerrarModalCodigo()">Cancelar</button>
         </div>
@@ -9802,6 +9808,26 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         // Validar código de revendedor
+        // 🔒 NUEVO: dispara el desafío invisible de Turnstile y espera el
+        // token antes de continuar con el login. Si Turnstile todavía no
+        // cargó (script bloqueado, conexión lenta), no bloquea el login —
+        // se sigue igual, y el Worker decide qué hacer si no llega token.
+        window._turnstileTokenPromise = null;
+        window._turnstileResolve = null;
+        function onTurnstileLoginOk(token) {
+            if (window._turnstileResolve) window._turnstileResolve(token);
+        }
+        function obtenerTokenTurnstile() {
+            if (typeof turnstile === 'undefined') return Promise.resolve(null);
+            return new Promise((resolve) => {
+                window._turnstileResolve = resolve;
+                try {
+                    turnstile.execute('#turnstile-login');
+                } catch (_e) { resolve(null); }
+                setTimeout(() => resolve(null), 6000); // no esperar para siempre
+            });
+        }
+
         async function validarCodigoRevendedor() {
             const codigoInput = document.getElementById('codigo-input');
             const error = document.getElementById('codigo-error');
@@ -9855,13 +9881,15 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 const candidatos = new Set([codigo, codigo.toLowerCase()]);
                 if (codigo.startsWith('RW-')) candidatos.add(codigo.substring(3));
 
+                const turnstileToken = await obtenerTokenTurnstile();
+
                 let vendedorEncontrado = null;
                 for (const candidato of candidatos) {
                     try {
                         const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ codigo: candidato })
+                            body: JSON.stringify({ codigo: candidato, turnstileToken })
                         });
                         if (res.ok) {
                             const data = await res.json();
