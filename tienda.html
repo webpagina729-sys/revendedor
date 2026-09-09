@@ -3232,7 +3232,7 @@ function SUBTITULO_CATEGORIA(cat) {
     }[cat] || 'Perfumes árabes importados';
 }
 
-function iniciarTienda() {
+async function iniciarTienda() {
     catalogoActual = (catParam === 'calzados') ? 'calzados'
         : (catParam === 'belleza') ? 'belleza'
         : (catParam === 'bazar') ? 'bazar'
@@ -3378,6 +3378,18 @@ function iniciarTienda() {
         return catalogoActual;
     }
 
+    // 🔧 NUEVO: además del stock que cada revendedor configura para su
+    // propia tienda, existe un stock GLOBAL de la plataforma (gestionado
+    // desde pedidos.html) — si el dueño de la plataforma quita un
+    // producto ahí, también debe desaparecer acá, para los clientes del
+    // revendedor, sin importar lo que el revendedor haya configurado.
+    let _stockGlobalPlataforma = {};
+    try {
+        const resStockGlobal = await fetch('https://panelgestionestados.tuweb.workers.dev/api/stock-global');
+        const dataStockGlobal = await resStockGlobal.json();
+        if (dataStockGlobal && dataStockGlobal.ok) _stockGlobalPlataforma = dataStockGlobal.stock || {};
+    } catch(_e) { /* si falla, se sigue solo con el stock del revendedor */ }
+
     // 🔧 FIX: antes se buscaba el estado de stock bajo "catalogoActual"
     // (ej. "belleza"), pero index.html/mas-categorias.html guardan bajo la
     // sub-categoría REAL de cada producto (ej. "belleza_maquillaje" o
@@ -3388,6 +3400,13 @@ function iniciarTienda() {
     const _stockPorCat = (vendedor && vendedor.stockProductosCat) || {};
     const rawEnStock = raw.filter(p => {
         const catKeyProducto = _catalogKeyParaProducto(p);
+        // El stock global manda primero: si el dueño de la plataforma lo
+        // quitó explícitamente, no hay configuración del revendedor que
+        // lo pueda volver a mostrar.
+        const _stockGlobalCat = _stockGlobalPlataforma[catKeyProducto] || {};
+        if (Object.prototype.hasOwnProperty.call(_stockGlobalCat, p.id) && _stockGlobalCat[p.id] === false) {
+            return false;
+        }
         const _stockCat = _stockPorCat[catKeyProducto] || {};
         // Solo se considera "sin stock" si el revendedor lo desactivó explícitamente.
         return !(Object.prototype.hasOwnProperty.call(_stockCat, p.id) && _stockCat[p.id] === false);
