@@ -3560,11 +3560,11 @@
                     <div class="modal-details-section" style="margin-bottom: 25px; width: 100%; text-align: left;">
                         <div class="modal-details-section-title" style="font-weight: 600; margin-bottom: 10px; color: var(--text);">Disponibilidad</div>
                         <div style="display:flex; gap:22px; align-items:center;">
-                            <button type="button" onclick="setStockProductoModal(true)" id="modal-stock-btn-si" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px 0; font-size:14px; color: var(--text);">
+                            <button type="button" onclick="pedirConfirmacionStock(true)" id="modal-stock-btn-si" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px 0; font-size:14px; color: var(--text);">
                                 <span id="modal-stock-dot-si" style="width:12px;height:12px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px 2px rgba(34,197,94,.7);display:inline-block;"></span>
                                 En stock
                             </button>
-                            <button type="button" onclick="setStockProductoModal(false)" id="modal-stock-btn-no" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px 0; font-size:14px; color: var(--text);">
+                            <button type="button" onclick="pedirConfirmacionStock(false)" id="modal-stock-btn-no" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px 0; font-size:14px; color: var(--text);">
                                 <span id="modal-stock-dot-no" style="width:12px;height:12px;border-radius:50%;background:#d1d5db;display:inline-block;"></span>
                                 Sin stock
                             </button>
@@ -3828,6 +3828,30 @@
     </div>
 
     <!-- MODAL PERFIL -->
+    <!-- 🔧 NUEVO: confirmación al quitar/agregar un producto del stock de
+         tienda.html — independiente del stock global de pedidos.html. -->
+    <div class="modal-overlay" id="stockConfirmModal" onclick="if(event.target.id==='stockConfirmModal')this.classList.remove('active')">
+        <div class="modal-content" style="max-width:360px;">
+            <div class="modal-header" style="justify-content:center;">
+                <h2 class="modal-title" id="stockConfirmTitulo" style="text-align:center;">¿Quieres quitar este producto de tu tienda?</h2>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin-top:4px;">
+                <button type="button" class="confirmation-button" style="background:#f5f5f5;color:var(--text);" onclick="document.getElementById('stockConfirmModal').classList.remove('active')">Cancelar</button>
+                <button type="button" class="confirmation-button confirmation-button-primary" id="stockConfirmAceptarBtn">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="stockExitoModal" onclick="if(event.target.id==='stockExitoModal')this.classList.remove('active')">
+        <div class="modal-content" style="max-width:340px;text-align:center;">
+            <div style="width:56px;height:56px;border-radius:50%;background:#e8f9ef;display:flex;align-items:center;justify-content:center;margin:4px auto 14px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h2 class="modal-title" id="stockExitoTexto" style="text-align:center;margin-bottom:18px;">Producto quitado de tu stock</h2>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="document.getElementById('stockExitoModal').classList.remove('active')">Aceptar</button>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="profileModal" onclick="closeProfileModal(event)">
         <div class="modal-content">
             <div class="modal-header">
@@ -6762,6 +6786,32 @@ function catalogoEfectivoMultishop(p) {
             else if (window.currentCatalog === 'multishop' && typeof renderMultishopProducts === 'function') renderMultishopProducts();
         }
 
+        // 🔧 NUEVO: confirmación antes de quitar/agregar del stock de
+        // tienda.html — independiente del stock global de pedidos.html.
+        function pedirConfirmacionStock(enStockNuevo) {
+            const modal = document.getElementById('stockConfirmModal');
+            const titulo = document.getElementById('stockConfirmTitulo');
+            const btnAceptar = document.getElementById('stockConfirmAceptarBtn');
+            if (!modal || !titulo || !btnAceptar) { setStockProductoModal(enStockNuevo); return; }
+            titulo.textContent = enStockNuevo
+                ? '¿Volver a agregar este Producto?'
+                : '¿Quieres quitar este producto de tu tienda?';
+            btnAceptar.onclick = function() {
+                modal.classList.remove('active');
+                setStockProductoModal(enStockNuevo);
+                mostrarConfirmacionStockExito(enStockNuevo);
+            };
+            modal.classList.add('active');
+        }
+
+        function mostrarConfirmacionStockExito(seAgrego) {
+            const modal = document.getElementById('stockExitoModal');
+            const texto = document.getElementById('stockExitoTexto');
+            if (!modal || !texto) return;
+            texto.textContent = seAgrego ? 'Producto agregado a tu stock' : 'Producto quitado de tu stock';
+            modal.classList.add('active');
+        }
+
         // Comparte el producto actualmente abierto en el modal (mismo enlace
         // que "Compartir tienda desde acá": abre tienda.html directo en él).
         async function compartirProductoDesdeModal() {
@@ -8842,11 +8892,11 @@ function catalogoEfectivoMultishop(p) {
                         <div style="margin: 20px 0; width: 100%; text-align: left;">
                             <p style="margin: 0 0 10px 0; font-weight: 600; color: var(--text);">Disponibilidad</p>
                             <div style="display:flex; gap:22px; align-items:center;">
-                                <button type="button" onclick="setStockProductoModal(true)" id="modal-stock-btn-si" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px 0; font-size:14px; color: var(--text);">
+                                <button type="button" onclick="pedirConfirmacionStock(true)" id="modal-stock-btn-si" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px 0; font-size:14px; color: var(--text);">
                                     <span id="modal-stock-dot-si" style="width:12px;height:12px;border-radius:50%;background:${getStockProducto('calzados', product.id) ? '#22c55e' : '#d1d5db'};${getStockProducto('calzados', product.id) ? 'box-shadow:0 0 8px 2px rgba(34,197,94,.7);' : ''}display:inline-block;"></span>
                                     En stock
                                 </button>
-                                <button type="button" onclick="setStockProductoModal(false)" id="modal-stock-btn-no" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px 0; font-size:14px; color: var(--text);">
+                                <button type="button" onclick="pedirConfirmacionStock(false)" id="modal-stock-btn-no" style="display:flex; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px 0; font-size:14px; color: var(--text);">
                                     <span id="modal-stock-dot-no" style="width:12px;height:12px;border-radius:50%;background:${!getStockProducto('calzados', product.id) ? '#ef4444' : '#d1d5db'};${!getStockProducto('calzados', product.id) ? 'box-shadow:0 0 8px 2px rgba(239,68,68,.7);' : ''}display:inline-block;"></span>
                                     Sin stock
                                 </button>
