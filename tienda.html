@@ -10,6 +10,8 @@
     <title>Tienda</title>
     <meta name="description" content="Catálogo de productos con precios personalizados.">
     <link rel="icon" type="image/png" href="logo.png">
+    <!-- 🔒 NUEVO: Cloudflare Turnstile — protección anti-bot para el checkout. -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <link rel="shortcut icon" type="image/png" href="logo.png">
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -976,6 +978,10 @@
 
         <div class="checkout-status" id="co-status">✓ ¡Pedido enviado correctamente!</div>
         <div class="checkout-error"  id="co-error"></div>
+
+        <!-- 🔒 NUEVO: Cloudflare Turnstile — protección anti-bot para el
+             checkout. Modo invisible, no agrega fricción visual. -->
+        <div class="cf-turnstile" id="turnstile-checkout" data-sitekey="0x4AAAAAAEuP7UTtW1odDnHM" data-size="invisible" data-callback="onTurnstileCheckoutOk"></div>
 
         <button class="checkout-submit" id="co-btn-submit" onclick="enviarPedidoConDatos()">
             Confirmar pedido
@@ -4157,6 +4163,23 @@ function cerrarCheckout() {
     document.getElementById('modal-checkout').classList.remove('active');
 }
 
+// 🔒 NUEVO: dispara el desafío invisible de Turnstile y espera el token
+// antes de enviar el pedido. Si Turnstile no cargó, no bloquea la compra.
+window._turnstileCheckoutResolve = null;
+function onTurnstileCheckoutOk(token) {
+    if (window._turnstileCheckoutResolve) window._turnstileCheckoutResolve(token);
+}
+function obtenerTokenTurnstileCheckout() {
+    if (typeof turnstile === 'undefined') return Promise.resolve(null);
+    return new Promise((resolve) => {
+        window._turnstileCheckoutResolve = resolve;
+        try {
+            turnstile.execute('#turnstile-checkout');
+        } catch (_e) { resolve(null); }
+        setTimeout(() => resolve(null), 6000);
+    });
+}
+
 async function enviarPedidoConDatos() {
     const nombre    = document.getElementById('co-nombre').value.trim();
     const apellido  = document.getElementById('co-apellido').value.trim();
@@ -4185,6 +4208,8 @@ async function enviarPedidoConDatos() {
     btn.disabled    = true;
     btn.textContent = 'Enviando...';
     document.getElementById('co-error').style.display = 'none';
+
+    const turnstileToken = await obtenerTokenTurnstileCheckout();
 
     // Armar payload
     const now      = new Date();
@@ -4262,6 +4287,7 @@ async function enviarPedidoConDatos() {
         terminosCondicionesAceptado: !!(document.getElementById('legal-check-terminos') && document.getElementById('legal-check-terminos').checked),
         politicaPrivacidadAceptado: !!(document.getElementById('legal-check-privacidad') && document.getElementById('legal-check-privacidad').checked),
         versionDocumentoLegal: (typeof VERSION_DOCUMENTO_LEGAL !== 'undefined' ? VERSION_DOCUMENTO_LEGAL : ''),
+        turnstileToken,
     };
 
     // ── El pedido se registra ANTES de redirigir a WhatsApp ────────
