@@ -8720,14 +8720,16 @@ function catalogoEfectivoMultishop(p) {
             // Verificar si hay código en localStorage
             const codigoLocalStorage = localStorage.getItem('codigoVendedorLocal');
 
-            // ✅ PRIORIDAD: localStorage > Firestore > generar nuevo
+            // 🔧 FIX: Firestore es la ÚNICA fuente de verdad para el código
+            // de revendedor — mismo arreglo aplicado en stock.html e
+            // index.html.
             let codigoFinal = '';
-            if (codigoLocalStorage && codigoLocalStorage.trim() !== '') {
-                codigoFinal = codigoLocalStorage;
-            } else if (safeUserData.codigoVendedor && safeUserData.codigoVendedor.trim() !== '') {
-                codigoFinal = safeUserData.codigoVendedor;
+            if (safeUserData.codigoVendedor && safeUserData.codigoVendedor.trim() !== '') {
+                codigoFinal = safeUserData.codigoVendedor.trim();
+            } else if (codigoLocalStorage && codigoLocalStorage.trim() !== '') {
+                codigoFinal = codigoLocalStorage.trim();
             } else {
-                // ✅ FALLBACK: Generar código si no existe
+                // ✅ FALLBACK: Generar código si no existe en ningún lado
                 codigoFinal = generarCodigoVendedor();
             }
             
