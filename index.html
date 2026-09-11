@@ -3571,6 +3571,7 @@
                     <span id="bv-btn-lbl">Ingresar a mi tienda</span>
                     <div class="bv-spin" id="bv-spin"></div>
                 </button>
+                <div class="cf-turnstile" id="turnstile-bv" data-sitekey="0x4AAAAAAEuP7UTtW1odDnHM" data-size="invisible" data-callback="onTurnstileBvOk"></div>
             </div>
             <div class="bv-foot">
                 ¿No tenés código? <a onclick="bvIrRegistro()">Regístrate</a>
@@ -12044,11 +12045,19 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 // ya no existe), igual que si el usuario lo hubiera tipeado.
                 (async function() {
                     var userData = null;
+                    // 🔒 FIX: le faltaba el token de Turnstile que el Worker
+                    // ahora exige. Acá SÍ se mantiene el respaldo a Firestore
+                    // (a diferencia del login manual) porque esto corre
+                    // automáticamente apenas carga la página, sin garantía
+                    // de que el widget de Turnstile ya esté listo — no debe
+                    // romper el auto-login de alguien que ya eligió
+                    // "recordar sesión" antes.
                     try {
+                        var turnstileTokenAuto = await obtenerTokenTurnstileBv();
                         var res = await fetch(WORKER_LOGIN, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ codigo: codigoGuardado })
+                            body: JSON.stringify({ codigo: codigoGuardado, turnstileToken: turnstileTokenAuto })
                         });
                         var data = await res.json();
                         if (data.success && data.vendedor) userData = data.vendedor;
@@ -12082,6 +12091,21 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             });
 
             // ── Botón INGRESAR ────────────────────────────────────────────
+            window._turnstileBvResolve = null;
+            window.onTurnstileBvOk = function(token) {
+                if (window._turnstileBvResolve) window._turnstileBvResolve(token);
+            };
+            function obtenerTokenTurnstileBv() {
+                if (typeof turnstile === 'undefined') return Promise.resolve(null);
+                return new Promise((resolve) => {
+                    window._turnstileBvResolve = resolve;
+                    try {
+                        turnstile.execute('#turnstile-bv');
+                    } catch (_e) { resolve(null); }
+                    setTimeout(() => resolve(null), 6000);
+                });
+            }
+
             window.bvIngresar = async function() {
                 var input  = document.getElementById('bv-input');
                 var errEl  = document.getElementById('bv-error');
@@ -12108,12 +12132,18 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 var workerRespondio = false;
                 var workerError = null;
 
-                // 1. Intentar via Worker
+                // 🔒 FIX: esta llamada le faltaba el token de Turnstile que
+                // el Worker ahora exige — por eso SIEMPRE fallaba y caía al
+                // respaldo directo a Firestore (lento, y una consulta
+                // abierta sin protección). Ahora manda el token y pasa
+                // siempre por el Worker seguro en el primer intento, tal
+                // como tiene que funcionar toda la plataforma.
+                const turnstileToken = await obtenerTokenTurnstileBv();
                 try {
                     var res = await fetch(WORKER_LOGIN, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codigo: codigo })
+                        body: JSON.stringify({ codigo: codigo, turnstileToken })
                     });
                     workerRespondio = true;
                     var workerData = await res.json();
@@ -12126,21 +12156,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     /* silenciado */
                 }
 
-                // 2. 🔧 FIX: si el Worker no lo encontró (o directamente no
-                // respondió), se intenta también por Firestore directo antes
-                // de darlo por perdido — el mismo respaldo que ya tiene el
-                // camino de auto-login al recargar la página, pero que acá
-                // faltaba, y por eso un código recién generado podía dar
-                // "Código inválido" aunque el documento ya estuviera guardado.
-                if (!userData) {
-                    try {
-                        await esperarFirebase();
-                        userData = await buscarEnFirestore(codigo);
-                    } catch(e) {
-                        /* silenciado */
-                    }
-                }
-
                 if (!userData && !workerRespondio) {
                     errEl.textContent = 'Error de conexión. Revisá tu internet e intentá de nuevo.';
                     errEl.classList.add('show');
@@ -12151,7 +12166,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 }
 
                 if (!userData) {
-                    errEl.textContent = 'Código no encontrado. Verificá que esté bien escrito.';
+                    errEl.textContent = workerError || 'Código no encontrado. Verificá que esté bien escrito.';
                     errEl.classList.add('show');
                     btn.disabled = false;
                     lbl.textContent = 'Ingresar a mi tienda';
