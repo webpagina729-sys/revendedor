@@ -3513,6 +3513,7 @@
                     <span id="bv-btn-lbl">Ingresar a mi tienda</span>
                     <div class="bv-spin" id="bv-spin"></div>
                 </button>
+                <div class="cf-turnstile" id="turnstile-bv" data-sitekey="0x4AAAAAAEuP7UTtW1odDnHM" data-size="invisible" data-callback="onTurnstileBvOk"></div>
             </div>
             <div class="bv-foot">
                 ¿No tenés código? <a onclick="bvIrRegistro()">Regístrate</a>
@@ -3729,6 +3730,7 @@
                         </button>
                     </div>
                     <div id="recaptcha-login" style="margin: 15px 0; display: flex; justify-content: center;"></div>
+                    <div class="cf-turnstile" id="turnstile-login-auth" data-sitekey="0x4AAAAAAEuP7UTtW1odDnHM" data-size="invisible" data-callback="onTurnstileLoginAuthOk"></div>
                     <button type="submit" class="auth-btn">Ingresar</button>
                 </form>
                 <div class="auth-switch">
@@ -8025,15 +8027,22 @@ function catalogoEfectivoMultishop(p) {
             const telefono = document.getElementById('register-telefono').value;
             const email = document.getElementById('register-email').value;
             const password = document.getElementById('register-password').value;
-            const codigoVendedor = generarCodigoVendedor();
 
             let userCreatedSuccessfully = false;
+            let codigoVendedor = '';
 
             try {
                 // Crear usuario en Firebase Auth
                 const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
                 userCreatedSuccessfully = true;
+
+                // 🔧 FIX: el código se genera RECIÉN ACÁ, una vez que existe
+                // user.uid — antes se generaba ANTES de crear el usuario, sin
+                // uid disponible, cayendo al formato de respaldo basado en
+                // el email en vez del basado en UID que usa el resto de la app.
+                window.currentUser = { ...(window.currentUser || {}), uid: user.uid };
+                codigoVendedor = generarCodigoVendedor();
 
                 const userData = {
                     uid: user.uid,
@@ -8046,40 +8055,47 @@ function catalogoEfectivoMultishop(p) {
                     creado: new Date()
                 };
 
-                // ✅ Guardar código en localStorage PRIMERO (antes de Firestore)
-                localStorage.setItem('codigoVendedorLocal', codigoVendedor);
-
-                if (firebase.firestore) {
-                    const usuariosCollection = firebase.firestore().collection('usuarios');
-                    
-                    // Guardar en Firestore sin bloquear el flujo
-                    // Esto permite que el registro continúe incluso si Firestore falla
-                    usuariosCollection.doc(user.uid).set(userData)
-                        .catch(err => {
-                            // Error silencioso
-                        });
+                // 🔧 FIX: antes el guardado en Firestore era "fire-and-forget"
+                // (sin await, con catch silencioso) y el código se mostraba en
+                // pantalla igual — si Firestore fallaba, el usuario se llevaba
+                // un código que nunca se guardó, y después daba "inválido".
+                // Ahora se espera el guardado, con un reintento si falla.
+                try {
+                    await firebase.firestore().collection('usuarios').doc(user.uid).set(userData);
+                } catch (errGuardado) {
+                    await firebase.firestore().collection('usuarios').doc(user.uid).set(userData);
                 }
+
+                localStorage.setItem('codigoVendedorLocal', codigoVendedor);
 
                 // Mostrar modal de confirmación con el código vendedor
                 showRegistrationConfirmation(codigoVendedor, nombre);
                 
             } catch (error) {
-                
-                // FALLBACK: Si el usuario se creó en Firebase pero falló Firestore,
-                // mostrar el modal de todas formas
-                if (userCreatedSuccessfully) {
-                    try {
-                        showRegistrationConfirmation(codigoVendedor, nombre);
-                    } catch (modalError) {
-                        showRegistrationError(error);
-                    }
-                } else {
-                    showRegistrationError(error);
-                }
+                // 🔧 FIX: antes, si Firestore fallaba incluso después del
+                // reintento, igual se mostraba el modal de "código listo" —
+                // dejando al usuario con un código que nunca se guardó.
+                // Ahora se avisa del error real.
+                showRegistrationError(error);
             }
         }
 
         // LOGIN CON FIREBASE
+        window._turnstileLoginAuthResolve = null;
+        function onTurnstileLoginAuthOk(token) {
+            if (window._turnstileLoginAuthResolve) window._turnstileLoginAuthResolve(token);
+        }
+        function obtenerTokenTurnstileLoginAuth() {
+            if (typeof turnstile === 'undefined') return Promise.resolve(null);
+            return new Promise((resolve) => {
+                window._turnstileLoginAuthResolve = resolve;
+                try {
+                    turnstile.execute('#turnstile-login-auth');
+                } catch (_e) { resolve(null); }
+                setTimeout(() => resolve(null), 6000);
+            });
+        }
+
         async function loginUser(e) {
             e.preventDefault();
             
@@ -8095,30 +8111,25 @@ function catalogoEfectivoMultishop(p) {
             const password = document.getElementById('login-password').value;
 
             try {
+                const turnstileToken = await obtenerTokenTurnstileLoginAuth();
                 let email = '';
-                try {
-                    const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codigo: codigo })
-                    });
-                    if (res.ok) {
-                        const workerData = await res.json();
-                        if (workerData.success && workerData.vendedor && workerData.vendedor.email) {
-                            email = workerData.vendedor.email;
-                        }
+                const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo: codigo, turnstileToken })
+                });
+                if (res.ok) {
+                    const workerData = await res.json();
+                    if (workerData.success && workerData.vendedor && workerData.vendedor.email) {
+                        email = workerData.vendedor.email;
                     }
-                } catch(e) {}
+                } else if (res.status === 429 || res.status === 403) {
+                    const workerData = await res.json().catch(() => ({}));
+                    showLoginError({ message: workerData.error || 'No se pudo validar el código. Intentá de nuevo en unos minutos.' });
+                    return;
+                }
                 if (!email) {
-                    const snap = await firebase.firestore()
-                        .collection('usuarios')
-                        .where('codigoVendedor', '==', codigo)
-                        .limit(1)
-                        .get();
-                    if (snap.empty || !snap.docs[0].data().email) {
-                        throw { code: 'auth/user-not-found' };
-                    }
-                    email = snap.docs[0].data().email;
+                    throw { code: 'auth/user-not-found' };
                 }
                 localStorage.setItem('codigoVendedorLocal', codigo);
                 // Firebase Auth se encargará de la persistencia
@@ -12663,6 +12674,21 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 bvOcultar();
             });
 
+            window._turnstileBvResolve = null;
+            window.onTurnstileBvOk = function(token) {
+                if (window._turnstileBvResolve) window._turnstileBvResolve(token);
+            };
+            function obtenerTokenTurnstileBv() {
+                if (typeof turnstile === 'undefined') return Promise.resolve(null);
+                return new Promise((resolve) => {
+                    window._turnstileBvResolve = resolve;
+                    try {
+                        turnstile.execute('#turnstile-bv');
+                    } catch (_e) { resolve(null); }
+                    setTimeout(() => resolve(null), 6000);
+                });
+            }
+
             // ── Botón INGRESAR ────────────────────────────────────────────
             window.bvIngresar = async function() {
                 var input  = document.getElementById('bv-input');
@@ -12690,12 +12716,23 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 var workerRespondio = false;
                 var workerError = null;
 
-                // 1. Intentar via Worker
+                // 🔒 FIX: antes, si el Worker no encontraba el código (o
+                // directamente fallaba la conexión), el código caía a una
+                // consulta DIRECTA e insegura a Firestore
+                // (`.where('codigoVendedor', '==', codigo)`) — la misma
+                // clase de agujero ya cerrado en el resto de los logins por
+                // código de esta plataforma. Cualquiera con la config
+                // pública de Firebase podía repetir esa misma consulta sin
+                // pasar por Turnstile ni por el límite de intentos del
+                // Worker. Ahora se manda el token de Turnstile y, si el
+                // Worker no lo encuentra, se avisa el error real en vez de
+                // abrir esa puerta de respaldo.
+                const turnstileToken = await obtenerTokenTurnstileBv();
                 try {
                     var res = await fetch(WORKER_LOGIN, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codigo: codigo })
+                        body: JSON.stringify({ codigo: codigo, turnstileToken })
                     });
                     workerRespondio = true;
                     var workerData = await res.json();
@@ -12708,21 +12745,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     console.error("[LOGIN] Error llamando al Worker:", e);
                 }
 
-                // 2. 🔧 FIX: si el Worker no lo encontró (o directamente no
-                // respondió), se intenta también por Firestore directo antes
-                // de darlo por perdido — el mismo respaldo que ya tiene el
-                // camino de auto-login al recargar la página, pero que acá
-                // faltaba, y por eso un código recién generado podía dar
-                // "Código inválido" aunque el documento ya estuviera guardado.
-                if (!userData) {
-                    try {
-                        await esperarFirebase();
-                        userData = await buscarEnFirestore(codigo);
-                    } catch(e) {
-                        console.error("[LOGIN] Error en respaldo Firestore:", e);
-                    }
-                }
-
                 if (!userData && !workerRespondio) {
                     errEl.textContent = 'Error de conexión. Revisá tu internet e intentá de nuevo.';
                     errEl.classList.add('show');
@@ -12733,7 +12755,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 }
 
                 if (!userData) {
-                    errEl.textContent = 'Código no encontrado. Verificá que esté bien escrito.';
+                    errEl.textContent = workerError || 'Código no encontrado. Verificá que esté bien escrito.';
                     errEl.classList.add('show');
                     btn.disabled = false;
                     lbl.textContent = 'Ingresar a mi tienda';
