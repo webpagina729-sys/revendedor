@@ -8086,13 +8086,22 @@ function catalogoEfectivoMultishop(p) {
             if (window._turnstileLoginAuthResolve) window._turnstileLoginAuthResolve(token);
         }
         function obtenerTokenTurnstileLoginAuth() {
-            if (typeof turnstile === 'undefined') return Promise.resolve(null);
             return new Promise((resolve) => {
-                window._turnstileLoginAuthResolve = resolve;
-                try {
-                    turnstile.execute('#turnstile-login-auth');
-                } catch (_e) { resolve(null); }
-                setTimeout(() => resolve(null), 6000);
+                let intentos = 0;
+                const esperarLibreria = setInterval(() => {
+                    intentos++;
+                    if (typeof turnstile !== 'undefined' && document.getElementById('turnstile-login-auth')) {
+                        clearInterval(esperarLibreria);
+                        window._turnstileLoginAuthResolve = resolve;
+                        try {
+                            turnstile.execute('#turnstile-login-auth');
+                        } catch (_e) { resolve(null); }
+                        setTimeout(() => resolve(null), 6000);
+                    } else if (intentos > 40) {
+                        clearInterval(esperarLibreria);
+                        resolve(null);
+                    }
+                }, 100);
             });
         }
 
@@ -10396,13 +10405,22 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (window._turnstileResolve) window._turnstileResolve(token);
         }
         function obtenerTokenTurnstile() {
-            if (typeof turnstile === 'undefined') return Promise.resolve(null);
             return new Promise((resolve) => {
-                window._turnstileResolve = resolve;
-                try {
-                    turnstile.execute('#turnstile-login');
-                } catch (_e) { resolve(null); }
-                setTimeout(() => resolve(null), 6000);
+                let intentos = 0;
+                const esperarLibreria = setInterval(() => {
+                    intentos++;
+                    if (typeof turnstile !== 'undefined' && document.getElementById('turnstile-login')) {
+                        clearInterval(esperarLibreria);
+                        window._turnstileResolve = resolve;
+                        try {
+                            turnstile.execute('#turnstile-login');
+                        } catch (_e) { resolve(null); }
+                        setTimeout(() => resolve(null), 6000);
+                    } else if (intentos > 40) {
+                        clearInterval(esperarLibreria);
+                        resolve(null);
+                    }
+                }, 100);
             });
         }
 
@@ -12679,13 +12697,22 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 if (window._turnstileBvResolve) window._turnstileBvResolve(token);
             };
             function obtenerTokenTurnstileBv() {
-                if (typeof turnstile === 'undefined') return Promise.resolve(null);
                 return new Promise((resolve) => {
-                    window._turnstileBvResolve = resolve;
-                    try {
-                        turnstile.execute('#turnstile-bv');
-                    } catch (_e) { resolve(null); }
-                    setTimeout(() => resolve(null), 6000);
+                    let intentos = 0;
+                    const esperarLibreria = setInterval(() => {
+                        intentos++;
+                        if (typeof turnstile !== 'undefined' && document.getElementById('turnstile-bv')) {
+                            clearInterval(esperarLibreria);
+                            window._turnstileBvResolve = resolve;
+                            try {
+                                turnstile.execute('#turnstile-bv');
+                            } catch (_e) { resolve(null); }
+                            setTimeout(() => resolve(null), 6000);
+                        } else if (intentos > 40) {
+                            clearInterval(esperarLibreria);
+                            resolve(null);
+                        }
+                    }, 100);
                 });
             }
 
