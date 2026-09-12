@@ -3513,7 +3513,7 @@
                     <span id="bv-btn-lbl">Ingresar a mi tienda</span>
                     <div class="bv-spin" id="bv-spin"></div>
                 </button>
-                <div class="cf-turnstile" id="turnstile-bv" data-sitekey="0x4AAAAAAEuP7UTtW1odDnHM" data-size="invisible" data-callback="onTurnstileBvOk"></div>
+                <div class="cf-turnstile" id="turnstile-bv" data-sitekey="0x4AAAAAAEuP7UTtW1odDnHM" data-size="normal" data-execution="execute" data-callback="onTurnstileBvOk"></div>
             </div>
             <div class="bv-foot">
                 ¿No tenés código? <a onclick="bvIrRegistro()">Regístrate</a>
@@ -3730,7 +3730,7 @@
                         </button>
                     </div>
                     <div id="recaptcha-login" style="margin: 15px 0; display: flex; justify-content: center;"></div>
-                    <div class="cf-turnstile" id="turnstile-login-auth" data-sitekey="0x4AAAAAAEuP7UTtW1odDnHM" data-size="invisible" data-callback="onTurnstileLoginAuthOk"></div>
+                    <div class="cf-turnstile" id="turnstile-login-auth" data-sitekey="0x4AAAAAAEuP7UTtW1odDnHM" data-size="normal" data-execution="execute" data-callback="onTurnstileLoginAuthOk"></div>
                     <button type="submit" class="auth-btn">Ingresar</button>
                 </form>
                 <div class="auth-switch">
@@ -9957,7 +9957,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 placeholder="Código de revendedor" 
                 onkeyup="if(event.key === 'Enter') validarCodigoRevendedor()"
             >
-            <div class="cf-turnstile" id="turnstile-login" data-sitekey="0x4AAAAAAEuP7UTtW1odDnHM" data-size="invisible" data-callback="onTurnstileLoginOk"></div>
+            <div class="cf-turnstile" id="turnstile-login" data-sitekey="0x4AAAAAAEuP7UTtW1odDnHM" data-size="normal" data-execution="execute" data-callback="onTurnstileLoginOk"></div>
             <button class="codigo-modal-button" onclick="validarCodigoRevendedor()">Ingresar</button>
             <button class="codigo-modal-close" onclick="cerrarModalCodigo()">Cancelar</button>
         </div>
