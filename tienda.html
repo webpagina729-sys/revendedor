@@ -4170,13 +4170,22 @@ function onTurnstileCheckoutOk(token) {
     if (window._turnstileCheckoutResolve) window._turnstileCheckoutResolve(token);
 }
 function obtenerTokenTurnstileCheckout() {
-    if (typeof turnstile === 'undefined') return Promise.resolve(null);
     return new Promise((resolve) => {
-        window._turnstileCheckoutResolve = resolve;
-        try {
-            turnstile.execute('#turnstile-checkout');
-        } catch (_e) { resolve(null); }
-        setTimeout(() => resolve(null), 6000);
+        let intentos = 0;
+        const esperarLibreria = setInterval(() => {
+            intentos++;
+            if (typeof turnstile !== 'undefined' && document.getElementById('turnstile-checkout')) {
+                clearInterval(esperarLibreria);
+                window._turnstileCheckoutResolve = resolve;
+                try {
+                    turnstile.execute('#turnstile-checkout');
+                } catch (_e) { resolve(null); }
+                setTimeout(() => resolve(null), 6000);
+            } else if (intentos > 40) {
+                clearInterval(esperarLibreria);
+                resolve(null);
+            }
+        }, 100);
     });
 }
 
