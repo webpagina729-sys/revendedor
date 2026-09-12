@@ -7533,13 +7533,22 @@
             if (window._turnstileLoginAuthResolve) window._turnstileLoginAuthResolve(token);
         }
         function obtenerTokenTurnstileLoginAuth() {
-            if (typeof turnstile === 'undefined') return Promise.resolve(null);
             return new Promise((resolve) => {
-                window._turnstileLoginAuthResolve = resolve;
-                try {
-                    turnstile.execute('#turnstile-login-auth');
-                } catch (_e) { resolve(null); }
-                setTimeout(() => resolve(null), 6000);
+                let intentos = 0;
+                const esperarLibreria = setInterval(() => {
+                    intentos++;
+                    if (typeof turnstile !== 'undefined' && document.getElementById('turnstile-login-auth')) {
+                        clearInterval(esperarLibreria);
+                        window._turnstileLoginAuthResolve = resolve;
+                        try {
+                            turnstile.execute('#turnstile-login-auth');
+                        } catch (_e) { resolve(null); }
+                        setTimeout(() => resolve(null), 6000);
+                    } else if (intentos > 40) {
+                        clearInterval(esperarLibreria);
+                        resolve(null);
+                    }
+                }, 100);
             });
         }
 
@@ -9864,13 +9873,22 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (window._turnstileResolve) window._turnstileResolve(token);
         }
         function obtenerTokenTurnstile() {
-            if (typeof turnstile === 'undefined') return Promise.resolve(null);
             return new Promise((resolve) => {
-                window._turnstileResolve = resolve;
-                try {
-                    turnstile.execute('#turnstile-login');
-                } catch (_e) { resolve(null); }
-                setTimeout(() => resolve(null), 6000); // no esperar para siempre
+                let intentos = 0;
+                const esperarLibreria = setInterval(() => {
+                    intentos++;
+                    if (typeof turnstile !== 'undefined' && document.getElementById('turnstile-login')) {
+                        clearInterval(esperarLibreria);
+                        window._turnstileResolve = resolve;
+                        try {
+                            turnstile.execute('#turnstile-login');
+                        } catch (_e) { resolve(null); }
+                        setTimeout(() => resolve(null), 6000); // no esperar para siempre
+                    } else if (intentos > 40) {
+                        clearInterval(esperarLibreria);
+                        resolve(null);
+                    }
+                }, 100);
             });
         }
 
@@ -12095,14 +12113,33 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             window.onTurnstileBvOk = function(token) {
                 if (window._turnstileBvResolve) window._turnstileBvResolve(token);
             };
+            // 🔒 FIX: el script de Turnstile carga en modo "async" — si el
+            // usuario escribe su código y toca "Ingresar" apenas entra a la
+            // página (el modal "Mi Tienda" es lo primero que ve), es muy
+            // probable que "turnstile" todavía no exista como objeto
+            // global. Antes, en ese caso, se devolvía null DE INMEDIATO sin
+            // esperar nada — el Worker entonces rechazaba el login por
+            // "verificación de seguridad fallida", dando la sensación de
+            // que un código correcto no funcionaba. Ahora se espera
+            // (reintentando) hasta 4 segundos a que la librería esté lista
+            // antes de darse por vencido.
             function obtenerTokenTurnstileBv() {
-                if (typeof turnstile === 'undefined') return Promise.resolve(null);
                 return new Promise((resolve) => {
-                    window._turnstileBvResolve = resolve;
-                    try {
-                        turnstile.execute('#turnstile-bv');
-                    } catch (_e) { resolve(null); }
-                    setTimeout(() => resolve(null), 6000);
+                    let intentos = 0;
+                    const esperarLibreria = setInterval(() => {
+                        intentos++;
+                        if (typeof turnstile !== 'undefined' && document.getElementById('turnstile-bv')) {
+                            clearInterval(esperarLibreria);
+                            window._turnstileBvResolve = resolve;
+                            try {
+                                turnstile.execute('#turnstile-bv');
+                            } catch (_e) { resolve(null); }
+                            setTimeout(() => resolve(null), 6000);
+                        } else if (intentos > 40) { // 40 x 100ms = 4s
+                            clearInterval(esperarLibreria);
+                            resolve(null);
+                        }
+                    }, 100);
                 });
             }
 
