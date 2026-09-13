@@ -1037,6 +1037,15 @@
             max-height: 90vh;
             overflow-y: auto;
         }
+        /* 🔧 FIX: widget de Turnstile del formulario de login se veía
+           grande y corrido — se centra y se reduce. */
+        #turnstile-login-auth {
+            display: flex;
+            justify-content: center;
+            transform: scale(0.85);
+            transform-origin: center;
+            margin: 6px 0 4px;
+        }
 
         .auth-modal-close {
             position: absolute;
@@ -2973,6 +2982,16 @@
             letter-spacing: .7px; text-transform: uppercase;
         }
         .bv-body { padding: 24px 22px 18px; }
+        /* 🔧 FIX: este widget de Turnstile (modal "Mi Tienda") se veía
+           grande y corrido hacia un lateral — se centra y se reduce para
+           que quede alineado con el botón "Ingresar a mi tienda". */
+        #turnstile-bv {
+            display: flex;
+            justify-content: center;
+            transform: scale(0.85);
+            transform-origin: center;
+            margin: 6px 0 4px;
+        }
         .bv-body h2 {
             font-size: 16px; font-weight: 700; color: var(--text);
             margin-bottom: 5px;
@@ -5610,16 +5629,7 @@
                 // navegador (inútil para tienda.html, que lo ve un cliente
                 // en otro dispositivo). Ahora usa el mismo resolvedor de UID
                 // que ya usa el resto del panel para código de revendedor.
-                const uid = _getUidParaFirestore();
-                if (uid) {
-                    firebase.firestore().collection('usuarios').doc(uid)
-                        .update({ [`stockProductosCat.${catalogo}.${productId}`]: !!enStock })
-                        .catch(() => {});
-                } else if (typeof _firestoreUserRefAsync === 'function') {
-                    _firestoreUserRefAsync().then(ref => {
-                        if (ref) ref.update({ [`stockProductosCat.${catalogo}.${productId}`]: !!enStock }).catch(() => {});
-                    }).catch(() => {});
-                }
+                _guardarEnFirestore({ [`stockProductosCat.${catalogo}.${productId}`]: !!enStock });
             } catch(e) {}
         }
 
@@ -6021,10 +6031,19 @@
                 delete allConfig[catConfig];
                 localStorage.setItem('configTiendaAll', JSON.stringify(allConfig));
                 const uid = (typeof _getUidParaFirestore === 'function' && _getUidParaFirestore());
-                if (uid) {
-                    await firebase.firestore().collection('usuarios').doc(uid)
-                        .update({ [`configTiendaAll.${catConfig}`]: firebase.firestore.FieldValue.delete() })
-                        .catch(() => {});
+                const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                    || localStorage.getItem('codigoVendedorLocal')
+                    || localStorage.getItem('codigoRevendedorValidado');
+                if (uid || codigo) {
+                    fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            uid: uid || undefined,
+                            codigoVendedor: codigo || undefined,
+                            campos: { [`configTiendaAll.${catConfig}`]: '__DELETE_FIELD__' }
+                        })
+                    }).catch(() => {});
                 }
             } catch(e) {}
             document.getElementById('editarMargenSubModal').classList.remove('active');
@@ -6337,62 +6356,64 @@
             if (!user) return false;
 
             try {
-                const cartData = {
-                    uid: user.uid,
-                    codigoVendedor: window.currentUser?.codigoVendedor || '',
-                    items: cartItems.map(item => ({
-                        id: item.id,
-                        nombre: item.nombre,
-                        precio: item.precio,
-                        precioOriginal: item.precioOriginal,
-                        cantidad: item.cantidad,
-                        categoria: item.categoria,
-                        catalogo: item.catalogo || (item.talle ? 'calzados' : 'perfumes'),
-                        talle: item.talle || null,
-                        imagen: item.imagen
-                    })),
-                    actualizado: new Date()
-                };
+                const items = cartItems.map(item => ({
+                    id: item.id,
+                    nombre: item.nombre,
+                    precio: item.precio,
+                    precioOriginal: item.precioOriginal,
+                    cantidad: item.cantidad,
+                    categoria: item.categoria,
+                    catalogo: item.catalogo || (item.talle ? 'calzados' : 'perfumes'),
+                    talle: item.talle || null,
+                    imagen: item.imagen
+                }));
 
-                await firebase.firestore().collection('usuarios').doc(user.uid).collection('carrito').doc('actual').set(cartData);
-                return true;
+                const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/carrito', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        uid: user.uid,
+                        codigoVendedor: window.currentUser?.codigoVendedor || '',
+                        items
+                    })
+                });
+                return res.ok;
             } catch (error) {
-                console.error('Error guardando carrito en Firebase:', error);
+                console.error('Error guardando carrito:', error);
                 return false;
             }
         }
 
-        // Cargar carrito desde Firebase
+        // Cargar carrito (vía Worker)
         async function loadCartFromFirebase() {
             const user = firebase.auth().currentUser;
             if (!user) return [];
 
             try {
-                const doc = await firebase.firestore().collection('usuarios').doc(user.uid).collection('carrito').doc('actual').get();
-                if (doc.exists) {
-                    const data = doc.data();
-                    return data.items || [];
-                }
-                return [];
+                const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/carrito?uid=${encodeURIComponent(user.uid)}`);
+                if (!res.ok) return [];
+                const data = await res.json();
+                return (data && Array.isArray(data.items)) ? data.items : [];
             } catch (error) {
-                // No loguear errores de conexión offline (esperados)
-                if (error.code !== 'unavailable' && !error.message.includes('offline')) {
-                    console.warn('Error cargando carrito:', error.message);
-                }
+                console.warn('Error cargando carrito:', error.message);
                 return [];
             }
         }
 
-        // Limpiar carrito de Firebase
+        // Limpiar carrito (vía Worker)
         async function clearCartFromFirebase() {
             const user = firebase.auth().currentUser;
             if (!user) return false;
 
             try {
-                await firebase.firestore().collection('usuarios').doc(user.uid).collection('carrito').doc('actual').delete();
-                return true;
+                const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/carrito/borrar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid: user.uid })
+                });
+                return res.ok;
             } catch (error) {
-                console.error('Error limpiando carrito de Firebase:', error);
+                console.error('Error limpiando carrito:', error);
                 return false;
             }
         }
@@ -6522,16 +6543,19 @@
                     intentos_sincronizacion: 0  // 🔴 Contador de intentos de sincronización
                 };
 
-                // Guardar con ID auto-generado
-                const docRef = await Promise.race([
-                    firebase.firestore()
-                        .collection('usuarios').doc(user.uid)
-                        .collection('pedidos')
-                        .add(pedidoData),
-                    new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Firestore timeout - tardó más de 10 segundos')), 10000)
+                // Guardar con ID auto-generado (vía Worker)
+                const _resCrearPedido = await Promise.race([
+                    fetch('https://datosderevendedor.tuweb.workers.dev/api/pedido-personal', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid: user.uid, pedidoData })
+                    }).then(r => r.json()),
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Timeout - tardó más de 10 segundos')), 10000)
                     )
                 ]);
+                if (!_resCrearPedido || !_resCrearPedido.ok) throw new Error('No se pudo guardar el pedido');
+                const docRef = { id: _resCrearPedido.id };
 
                 /* silenciado */
 
@@ -6565,35 +6589,34 @@
             }
         }
 
-        // Actualizar estadísticas del usuario
+        // Actualizar estadísticas del usuario (vía Worker)
         async function updateUserStatistics(uid) {
             try {
-                // Obtener todos los pedidos del usuario
-                const snapshot = await firebase.firestore()
-                    .collection('usuarios').doc(uid)
-                    .collection('pedidos')
-                    .get();
+                const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/pedidos-personales?uid=${encodeURIComponent(uid)}`);
+                const data = await res.json();
+                const pedidos = (data && data.ok && Array.isArray(data.pedidos)) ? data.pedidos : [];
 
                 let totalInversion = 0;
                 let totalGanancia = 0;
 
-                snapshot.forEach(doc => {
-                    const pedido = doc.data();
+                pedidos.forEach(pedido => {
                     totalInversion += pedido.totalInversion || 0;
                     totalGanancia += pedido.totalGanancia || 0;
                 });
 
-                // Guardar estadísticas
-                await firebase.firestore()
-                    .collection('usuarios').doc(uid)
-                    .update({
+                await fetch('https://datosderevendedor.tuweb.workers.dev/api/estadisticas-usuario', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        uid,
                         estadisticas: {
-                            totalInversion: totalInversion,
-                            totalGanancia: totalGanancia,
+                            totalInversion,
+                            totalGanancia,
                             totalFinal: totalInversion + totalGanancia,
-                            actualizadoEn: new Date()
+                            actualizadoEn: Date.now()
                         }
-                    });
+                    })
+                });
             } catch (error) {
                 console.error('Error actualizando estadísticas:', error);
             }
@@ -6611,18 +6634,18 @@
             try {
                 /* silenciado */
 
-                // 1. Obtener datos del pedido local
-                const pedidoDoc = await firebase.firestore()
-                    .collection('usuarios').doc(user.uid)
-                    .collection('pedidos').doc(pedidoId)
-                    .get();
-
-                if (!pedidoDoc.exists) {
+                // 1. Obtener datos del pedido local (vía Worker)
+                const resPedido = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/pedido-personal?uid=${encodeURIComponent(user.uid)}&pedidoId=${encodeURIComponent(pedidoId)}`);
+                if (!resPedido.ok) {
                     console.error('Pedido no encontrado:', pedidoId);
                     return { success: false, error: 'Pedido no encontrado' };
                 }
-
-                const pedidoData = pedidoDoc.data();
+                const dataPedido = await resPedido.json();
+                const pedidoData = (dataPedido && dataPedido.ok) ? dataPedido.pedido : null;
+                if (!pedidoData) {
+                    console.error('Pedido no encontrado:', pedidoId);
+                    return { success: false, error: 'Pedido no encontrado' };
+                }
 
                 // 2. Si el estado ya es 'pagado', no hay nada que hacer
                 if (pedidoData.estado === 'pagado') {
@@ -6640,15 +6663,20 @@
                     if (mpStatus.status === 'approved') {
                         /* silenciado */
                         
-                        // Actualizar estado a pagado
-                        await firebase.firestore()
-                            .collection('usuarios').doc(user.uid)
-                            .collection('pedidos').doc(pedidoId)
-                            .update({
-                                estado: 'pagado',
-                                fechaPago: new Date(),
-                                mp_sincronizado: true
-                            });
+                        // Actualizar estado a pagado (vía Worker)
+                        await fetch('https://datosderevendedor.tuweb.workers.dev/api/pedido-personal/actualizar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                uid: user.uid,
+                                pedidoId,
+                                campos: {
+                                    estado: 'pagado',
+                                    fechaPago: Date.now(),
+                                    mp_sincronizado: true
+                                }
+                            })
+                        });
 
                         return { success: true, message: 'Pago sincronizado correctamente' };
                     } else if (mpStatus.status === 'pending') {
@@ -7083,9 +7111,11 @@
             if (firebase.auth().currentUser) {
                 const uid = firebase.auth().currentUser.uid;
                 try {
-                    const docSnap = await firebase.firestore().collection('usuarios').doc(uid).get();
-                    if (docSnap.exists) {
-                        const userData = docSnap.data();
+                    const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(uid)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const userData = (data && data.ok) ? data.perfil : null;
+                        if (userData) {
                         // Rellenar campos del formulario
                         if (userData.nombre) document.getElementById('checkout-nombre').value = userData.nombre;
                         if (userData.email) document.getElementById('checkout-email').value = userData.email;
@@ -7098,6 +7128,7 @@
                         if (userData.codigoVendedor) {
                             document.getElementById('checkout-codigo-revendedor').value = userData.codigoVendedor;
                         }
+                        }
                     }
                 } catch (error) {
                     console.error('Error cargando datos del usuario:', error);
@@ -7108,17 +7139,14 @@
         // Validar que el código de revendedor existe en Firebase
         async function validarCodigoRevendedorEnFirestore(codigo) {
             try {
-                // Normalizar el código como se hace en la validación
-                const codigoNormalizado = codigo.trim().replace(/\s+/g, '').toUpperCase();
-                
-                // Buscar en la colección usuarios si existe un documento con este codigoVendedor
-                const snapshot = await firebase.firestore()
-                    .collection('usuarios')
-                    .where('codigoVendedor', '==', codigoNormalizado)
-                    .get();
-                
-                // Si encuentra al menos un documento, el código es válido
-                return !snapshot.empty;
+                const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/validar-codigo-existe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo: codigo.trim().replace(/\s+/g, '') })
+                });
+                if (!res.ok) return false;
+                const data = await res.json();
+                return !!(data && data.valido);
             } catch (error) {
                 console.error('Error validando código de revendedor:', error);
                 return false;
@@ -7155,13 +7183,10 @@
             if (!uidActual) return codigoMemoria || codigoLocal || null;
 
             try {
-                const doc = await firebase.firestore()
-                    .collection('usuarios')
-                    .doc(uidActual)
-                    .get({ source: 'default' });
-
-                if (doc.exists) {
-                    const data = doc.data() || {};
+                const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(uidActual)}`);
+                if (res.ok) {
+                    const respData = await res.json();
+                    const data = (respData && respData.ok) ? (respData.perfil || {}) : {};
                     const codigo = data.codigoVendedor;
                     if (codigo) {
                         localStorage.setItem('codigoVendedorLocal', codigo);
@@ -7424,17 +7449,22 @@
                 const provider = new firebase.auth.GoogleAuthProvider();
                 const result = await firebase.auth().signInWithPopup(provider);
                 const user = result.user;
-                const docRef = firebase.firestore().collection('usuarios').doc(user.uid);
-                const doc = await docRef.get();
-                if (!doc.exists) {
+                const resPerfil = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(user.uid)}`);
+                if (!resPerfil.ok) {
                     const codigoVendedor = generarCodigoVendedor();
-                    await docRef.set({
-                        uid: user.uid,
-                        nombre: user.displayName ? user.displayName.split(' ')[0] : user.email.split('@')[0],
-                        apellido: user.displayName ? user.displayName.split(' ').slice(1).join(' ') : '',
-                        email: user.email,
-                        codigoVendedor: codigoVendedor,
-                        creado: new Date()
+                    await fetch('https://datosderevendedor.tuweb.workers.dev/api/crear-cuenta', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            uid: user.uid,
+                            datos: {
+                                nombre: user.displayName ? user.displayName.split(' ')[0] : user.email.split('@')[0],
+                                apellido: user.displayName ? user.displayName.split(' ').slice(1).join(' ') : '',
+                                email: user.email,
+                                codigoVendedor: codigoVendedor,
+                                creado: Date.now()
+                            }
+                        })
                     });
                 }
                 closeAuthModal();
@@ -7510,11 +7540,20 @@
                 // ESPERA el guardado antes de mostrar nada, con un
                 // reintento si falla la primera vez.
                 try {
-                    await firebase.firestore().collection('usuarios').doc(user.uid).set(userData);
+                    const resCrear1 = await fetch('https://datosderevendedor.tuweb.workers.dev/api/crear-cuenta', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid: user.uid, datos: userData })
+                    });
+                    if (!resCrear1.ok) throw new Error('fallo guardado');
                 } catch (errGuardado) {
                     // Un solo reintento antes de resignarse — no dejar al
                     // revendedor con un código que no está en la base.
-                    await firebase.firestore().collection('usuarios').doc(user.uid).set(userData);
+                    await fetch('https://datosderevendedor.tuweb.workers.dev/api/crear-cuenta', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid: user.uid, datos: userData })
+                    });
                 }
 
                 localStorage.setItem('codigoVendedorLocal', codigoVendedor);
@@ -7617,19 +7656,25 @@
                 // Guardar en Firestore si no existe (en background, sin bloquear)
                 // IMPORTANTE: NO regenerar el codigoVendedor si ya existe
                 if (userCredential.user) {
-                    firebase.firestore().collection('usuarios').doc(userCredential.user.uid).get()
-                        .then(doc => {
-                            if (!doc.exists) {
-                                // Usuario no en Firestore, crear documento SOLO SI NO EXISTE
+                    fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(userCredential.user.uid)}`)
+                        .then(resPerfil => {
+                            if (!resPerfil.ok) {
+                                // Usuario no en la base, crear documento SOLO SI NO EXISTE
                                 // El código se genera UNA SOLA VEZ
                                 const nuevoCodigoVendedor = generarCodigoVendedor();
-                                
-                                firebase.firestore().collection('usuarios').doc(userCredential.user.uid).set({
-                                    uid: userCredential.user.uid,
-                                    email: userCredential.user.email,
-                                    nombre: userCredential.user.email.split('@')[0],
-                                    codigoVendedor: nuevoCodigoVendedor,
-                                    creado: new Date()
+
+                                fetch('https://datosderevendedor.tuweb.workers.dev/api/crear-cuenta', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        uid: userCredential.user.uid,
+                                        datos: {
+                                            email: userCredential.user.email,
+                                            nombre: userCredential.user.email.split('@')[0],
+                                            codigoVendedor: nuevoCodigoVendedor,
+                                            creado: Date.now()
+                                        }
+                                    })
                                 }).catch(err => {});
                             }
                         })
@@ -7897,11 +7942,13 @@
                 const profileCodeEl = document.getElementById('profileCode');
                 if (profileCodeEl) profileCodeEl.textContent = 'Cargando...';
                 try {
-                    const doc = await firebase.firestore().collection('usuarios').doc(user.uid).get();
-                    
-                    if (doc.exists) {
-                        const userData = doc.data();
-                        
+                    const resPerfil = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(user.uid)}`);
+
+                    if (resPerfil.ok) {
+                        const respData = await resPerfil.json();
+                        const userData = (respData && respData.ok) ? respData.perfil : null;
+
+                        if (userData) {
                         if (userData.codigoVendedor && userData.codigoVendedor.trim() !== '') {
                             codigoFinal = userData.codigoVendedor;
                             localStorage.setItem('codigoVendedorLocal', userData.codigoVendedor);
@@ -7917,6 +7964,7 @@
                                 email: user.email,
                                 ...userData
                             };
+                        }
                         }
                     }
                 } catch (error) {
@@ -7934,17 +7982,27 @@
                     window.currentUser.codigoVendedor = codigoFinal;
                 }
                 
-                firebase.firestore().collection('usuarios').doc(user.uid).update({
-                    codigoVendedor: codigoFinal
-                }).catch(err => {
-                    firebase.firestore().collection('usuarios').doc(user.uid).set({
-                        uid: user.uid,
-                        email: user.email,
-                        nombre: window.currentUser?.nombre || user.email.split('@')[0],
-                        codigoVendedor: codigoFinal,
-                        creado: window.currentUser?.creado || new Date()
-                    }).catch(err2 => {});
-                });
+                fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid: user.uid, campos: { codigoVendedor: codigoFinal } })
+                }).then(res => {
+                    if (!res.ok) {
+                        fetch('https://datosderevendedor.tuweb.workers.dev/api/crear-cuenta', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                uid: user.uid,
+                                datos: {
+                                    email: user.email,
+                                    nombre: window.currentUser?.nombre || user.email.split('@')[0],
+                                    codigoVendedor: codigoFinal,
+                                    creado: window.currentUser?.creado || Date.now()
+                                }
+                            })
+                        }).catch(err2 => {});
+                    }
+                }).catch(err => {});
             }
 
             const profileCodeEl = document.getElementById('profileCode');
@@ -8056,10 +8114,12 @@
             if (!user) return;
 
             try {
-                // Obtener documento del usuario
-                const userDoc = await firebase.firestore().collection('usuarios').doc(user.uid).get();
-                if (userDoc.exists && userDoc.data().estadisticas) {
-                    const stats = userDoc.data().estadisticas;
+                // Obtener documento del usuario (vía Worker)
+                const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(user.uid)}`);
+                const data = res.ok ? await res.json() : null;
+                const perfil = (data && data.ok) ? data.perfil : null;
+                if (perfil && perfil.estadisticas) {
+                    const stats = perfil.estadisticas;
                     document.getElementById('stat-total-investment').textContent = '$' + (stats.totalInversion || 0).toLocaleString();
                     document.getElementById('stat-total-profit').textContent = '$' + (stats.totalGanancia || 0).toLocaleString();
                     document.getElementById('stat-total-final').textContent = '$' + (stats.totalFinal || 0).toLocaleString();
@@ -8258,9 +8318,11 @@
             // ✅ CRÍTICO: Si se generó código nuevo, actualizar Firestore en background
             if (!safeUserData.codigoVendedor || safeUserData.codigoVendedor.trim() === '') {
                 if (codigoFinal && codigoFinal.trim() !== '') {
-                    // Actualizar en Firestore sin bloquear
-                    firebase.firestore().collection('usuarios').doc(authUser.uid).update({
-                        codigoVendedor: codigoFinal
+                    // Actualizar en el Worker sin bloquear
+                    fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid: authUser.uid, campos: { codigoVendedor: codigoFinal } })
                     }).catch(err => {
                         // Silencioso en background
                     });
@@ -8287,9 +8349,9 @@
             // local para una categoría, nunca se enteraba de cambios hechos
             // desde el celular para esa misma categoría. Ahora la nube
             // (Firestore) SIEMPRE gana cuando existe.
-            firebase.firestore().collection('usuarios').doc(authUser.uid).get().then(doc => {
-                if (!doc.exists) return;
-                const fd = doc.data();
+            fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(authUser.uid)}`).then(res => res.ok ? res.json() : null).then(respData => {
+                const fd = (respData && respData.ok) ? respData.perfil : null;
+                if (!fd) return;
                 try {
                     if (fd.configTiendaAll && typeof fd.configTiendaAll === 'object') {
                         const localAll = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
@@ -8393,17 +8455,15 @@
             if (!window.currentUser?.codigoVendedor || window.currentUser.codigoVendedor === '') {
                 // Si userData era null, intentar cargar de Firestore AHORA
                 if (!userData) {
-                    firebase.firestore().collection('usuarios').doc(authUser.uid).get()
-                        .then(doc => {
-                            if (doc.exists) {
-                                const fullData = doc.data();
-                                
-                                if (fullData.codigoVendedor) {
-                                    window.currentUser = {
-                                        ...window.currentUser,
-                                        ...fullData
-                                    };
-                                }
+                    fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(authUser.uid)}`)
+                        .then(res => res.ok ? res.json() : null)
+                        .then(respData => {
+                            const fullData = (respData && respData.ok) ? respData.perfil : null;
+                            if (fullData && fullData.codigoVendedor) {
+                                window.currentUser = {
+                                    ...window.currentUser,
+                                    ...fullData
+                                };
                             }
                         })
                         .catch(err => {});
@@ -8844,12 +8904,10 @@
             let fsItems = [];
             try {
                 if (user) {
-                    const snap = await firebase.firestore()
-                        .collection('usuarios').doc(user.uid)
-                        .collection('pedidos')
-                        .orderBy('fechaCreacion', 'desc')
-                        .get();
-                    fsItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/pedidos-personales?uid=${encodeURIComponent(user.uid)}`);
+                    const data = res.ok ? await res.json() : null;
+                    fsItems = (data && data.ok && Array.isArray(data.pedidos)) ? data.pedidos : [];
+                    fsItems.sort((a, b) => (b.fechaCreacion || 0) - (a.fechaCreacion || 0));
                 }
             } catch (e) {}
 
@@ -9285,13 +9343,15 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             const codigoVendedor = await getCodigoVendedorActual() || '';
             try {
                 if (!esWorker && user) {
-                    await firebase.firestore()
-                        .collection('usuarios').doc(user.uid)
-                        .collection('pedidos').doc(pedidoId)
-                        .update({
-                            estadoAprobacion: nuevoEstado,
-                            fechaAprobacion: new Date()
-                        });
+                    await fetch('https://datosderevendedor.tuweb.workers.dev/api/pedido-personal/actualizar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            uid: user.uid,
+                            pedidoId,
+                            campos: { estadoAprobacion: nuevoEstado, fechaAprobacion: Date.now() }
+                        })
+                    });
                 }
                 // Notificar al Worker (best-effort)
                 try {
@@ -9496,15 +9556,15 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 // Error silencioso
             });
         
-        // SISTEMA DE REINTENTOS PARA FIRESTORE
+        // SISTEMA DE REINTENTOS — vía Worker
         async function loadUserDataFromFirestoreWithRetry(uid, maxRetries = 3, delayMs = 500) {
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
                 try {
-                    const userDoc = await firebase.firestore().collection('usuarios').doc(uid).get();
-                    if (userDoc.exists) {
-                        return userDoc.data();
-                    }
-                    return null;
+                    const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(uid)}`);
+                    if (res.status === 404) return null;
+                    if (!res.ok) throw new Error('Error al obtener perfil');
+                    const data = await res.json();
+                    return (data && data.ok) ? data.perfil : null;
                 } catch (error) {
                     if (attempt < maxRetries) {
                         await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
@@ -9854,9 +9914,14 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 window.currentUser.codigoVendedor = nuevoCodigoVendedor;
                 localStorage.setItem('codigoVendedorLocal', nuevoCodigoVendedor);
                 
-                // Actualizar en Firestore en background
-                firebase.firestore().collection('usuarios').doc(firebase.auth().currentUser.uid).update({
-                    codigoVendedor: nuevoCodigoVendedor
+                // Actualizar en el Worker en background
+                fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        uid: firebase.auth().currentUser.uid,
+                        campos: { codigoVendedor: nuevoCodigoVendedor }
+                    })
                 }).catch(err => {});
             }
             
@@ -11155,49 +11220,13 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             return null;
         }
         function _firestoreUserRef() {
-            const uid = _getUidParaFirestore();
-            if (!uid) return null;
-            return firebase.firestore().collection('usuarios').doc(uid);
+            // 🔧 FIX: se mantiene solo para no romper otros lugares que
+            // todavía puedan llamarla — ya no hace ninguna consulta directa
+            // a Firestore. El guardado real ahora vive en _guardarEnFirestore().
+            return null;
         }
-        // Versión async: si no hay UID en memoria, lo busca por codigoVendedor en Firestore
-        // 🔧 FIX: antes, si el login por código de revendedor todavía no había
-        // terminado de poblar window.currentUser en el momento exacto de guardar
-        // el WhatsApp (una carrera muy común justo después de loguearse), esta
-        // función devolvía null de una y el número NUNCA se guardaba en
-        // Firestore — quedaba solo en localStorage de ese navegador, por eso
-        // el cliente en tienda.html veía "vendedor no configuró WhatsApp"
-        // aunque el revendedor sí lo había puesto. Ahora reintenta unas pocas
-        // veces con una pequeña espera antes de rendirse.
         async function _firestoreUserRefAsync(_intento) {
-            _intento = _intento || 0;
-            const ref = _firestoreUserRef();
-            if (ref) return ref;
-            // Intentar buscar por código de vendedor
-            const codigo = (window.currentUser && window.currentUser.codigoVendedor)
-                || localStorage.getItem('codigoVendedorLocal')
-                || localStorage.getItem('codigoRevendedorValidado');
-            if (!codigo) {
-                if (_intento < 5) {
-                    await new Promise(r => setTimeout(r, 400));
-                    return _firestoreUserRefAsync(_intento + 1);
-                }
-                return null;
-            }
-            try {
-                const snap = await firebase.firestore().collection('usuarios')
-                    .where('codigoVendedor', '==', codigo).limit(1).get();
-                if (snap.empty) {
-                    if (_intento < 5) {
-                        await new Promise(r => setTimeout(r, 400));
-                        return _firestoreUserRefAsync(_intento + 1);
-                    }
-                    return null;
-                }
-                const docRef = snap.docs[0].ref;
-                // Cachear el uid real para futuras llamadas
-                if (window.currentUser) window.currentUser.uid = snap.docs[0].id;
-                return docRef;
-            } catch(e) { return null; }
+            return null;
         }
         // Helper para guardar en Firestore con fallback async
         // ── localStorage safe: Safari iOS modo privado lanza excepción en setItem ──
@@ -11206,38 +11235,22 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         function _lsGet(k){try{var v=localStorage.getItem(k);if(v!==null)return v;}catch(e){}try{var v=sessionStorage.getItem(k);if(v!==null)return v;}catch(e){}return _lsMem[k]!==undefined?_lsMem[k]:null;}
         // ──────────────────────────────────────────────────────────────────────────
 
+        // 🔧 FIX: antes escribía DIRECTO a Firestore desde el navegador, por
+        // dos caminos en paralelo (UID y búsqueda por código) como respaldo
+        // ante sesiones inconsistentes. Ahora manda ambos datos al Worker, que
+        // hace la MISMA resolución (UID primero, código como respaldo) de
+        // forma más precisa del lado del servidor, en una sola escritura.
         function _guardarEnFirestore(data) {
-            // 🔧 FIX DEFINITIVO: el guardado por UID puede terminar apuntando a
-            // un documento distinto del que realmente lee tienda.html — que
-            // busca al revendedor por codigoVendedor, NO por UID (login por
-            // código, sesión vieja cacheada en el navegador, etc. pueden hacer
-            // que el UID en memoria no sea el correcto). Antes, si eso pasaba,
-            // el dato se guardaba "bien" según el código pero en el documento
-            // equivocado, y el cliente nunca lo encontraba — sin ningún error
-            // visible. Ahora se escribe SIEMPRE por los dos caminos en
-            // paralelo: por UID (como antes) Y por una búsqueda directa por
-            // codigoVendedor — el mismo método exacto que usa tienda.html —
-            // así el dato queda garantizado en el documento correcto sin
-            // importar cuál resolución de sesión sea la válida.
-            const ref = _firestoreUserRef();
-            if (ref) { ref.set(data, { merge: true }).catch(() => {}); }
-
+            const uid = _getUidParaFirestore();
             const codigo = (window.currentUser && window.currentUser.codigoVendedor)
                 || localStorage.getItem('codigoVendedorLocal')
                 || localStorage.getItem('codigoRevendedorValidado');
-            if (codigo) {
-                firebase.firestore().collection('usuarios')
-                    .where('codigoVendedor', '==', codigo).limit(1).get()
-                    .then(snap => { if (!snap.empty) return snap.docs[0].ref.set(data, { merge: true }); })
-                    .catch(() => {});
-            }
-
-            if (!ref && !codigo) {
-                // Ni UID ni código disponibles todavía (carga muy temprana):
-                // usar el fallback con reintentos que ya espera a que
-                // currentUser termine de poblarse.
-                _firestoreUserRefAsync().then(r => { if (r) r.set(data, { merge: true }).catch(() => {}); });
-            }
+            if (!uid && !codigo) return;
+            fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: uid || undefined, codigoVendedor: codigo || undefined, campos: data })
+            }).catch(() => {});
         }
         // ─────────────────────────────────────────────────────────────────────────────────
 
@@ -11684,10 +11697,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (!precios[catalogo]) precios[catalogo] = {};
             precios[catalogo][productId] = precio;
             localStorage.setItem('preciosManualCat', JSON.stringify(precios));
-            const fbUser = firebase.auth().currentUser;
-            if (fbUser) {
-                firebase.firestore().collection('usuarios').doc(fbUser.uid).update({ [`preciosManualCat.${catalogo}.${productId}`]: precio }).catch(() => {});
-            }
+            _guardarEnFirestore({ [`preciosManualCat.${catalogo}.${productId}`]: precio });
             try {
                 const codigoVendedor = (window.currentUser && window.currentUser.codigoVendedor)
                     || localStorage.getItem('codigoVendedorLocal')
@@ -11722,10 +11732,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             if (!precios[catalogo]) precios[catalogo] = {};
             precios[catalogo][productId] = precio;
             localStorage.setItem('preciosIndividualCat', JSON.stringify(precios));
-            const fbUser = firebase.auth().currentUser;
-            if (fbUser) {
-                firebase.firestore().collection('usuarios').doc(fbUser.uid).update({ [`preciosIndividualCat.${catalogo}.${productId}`]: precio }).catch(() => {});
-            }
+            _guardarEnFirestore({ [`preciosIndividualCat.${catalogo}.${productId}`]: precio });
             document.getElementById('editarPrecioProductoModal').classList.remove('active');
             const toast = document.getElementById('wa-toast');
             if (toast) {
@@ -11764,22 +11771,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             } catch(e) {}
             const fbUser = firebase.auth().currentUser;
             if (fbUser) {
-                const ref = firebase.firestore().collection('usuarios').doc(fbUser.uid);
-                const del = firebase.firestore.FieldValue.delete();
-                await firebase.firestore().collection('tiendasEliminadas').add({
-                    uid: fbUser.uid,
-                    codigoVendedor: codigo,
-                    nombre: (window.currentUser && window.currentUser.nombre) || '',
-                    categoria: cat,
-                    enlace: enlace,
-                    eliminado: new Date()
-                }).catch(() => {});
-                await ref.update({
-                    [`configTiendaAll.${cat}`]: del,
-                    [`preciosManualCat.${cat}`]: del,
-                    [`coloresTiendaPorCat.${cat}`]: del,
-                    [`coloresExtraTienda.${cat}`]: del,
-                    configTienda: del
+                fetch('https://datosderevendedor.tuweb.workers.dev/api/eliminar-tienda', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        uid: fbUser.uid,
+                        codigoVendedor: codigo,
+                        nombre: (window.currentUser && window.currentUser.nombre) || '',
+                        categoria: cat,
+                        enlace: enlace
+                    })
                 }).catch(() => {});
             }
             document.getElementById('configTiendaModal').classList.remove('active');
@@ -11820,9 +11821,9 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 if (_orig) _orig(userData, user);
                 if (!user) return;
                 // Cargar config y WhatsApp desde Firestore si no están en localStorage
-                firebase.firestore().collection('usuarios').doc(user.uid).get().then(doc => {
-                    if (!doc.exists) return;
-                    const data = doc.data();
+                fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(user.uid)}`).then(res => res.ok ? res.json() : null).then(respData => {
+                    const data = (respData && respData.ok) ? respData.perfil : null;
+                    if (!data) return;
                     if (data.whatsappRevendedor && !_lsGet('whatsappRevendedor')) {
                         _lsSet('whatsappRevendedor', data.whatsappRevendedor);
                     }
@@ -11961,15 +11962,18 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 });
             }
 
-            // Busca el vendedor en Firestore por código (fallback — el Worker es la vía principal)
+            // Busca el vendedor por código (fallback — el Worker es la vía principal)
             async function buscarEnFirestore(codigo) {
-                var snap = await firebase.firestore()
-                    .collection('usuarios')
-                    .where('codigoVendedor', '==', codigo)
-                    .limit(1)
-                    .get();
-                if (snap.empty) return null;
-                return snap.docs[0].data();
+                try {
+                    const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/validar-codigo-existe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codigo })
+                    });
+                    if (!res.ok) return null;
+                    const data = await res.json();
+                    return (data && data.valido && data.vendedor) ? data.vendedor : null;
+                } catch (e) { return null; }
             }
 
             // Aplica los datos del revendedor a toda la página
@@ -12033,10 +12037,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 // importar desde qué dispositivo se entre.
                 function _traerYMergearDocCompleto(uid) {
                     if (!uid) return;
-                    firebase.firestore().collection('usuarios').doc(uid).get()
-                        .then(function(doc) {
-                            if (doc.exists) {
-                                _mergeDatosDesdeNube(doc.data());
+                    fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(uid)}`)
+                        .then(function(res) { return res.ok ? res.json() : null; })
+                        .then(function(respData) {
+                            var data = (respData && respData.ok) ? respData.perfil : null;
+                            if (data) {
+                                _mergeDatosDesdeNube(data);
                                 // Repintar con los datos ya actualizados —
                                 // sin esto, el catálogo se quedaba con lo
                                 // viejo hasta la próxima recarga manual.
@@ -12049,13 +12055,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                         }).catch(function(){});
                 }
 
-                // Si no tenemos uid real todavía, buscarlo en Firestore para futuras escrituras
+                // Si no tenemos uid real todavía, buscarlo para futuras escrituras
                 if (!_uidReal) {
-                    firebase.firestore().collection('usuarios')
-                        .where('codigoVendedor', '==', codigo).limit(1).get()
-                        .then(function(sn) {
-                            if (!sn.empty) {
-                                var _uid = sn.docs[0].id;
+                    fetch('https://datosderevendedor.tuweb.workers.dev/api/validar-codigo-existe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codigo })
+                    }).then(function(res) { return res.ok ? res.json() : null; })
+                        .then(function(data) {
+                            if (data && data.valido && data.vendedor && data.vendedor.uid) {
+                                var _uid = data.vendedor.uid;
                                 if (window.currentUser) window.currentUser.uid = _uid;
                                 _traerYMergearDocCompleto(_uid);
                             }
@@ -12247,12 +12256,23 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 // abierta sin protección). Ahora manda el token y pasa
                 // siempre por el Worker seguro en el primer intento, tal
                 // como tiene que funcionar toda la plataforma.
+                // 🔒 FIX: esta llamada mandaba una sola variante del código
+                // (mayúscula, con el prefijo "RW-" tal cual lo escribió el
+                // usuario) — si el valor guardado en la base tenía otra
+                // capitalización o formato, la búsqueda exacta fallaba y
+                // devolvía "código inválido" aunque el código fuera
+                // correcto. Ahora se prueban las mismas variantes que ya
+                // usa el otro login del sitio (mayúscula, minúscula, y sin
+                // el prefijo "RW-"), todas en una sola petición.
+                const candidatosBv = [...new Set([codigo, codigo.toLowerCase()])];
+                if (codigo.startsWith('RW-')) candidatosBv.push(codigo.substring(3));
+
                 const turnstileToken = await obtenerTokenTurnstileBv();
                 try {
                     var res = await fetch(WORKER_LOGIN, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codigo: codigo, turnstileToken })
+                        body: JSON.stringify({ candidatos: candidatosBv, turnstileToken })
                     });
                     workerRespondio = true;
                     var workerData = await res.json();
@@ -13441,12 +13461,22 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             } catch(e) {}
             try {
                 const fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-                if (fbUser) {
-                    const del = firebase.firestore.FieldValue.delete();
-                    await firebase.firestore().collection('usuarios').doc(fbUser.uid).update({
-                        [`configTiendaAll.${cat}`]: del,
-                        [`preciosManualCat.${cat}`]: del,
-                        [`coloresTiendaPorCat.${cat}`]: del
+                const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                    || localStorage.getItem('codigoVendedorLocal')
+                    || localStorage.getItem('codigoRevendedorValidado');
+                if (fbUser || codigo) {
+                    fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            uid: fbUser ? fbUser.uid : undefined,
+                            codigoVendedor: codigo || undefined,
+                            campos: {
+                                [`configTiendaAll.${cat}`]: '__DELETE_FIELD__',
+                                [`preciosManualCat.${cat}`]: '__DELETE_FIELD__',
+                                [`coloresTiendaPorCat.${cat}`]: '__DELETE_FIELD__'
+                            }
+                        })
                     }).catch(() => {});
                 }
             } catch(e) {}
@@ -13846,11 +13876,8 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             }
             localStorage.setItem('promocionesTienda', JSON.stringify(promos));
             try {
-                const fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-                if (fbUser && _promoCat) {
-                    firebase.firestore().collection('usuarios').doc(fbUser.uid).update({
-                        [`promocionesTienda.${_promoCat}.rangos`]: rangos
-                    }).catch(() => {});
+                if (_promoCat) {
+                    _guardarEnFirestore({ [`promocionesTienda.${_promoCat}.rangos`]: rangos });
                 }
             } catch(e) {}
             mostrarToastOk('Descuento guardado');
@@ -14368,12 +14395,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             mostrarToastOk('Promoción guardada');
 
             try {
-                const fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-                if (fbUser) {
-                    firebase.firestore().collection('usuarios').doc(fbUser.uid).update({
-                        [`promocionesTienda.${_promoCat}`]: promo
-                    }).catch(() => {});
-                }
+                _guardarEnFirestore({ [`promocionesTienda.${_promoCat}`]: promo });
             } catch(e) {}
             // ── Sincronizar promoción con worker preciomanual ──────────────────
             try {
@@ -14413,10 +14435,13 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         // que el enlace de tienda), que nunca expone el código.
 
         window.volverAPublicarPromo = function() {
-            // Re-guarda la promo en Firestore para asegurar que tienda.html la lea fresca
+            // Re-guarda la promo para asegurar que tienda.html la lea fresca (vía Worker)
             try {
                 const fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-                if (fbUser && _promoCat) {
+                const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                    || localStorage.getItem('codigoVendedorLocal')
+                    || localStorage.getItem('codigoRevendedorValidado');
+                if ((fbUser || codigo) && _promoCat) {
                     let promos = {};
                     try { promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}'); } catch(e) {}
                     const promo = promos[_promoCat];
@@ -14425,11 +14450,19 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                         promo.publicadoEn = Date.now();
                         promos[_promoCat] = promo;
                         localStorage.setItem('promocionesTienda', JSON.stringify(promos));
-                        firebase.firestore().collection('usuarios').doc(fbUser.uid).update({
-                            [`promocionesTienda.${_promoCat}`]: promo
-                        }).then(() => {
-                            const btn = event && event.target;
-                            if (btn) { const orig = btn.textContent; btn.textContent = '✅ ¡Publicada!'; setTimeout(() => { btn.textContent = orig; }, 2000); }
+                        fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                uid: fbUser ? fbUser.uid : undefined,
+                                codigoVendedor: codigo || undefined,
+                                campos: { [`promocionesTienda.${_promoCat}`]: promo }
+                            })
+                        }).then(res => {
+                            if (res.ok) {
+                                const btn = event && event.target;
+                                if (btn) { const orig = btn.textContent; btn.textContent = '✅ ¡Publicada!'; setTimeout(() => { btn.textContent = orig; }, 2000); }
+                            }
                         }).catch(() => {});
                     }
                 }
