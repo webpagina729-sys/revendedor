@@ -3298,8 +3298,12 @@ async function iniciarTienda() {
         : '';
     const nombre = nombreTiendaConfigurado || nombreCompletoVendedor;
     document.getElementById('header-store-name').textContent = nombre;
-    document.getElementById('header-store-sub').textContent = ETIQUETA_CATEGORIA(catalogoActual);
-    document.getElementById('footer-vendor-name').textContent = nombre;
+    // 🔧 Se quita el subtítulo de categoría bajo el nombre del banner — la
+    // categoría ya se muestra en la portada, debajo del banner.
+    document.getElementById('header-store-sub').textContent = '';
+    // 🔧 El pie "Tienda gestionada por..." siempre muestra el nombre y
+    // apellido del revendedor registrado, nunca el nombre de tienda.
+    document.getElementById('footer-vendor-name').textContent = nombreCompletoVendedor;
 
     // Hero
     const hero = document.getElementById('tienda-hero');
