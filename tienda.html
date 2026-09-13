@@ -990,24 +990,13 @@
     </div>
 </div>
 
-<!-- FIREBASE -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<!-- 🔧 FIX: se eliminó el SDK de Firebase (app-compat, firestore-compat) y
+     su configuración — tienda.html ya no habla directo con Firebase desde
+     el navegador para nada (ni auth, ni Firestore). Todo pasa por los
+     Workers de la plataforma. -->
 
 <script>
-// ═══════════════════════════════════════════════════════════════
-// FIREBASE CONFIG  (igual que index_v5)
-// ═══════════════════════════════════════════════════════════════
-const firebaseConfig = {
-    apiKey: "AIzaSyBRzd3HXbY6xIBIBNkzATo70kredodhKwc",
-    authDomain: "revende-weys.firebaseapp.com",
-    projectId: "revende-weys",
-    storageBucket: "revende-weys.firebasestorage.app",
-    messagingSenderId: "606182275212",
-    appId: "1:606182275212:web:69089eb56f10b8a02063a9"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+
 
 // ═══════════════════════════════════════════════════════════════
 // WORKER  (para leer datos del vendedor por código)
@@ -2900,12 +2889,15 @@ async function cargarVendedor() {
         //     aunque las reglas de seguridad no permitan hacer queries).
         if (!userData) {
             try {
-                const docSnap = await db.collection('usuarios').doc(uidParam).get();
-                _diag('Firestore usuarios/' + uidParam + ': ' + (docSnap.exists ? 'encontrado' : 'NO existe'));
-                if (docSnap.exists) userData = docSnap.data();
+                const resPerfil = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(uidParam)}`);
+                _diag('Perfil uid=' + uidParam + ': ' + (resPerfil.ok ? 'encontrado' : 'NO existe'));
+                if (resPerfil.ok) {
+                    const respData = await resPerfil.json();
+                    if (respData && respData.ok) userData = respData.perfil;
+                }
                 /* silenciado */
             } catch (e) {
-                _diag('Firestore directo ERROR: ' + e.message);
+                _diag('Perfil directo ERROR: ' + e.message);
                 /* silenciado */
             }
         }
@@ -2947,11 +2939,15 @@ async function cargarVendedor() {
     //    sin uid, o si los métodos por UID de arriba no encontraron nada)
     if (!userData && codigoParam) {
         try {
-            const snap = await db.collection('usuarios')
-                .where('codigoVendedor', '==', codigoParam)
-                .limit(1)
-                .get();
-            if (!snap.empty) userData = snap.docs[0].data();
+            const res2 = await fetch('https://datosderevendedor.tuweb.workers.dev/api/validar-codigo-existe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigo: codigoParam })
+            });
+            if (res2.ok) {
+                const data2 = await res2.json();
+                if (data2 && data2.valido && data2.vendedor) userData = data2.vendedor;
+            }
             /* silenciado */
         } catch (e) {
             /* silenciado */
@@ -2978,14 +2974,28 @@ async function cargarVendedor() {
         const _uidParaStock = uidParam || userData.uid || null;
         let fsStock = null;
         if (_uidParaStock) {
-            const docSnap = await db.collection('usuarios').doc(_uidParaStock).get();
-            if (docSnap.exists) fsStock = docSnap.data();
+            const resPerfilStock = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(_uidParaStock)}`);
+            if (resPerfilStock.ok) {
+                const respData = await resPerfilStock.json();
+                if (respData && respData.ok) fsStock = respData.perfil;
+            }
         }
         if (!fsStock && codigoParam) {
-            const snapFs = await db.collection('usuarios')
-                .where('codigoVendedor', '==', codigoParam)
-                .limit(1).get();
-            if (!snapFs.empty) fsStock = snapFs.docs[0].data();
+            const resCodigoStock = await fetch('https://datosderevendedor.tuweb.workers.dev/api/validar-codigo-existe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigo: codigoParam })
+            });
+            if (resCodigoStock.ok) {
+                const dataStock = await resCodigoStock.json();
+                if (dataStock && dataStock.valido && dataStock.vendedor && dataStock.vendedor.uid) {
+                    const resPerfilPorCodigo = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(dataStock.vendedor.uid)}`);
+                    if (resPerfilPorCodigo.ok) {
+                        const respPerfilPorCodigo = await resPerfilPorCodigo.json();
+                        if (respPerfilPorCodigo && respPerfilPorCodigo.ok) fsStock = respPerfilPorCodigo.perfil;
+                    }
+                }
+            }
         }
         if (fsStock && fsStock.stockProductosCat && typeof fsStock.stockProductosCat === 'object') {
             vendedor.stockProductosCat = fsStock.stockProductosCat;
@@ -3151,13 +3161,16 @@ async function cargarVendedor() {
         var _uid = vendedor.uid || vendedor.userId || vendedor.id || null;
         if (_uid) {
             try {
-                var _snapUid = await db.collection('usuarios').doc(_uid).get();
-                if (_snapUid.exists) {
-                    var _udUid = _snapUid.data();
-                    if (_udUid.whatsappRevendedor) {
-                        vendedor.whatsappRevendedor = _udUid.whatsappRevendedor;
-                    } else if (_udUid.telefono) {
-                        vendedor.telefono = vendedor.telefono || _udUid.telefono;
+                var _resPerfilUid = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(_uid)}`);
+                if (_resPerfilUid.ok) {
+                    var _respPerfilUid = await _resPerfilUid.json();
+                    if (_respPerfilUid && _respPerfilUid.ok) {
+                        var _udUid = _respPerfilUid.perfil;
+                        if (_udUid.whatsappRevendedor) {
+                            vendedor.whatsappRevendedor = _udUid.whatsappRevendedor;
+                        } else if (_udUid.telefono) {
+                            vendedor.telefono = vendedor.telefono || _udUid.telefono;
+                        }
                     }
                 }
             } catch(_e) {}
@@ -5034,10 +5047,10 @@ async function verificarRegaloPendiente() {
         if (!uidVendedor || !datosCliente || !datosCliente.telefono) return;
 
         const telLimpio = String(datosCliente.telefono).replace(/\D/g, '');
-        const snap = await db.collection('usuarios').doc(uidVendedor).collection('regalos')
-            .where('estado', '==', 'pendiente').get();
-        const regalo = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-            .find(g => String(g.tel || '').replace(/\D/g, '') === telLimpio);
+        const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/regalos-pendientes?uid=${encodeURIComponent(uidVendedor)}`);
+        const respData = res.ok ? await res.json() : null;
+        const regalosPendientes = (respData && respData.ok && Array.isArray(respData.regalos)) ? respData.regalos : [];
+        const regalo = regalosPendientes.find(g => String(g.tel || '').replace(/\D/g, '') === telLimpio);
         if (!regalo) return;
 
         // Ya se mostró este regalo en este navegador — no repetir en cada visita.
@@ -5129,25 +5142,20 @@ async function enviarStatsPromo() {
     try {
         if (!window.promoActiva) return;
         if (!vendedor || !codigoParam) return;
-        // Buscar el UID del vendedor por codigoVendedor
-        const snap = await db.collection('usuarios')
-            .where('codigoVendedor', '==', codigoParam)
-            .limit(1).get();
-        if (snap.empty) return;
-        const uid = snap.docs[0].id;
         const promoId = window.promoActiva.id || ('promo_' + (catalogoActual||'cat'));
         const total = _carritoSubtotal();
-        const inc = firebase.firestore.FieldValue.increment;
-        await db.collection('usuarios').doc(uid)
-            .collection('promoStats').doc(promoId)
-            .set({
+        await fetch('https://datosderevendedor.tuweb.workers.dev/api/incrementar-stats-promo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                codigoVendedor: codigoParam,
+                promoId,
                 nombre: window.promoActiva.nombre || 'Promoción',
                 categoria: catalogoActual || '',
-                ventas: inc(1),
-                gananciaTotal: inc(total),
-                ultimaVenta: firebase.firestore.FieldValue.serverTimestamp(),
+                monto: total,
                 conRegalo: carrito.some(x => x.regalo)
-            }, { merge: true });
+            })
+        });
     } catch(e) { /* silenciado */ }
 }
 
