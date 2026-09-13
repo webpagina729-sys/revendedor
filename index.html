@@ -2777,6 +2777,16 @@
         .codigo-modal-header {
             margin-bottom: 32px;
         }
+        /* 🔧 FIX: el widget de Cloudflare Turnstile se veía grande y corrido
+           hacia un lateral dentro de este modal angosto. Se centra y se
+           reduce levemente para que quede alineado con el resto del modal. */
+        .codigo-modal-content .cf-turnstile {
+            display: flex;
+            justify-content: center;
+            transform: scale(0.9);
+            transform-origin: center;
+            margin: 4px 0 10px;
+        }
         .codigo-modal-title {
             font-size: 24px;
             font-weight: 700;
@@ -4200,8 +4210,8 @@
             </div>
             <div style="text-align:center;padding:16px 0 8px;">
                 <div style="font-size:44px;margin-bottom:12px;">📱</div>
-                <p style="color:#666;font-size:14px;line-height:1.6;margin-bottom:20px;">
-                    Ingresá tus datos para vincular tu tienda. Tus clientes te enviarán sus pedidos a este número cuando compren en tu tienda.
+                <p style="color:#666;font-size:14px;line-height:1.6;margin-bottom:20px;text-wrap:pretty;max-width:340px;margin-left:auto;margin-right:auto;">
+                    Ingresá tus datos para vincular tu&nbsp;tienda. Tus clientes te enviarán sus pedidos a este número cuando compren en tu&nbsp;tienda.
                 </p>
             </div>
             <div style="margin-bottom:16px;">
@@ -9573,7 +9583,28 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
     <script>
         // Variables globales para nichos
-        window.codigoValidado = false;
+        // 🔧 FIX: antes esto SIEMPRE arrancaba en false al cargar la página,
+        // sin revisar si ya había un código guardado — por eso cada recarga
+        // pedía el código de nuevo aunque la sesión ya estuviera guardada.
+        // Ahora se restaura desde localStorage si existe.
+        (function restaurarSesionCodigoVendedor() {
+            const codigoGuardado = localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado');
+            if (codigoGuardado) {
+                window.codigoValidado = true;
+                window.currentUser = window.currentUser || {};
+                if (!window.currentUser.codigoVendedor) window.currentUser.codigoVendedor = codigoGuardado;
+                const configTiendaGuardada = localStorage.getItem('configTienda');
+                if (configTiendaGuardada && !window.currentUser.configTienda) {
+                    try { window.currentUser.configTienda = JSON.parse(configTiendaGuardada); } catch (_e) {}
+                }
+                const configTiendaAllGuardada = localStorage.getItem('configTiendaAll');
+                if (configTiendaAllGuardada && !window.currentUser.configTiendaAll) {
+                    try { window.currentUser.configTiendaAll = JSON.parse(configTiendaAllGuardada); } catch (_e) {}
+                }
+            } else {
+                window.codigoValidado = false;
+            }
+        })();
         let carruselActual = 0;
         let productosCarrusel = [];
 
@@ -10013,6 +10044,32 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
                     // Mostrar catálogo
                     mostrarCatalogo();
+
+                    // 🔧 FIX: después de validar el código, el orden pedido es
+                    // 1° pedir los datos del usuario (WhatsApp, CUIT, etc. si
+                    // faltan) y 2° recién ahí preguntar si guardar la sesión.
+                    // Se guarda una bandera para que responderGuardarSesion()
+                    // no dispare el flujo de datos DE NUEVO (ese flujo
+                    // compartido lo hace en el orden inverso para el modal de
+                    // "Mi Tienda", que no se toca).
+                    const _waGuardado        = localStorage.getItem('whatsappRevendedor')     || vendedorEncontrado.whatsappRevendedor || '';
+                    const _sexoGuardado      = localStorage.getItem('sexoRevendedor')          || '';
+                    const _provinciaGuardada = localStorage.getItem('provinciaRevendedor')     || '';
+                    const _ciudadGuardada    = localStorage.getItem('ciudadRevendedor')        || '';
+                    const _cpGuardado        = localStorage.getItem('codigoPostalRevendedor')  || '';
+                    if (!_waGuardado || !_sexoGuardado || !_provinciaGuardada || !_ciudadGuardada || !_cpGuardado) {
+                        window._pendienteGuardarSesionDespuesDeDatos = true;
+                        window._omitirFlujoPostSesion = true;
+                        setTimeout(() => {
+                            const wModal = document.getElementById('whatsappConfirmModal');
+                            const wInput = document.getElementById('whatsapp-input-modal');
+                            if (wInput) wInput.value = '';
+                            if (wModal) wModal.classList.add('active');
+                        }, 600);
+                    } else {
+                        window._omitirFlujoPostSesion = true;
+                        setTimeout(() => mostrarModalGuardarSesion(), 600);
+                    }
                 }
             } catch (error) {
                 
@@ -10528,6 +10585,14 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         function responderGuardarSesion(recordar) {
             localStorage.setItem('recordarSesionRevendedor', recordar ? 'true' : 'false');
             document.getElementById('guardarSesionModal').classList.remove('active');
+            // 🔧 FIX: si venimos del login por código de revendedor, los
+            // datos del usuario ya se pidieron ANTES (orden pedido: datos
+            // primero, guardar sesión después) — no volver a disparar ese
+            // flujo acá, o se mostraría el modal de WhatsApp dos veces.
+            if (window._omitirFlujoPostSesion) {
+                window._omitirFlujoPostSesion = false;
+                return;
+            }
             _continuarFlujoPostSesion();
         }
 
@@ -10619,6 +10684,13 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 const pendiente = window._pendingCopiarEnlaceTiendaGuardada;
                 window._pendingCopiarEnlaceTiendaGuardada = null;
                 setTimeout(() => window.copiarEnlaceTiendaGuardada(pendiente.cat, pendiente.btn), 150);
+            }
+
+            // 🔧 FIX: si estos datos se pidieron desde el login por código de
+            // revendedor, el paso siguiente es preguntar si guardar la sesión.
+            if (window._pendienteGuardarSesionDespuesDeDatos) {
+                window._pendienteGuardarSesionDespuesDeDatos = false;
+                setTimeout(() => mostrarModalGuardarSesion(), 800);
             }
         }
 
