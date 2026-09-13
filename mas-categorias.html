@@ -9975,6 +9975,28 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
 
     <script>
         // Variables globales para nichos
+        // 🔧 FIX: mas-categorias.html es una página nueva (no una SPA), así
+        // que window.currentUser y window.codigoValidado siempre arrancaban
+        // vacíos acá, aunque el código ya estuviera guardado desde
+        // index.html. Como la restauración de sesión de más abajo depende
+        // de que window.currentUser exista, nunca se activaba, y volvía a
+        // pedir el código — generando además el bloqueo por "demasiados
+        // intentos" de tanto reintentar. Ahora se restaura acá primero.
+        (function restaurarSesionCodigoVendedor() {
+            const codigoGuardado = localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado');
+            if (codigoGuardado) {
+                window.currentUser = window.currentUser || {};
+                if (!window.currentUser.codigoVendedor) window.currentUser.codigoVendedor = codigoGuardado;
+                const configTiendaGuardada = localStorage.getItem('configTienda');
+                if (configTiendaGuardada && !window.currentUser.configTienda) {
+                    try { window.currentUser.configTienda = JSON.parse(configTiendaGuardada); } catch (_e) {}
+                }
+                const configTiendaAllGuardada = localStorage.getItem('configTiendaAll');
+                if (configTiendaAllGuardada && !window.currentUser.configTiendaAll) {
+                    try { window.currentUser.configTiendaAll = JSON.parse(configTiendaAllGuardada); } catch (_e) {}
+                }
+            }
+        })();
         window.codigoValidado = false;
         let carruselActual = 0;
         let productosCarrusel = [];
