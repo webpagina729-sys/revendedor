@@ -9990,8 +9990,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     initializeUserSession(userData, user);
                     
                 } else {
-                    // Usuario no autenticado: limpiar interfaz
-                    window.currentUser = null;
+                    // 🔧 FIX CRÍTICO: mismo bug que en index.html — no borrar
+                    // la sesión por código si existe una guardada.
+                    const haySesionPorCodigo = !!(localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado'));
+                    if (!haySesionPorCodigo) {
+                        window.currentUser = null;
+                    }
                     updateUIForAuthentication(false);
                     const loginBtn = document.querySelector('.login-btn');
                     if (loginBtn) {
@@ -10056,9 +10060,15 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 if (configTiendaAllGuardada && !window.currentUser.configTiendaAll) {
                     try { window.currentUser.configTiendaAll = JSON.parse(configTiendaAllGuardada); } catch (_e) {}
                 }
+                // 🔧 FIX CRÍTICO: esto se restauraba arriba pero la línea de
+                // abajo lo pisaba con "false" sin condición — por eso la
+                // cinta negra (Inicio/Perfil/Guía) y las categorías nunca
+                // aparecían, aunque el código sí estuviera guardado.
+                window.codigoValidado = true;
+            } else {
+                window.codigoValidado = false;
             }
         })();
-        window.codigoValidado = false;
         let carruselActual = 0;
         let productosCarrusel = [];
 
