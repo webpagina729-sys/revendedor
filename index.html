@@ -9594,8 +9594,20 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     initializeUserSession(userData, user);
                     
                 } else {
-                    // Usuario no autenticado: limpiar interfaz
-                    window.currentUser = null;
+                    // 🔧 FIX CRÍTICO: esto borraba window.currentUser sin
+                    // condición apenas Firebase confirmaba que no hay sesión
+                    // de Google/email — pero el login por código NO usa
+                    // Firebase Auth, así que esto pisaba la sesión por código
+                    // ya restaurada desde localStorage, momentos después de
+                    // cargar la página (este callback es asíncrono). Por eso
+                    // "a veces" pedía el código de nuevo al reabrir el
+                    // navegador: dependía de cuándo terminaba de confirmar
+                    // Firebase que no había cuenta de Google. Ahora solo se
+                    // limpia si tampoco hay un código de vendedor guardado.
+                    const haySesionPorCodigo = !!(localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado'));
+                    if (!haySesionPorCodigo) {
+                        window.currentUser = null;
+                    }
                     updateUIForAuthentication(false);
                     const loginBtn = document.querySelector('.login-btn');
                     if (loginBtn) {
@@ -11150,9 +11162,12 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 renderDatoSeguro('whatsapp');
                 renderDatoSeguro('cuit');
                 cargarDatosSeguridadVendedor();
-                // Prellenar nombre de tienda ya guardado para esta categoría (si hay)
+                // 🔧 FIX: el campo de nombre de tienda debe arrancar SIEMPRE
+                // vacío (no autocompletar con el nombre ya guardado), para
+                // que el usuario tenga que escribir un nombre cada vez que
+                // quiera guardar la configuración de esta categoría.
                 const nombreTiendaInput = document.getElementById('config-nombre-tienda');
-                if (nombreTiendaInput) nombreTiendaInput.value = (config && config.nombreTienda) ? config.nombreTienda : '';
+                if (nombreTiendaInput) nombreTiendaInput.value = '';
                 // Cargar color de tienda (por categoría)
                 let savedColor = '#0066FF';
                 try {
