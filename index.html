@@ -845,65 +845,10 @@
             font-size: 15px;
             margin: 2px 0 0 0;
         }
-        .cart-item-qty-control {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            justify-content: flex-start;
-            width: 100%;
-            grid-column: 2;
-            grid-row: 2;
-            flex-wrap: wrap;
-        }
-        .cart-item-qty-btn {
-            background: white;
-            border: 1px solid var(--border);
-            width: 26px;
-            height: 26px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--primary);
-            transition: all .2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            flex-shrink: 0;
-        }
-        .cart-item-qty-btn:hover {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-        .cart-item-qty-display {
-            min-width: 24px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 14px;
-            flex-shrink: 0;
-        }
-        .cart-item-delete {
-            background: none;
-            border: none;
-            color: #ff4444;
-            padding: 0;
-            margin: 0 0 0 auto;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: color .2s;
-            text-decoration: none;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            height: 26px;
-        }
-        .cart-item-delete:hover {
-            color: #cc0000;
-            text-decoration: underline;
-        }
+        /* 🧹 LIMPIEZA: se eliminó el CSS de .cart-item-qty-control,
+           .cart-item-qty-btn, .cart-item-qty-display y .cart-item-delete —
+           ninguna de esas clases aparece en el HTML/JS actual (el carrito
+           ya no tiene controles de +/-/eliminar por ítem). */
         .modal-cart-summary {
             padding: 20px 24px;
             background: var(--gray-light);
@@ -4545,11 +4490,9 @@
         const MIN_ORDER_PERFUMES = 150000;  // Mínimo en dinero para perfumes
         const MIN_ORDER_SHOES_QTY = 12;     // Mínimo en cantidad para zapatillas
         
-        // Función para obtener el MIN_ORDER según el catálogo actual
-        function getMinOrder() {
-            return MIN_ORDER_PERFUMES;  // Por defecto perfumes (por ahora)
-        }
-        
+        // 🧹 LIMPIEZA: se eliminó getMinOrder() — nunca se llamaba, la
+        // constante MIN_ORDER de abajo ya cumple la misma función.
+
         // Compatibilidad: MIN_ORDER siempre es 150000 para Perfumes
         const MIN_ORDER = MIN_ORDER_PERFUMES;
         
@@ -6327,24 +6270,9 @@
 
         let currentQty = 1;
 
-        function openZoomFromDetails() {
-            closeDetails();
-            openZoom(currentProduct.imagen);
-        }
-
-        function increaseQty() {
-            currentQty++;
-            const qtyDisplay = document.getElementById('qty-display');
-            if (qtyDisplay) qtyDisplay.textContent = currentQty;
-        }
-
-        function decreaseQty() {
-            if (currentQty > 1) {
-                currentQty--;
-                const qtyDisplay = document.getElementById('qty-display');
-                if (qtyDisplay) qtyDisplay.textContent = currentQty;
-            }
-        }
+        // 🧹 LIMPIEZA: se eliminaron openZoomFromDetails(), increaseQty() y
+        // decreaseQty() — sin ningún botón que las llame en la interfaz
+        // actual (el selector de cantidad +/- ya no existe en este modal).
 
         // ═══════════════════════════════════════════════════════════════════════════
         // CARRITO PERSISTENTE EN FIREBASE
@@ -6695,29 +6623,9 @@
             }
         }
 
-        // 🔴 FUNCIÓN DE RECUPERACIÓN: Permitir al usuario intentar recuperar un pedido
-        async function recuperarPedidoFallido(pedidoId) {
-            const user = firebase.auth().currentUser;
-            if (!user) {
-                alert('❌ Debes estar autenticado');
-                return;
-            }
-
-            try {
-                /* silenciado */
-                
-                const result = await sincronizarPedidoConMercadoPago(pedidoId);
-
-                if (result.success) {
-                    alert('✅ ' + result.message);
-                } else {
-                    alert('⚠️ ' + result.error + '\n\nContacta a soporte si el problema persiste');
-                }
-            } catch (error) {
-                console.error('Error en recuperación:', error);
-                alert('❌ Error al recuperar pedido: ' + error.message);
-            }
-        }
+        // 🧹 LIMPIEZA: se eliminó recuperarPedidoFallido() — sin ningún
+        // botón que la llame; la sincronización con Mercado Pago ya ocurre
+        // automáticamente a través de sincronizarPedidoConMercadoPago().
 
         function getItemCatalog(item) {
             return item.catalogo || (item.talle ? 'calzados' : 'perfumes');
@@ -6770,84 +6678,11 @@
         }
 
         // Agregar zapatilla al carrito (con validación de talle)
-        function addToCart(productId) {
-            const currentUser = firebase.auth().currentUser;
-            if (!currentUser) {
-                closeDetailsShoes();
-                showSessionRequiredModal();
-                return;
-            }
-
-            window.currentCatalog = 'calzados';
-
-            const product = window.shoes.find(p => p.id === productId);
-            if (!product) return;
-
-            if (!window.selectedTalle) {
-                alert('Por favor selecciona un talle');
-                return;
-            }
-
-            const existingItem = window.cart.find(item => 
-                getItemCatalog(item) === 'calzados' && item.id === productId && item.talle === window.selectedTalle
-            );
-
-            if (existingItem) {
-                existingItem.cantidad += 1;
-            } else {
-                window.cart.push({ 
-                    ...product,
-                    precioBase: product.precio,
-                    precio: getPrecioProductoConfigurado(product, 'calzados'),
-                    cantidad: 1, 
-                    talle: window.selectedTalle,
-                    catalogo: 'calzados'
-                });
-            }
-
-            updateCartCount();
-            updateCartDisplay();
-            saveCartToFirebase(window.cart);
-            
-            closeDetailsShoes();
-            document.getElementById('modal-cart').classList.add('active');
-            window.selectedTalle = null;
-        }
-
-        function addToCartFromModal() {
-            // Validar que hay sesión activa
-            const currentUser = firebase.auth().currentUser;
-            if (!currentUser) {
-                closeDetails();
-                showSessionRequiredModal();
-                return;
-            }
-            
-            window.currentCatalog = 'perfumes';
-            const productToAdd = (window.currentProductCatalog === 'perfumes' && window.currentProduct) ? window.currentProduct : currentProduct;
-            if (!productToAdd || !window.products.some(p => p.id === productToAdd.id)) {
-                alert('No se pudo agregar el perfume seleccionado. Volvé a elegirlo.');
-                return;
-            }
-            
-            const existingItem = window.cart.find(item => getItemCatalog(item) === 'perfumes' && item.id === productToAdd.id);
-            if (existingItem) {
-                existingItem.cantidad += (currentQty || 1);
-            } else {
-                window.cart.push({ ...productToAdd, precioBase: productToAdd.precio, precio: getPrecioProductoConfigurado(productToAdd, 'perfumes'), cantidad: (currentQty || 1), catalogo: 'perfumes' });
-            }
-            updateCartCount();
-            updateCartDisplay();
-            
-            // Guardar carrito en Firebase
-            saveCartToFirebase(window.cart);
-            
-            closeDetails();
-            document.getElementById('modal-cart').classList.add('active');
-            currentQty = 1;
-            const qtyDisplay = document.getElementById('qty-display');
-            if (qtyDisplay) qtyDisplay.textContent = '1';
-        }
+        // 🧹 LIMPIEZA: se eliminaron addToCart() y addToCartFromModal() —
+        // funciones muertas de una versión anterior del carrito (agregar UN
+        // producto individual con cantidad editable). El carrito actual
+        // agrega pedidos completos de clientes vía agregarPedidoAlCarrito(),
+        // confirmado como el único camino real que usa window.cart hoy.
 
         function updateCartCount() {
             const count = window.cart.reduce((sum, item) => sum + item.cantidad, 0);
@@ -6949,38 +6784,10 @@
             if (statsPanel) statsPanel.style.display = 'block';
         }
 
-        function changeItemQty(index, change) {
-            if (index >= 0 && index < window.cart.length) {
-                window.cart[index].cantidad += change;
-                if (window.cart[index].cantidad <= 0) {
-                    window.cart.splice(index, 1);
-                }
-                updateCartDisplay();
-                updateCartCount();
-                if (window.cart.length === 0) {
-                    clearCartFromFirebase();
-                } else {
-                    saveCartToFirebase(window.cart);
-                }
-            }
-        }
-
-        function removeItemFromCart(index) {
-            if (index >= 0 && index < window.cart.length) {
-                window.cart.splice(index, 1);
-                updateCartDisplay();
-                updateCartCount();
-                
-                // Guardar cambios en Firebase
-                if (firebase.auth().currentUser) {
-                    if (window.cart.length === 0) {
-                        clearCartFromFirebase();
-                    } else {
-                        saveCartToFirebase(window.cart);
-                    }
-                }
-            }
-        }
+        // 🧹 LIMPIEZA: se eliminaron changeItemQty() y removeItemFromCart()
+        // — el carrito actual es de solo lectura (agrupado por pedido, con
+        // "Marcar como enviado" por grupo), sin botones de +/-/eliminar
+        // por ítem individual.
 
         async function toggleCart() {
             // Validar que hay sesión activa. Se reconoce por cualquiera de:
@@ -7097,45 +6904,6 @@
         // ═══════════════════════════════════════════════════════════════════
         
         // Abrir modal de checkout antes de pagar
-        async function proceedToPayment() {
-            const status = getCartMinimumStatus(window.cart);
-            if (!status.isValid) {
-                alert('⚠️ Completá el mínimo obligatorio:\n' + status.missing.join('\n'));
-                return;
-            }
-
-            // Mostrar modal de checkout
-            document.getElementById('modal-checkout').classList.add('active');
-            
-            // Cargar automáticamente datos del usuario desde Firebase
-            if (firebase.auth().currentUser) {
-                const uid = firebase.auth().currentUser.uid;
-                try {
-                    const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(uid)}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        const userData = (data && data.ok) ? data.perfil : null;
-                        if (userData) {
-                        // Rellenar campos del formulario
-                        if (userData.nombre) document.getElementById('checkout-nombre').value = userData.nombre;
-                        if (userData.email) document.getElementById('checkout-email').value = userData.email;
-                        if (userData.telefono) document.getElementById('checkout-telefono').value = userData.telefono || '';
-                        if (userData.provincia) document.getElementById('checkout-provincia').value = userData.provincia || '';
-                        if (userData.ciudad) document.getElementById('checkout-ciudad').value = userData.ciudad || '';
-                        if (userData.cp) document.getElementById('checkout-cp').value = userData.cp || '';
-                        if (userData.direccion) document.getElementById('checkout-direccion').value = userData.direccion || '';
-                        // IMPORTANTE: Rellenar código de revendedor desde Firebase
-                        if (userData.codigoVendedor) {
-                            document.getElementById('checkout-codigo-revendedor').value = userData.codigoVendedor;
-                        }
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error cargando datos del usuario:', error);
-                }
-            }
-        }
-
         // Validar que el código de revendedor existe en Firebase
         async function validarCodigoRevendedorEnFirestore(codigo) {
             try {
@@ -8137,16 +7905,8 @@
             }
         }
 
-        function openProductsModal() {
-            // Cerrar guía primero con transición suave
-            document.getElementById('guideModal').classList.remove('active');
-            
-            // Pequeño delay para evitar solapamiento visual
-            setTimeout(() => {
-                document.getElementById('productsModal').classList.add('active');
-                preventBodyScroll(true);
-            }, 150);
-        }
+        // 🧹 LIMPIEZA: se eliminó openProductsModal() — nada la llama, por
+        // lo que el modal "productsModal" nunca se abre en la práctica.
 
         function closeProductsModal(e) {
             if (!e || e.target.id === 'productsModal') {
@@ -8483,6 +8243,19 @@
         // ════════════════════════════════════════════════════════════════════════════
         
         function switchShoesCategory(categoria) {
+            // 🔧 FIX: el botón "Niños" llamaba a esta función con
+            // categoria='niños', pero nunca se chequeaba ese caso acá —
+            // el botón quedaba roto, sin mostrar el aviso de "Próximamente"
+            // que ya existía armado (showShoesComingSoonModal) y nunca se
+            // llamaba desde ningún lado.
+            if (categoria === 'niños') {
+                document.querySelectorAll('#shoes-category-section .category-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                if (typeof event !== 'undefined' && event.target) event.target.classList.add('active');
+                showShoesComingSoonModal();
+                return;
+            }
             window.currentShoesCategory = categoria;
             window.currentShoesFilter = 'todo';
             
@@ -9974,13 +9747,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
         }
         
-        // Función para volver a nichos sin perder sesión
-        function volverANichos() {
-            if (window.isChangingCatalog) return;
-            window.currentCatalog = null;
-            ocultarCatalogo();
-            cerrarModalCodigo();
-        }
+        // 🧹 LIMPIEZA: se eliminó volverANichos() — sin ningún botón que
+        // la llame.
 
         // Validar código de revendedor
         // 🔒 NUEVO: dispara el desafío invisible de Turnstile y espera el
@@ -10509,16 +10277,9 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
         }
 
-        // Abrir modal "Próximamente"
-        function abrirModalProximamente(nicho) {
-            const modal = document.getElementById('proximamente-modal');
-            const titulo = document.getElementById('proximamente-titulo');
-            
-            if (modal) {
-                titulo.textContent = `La sección de ${nicho} estará disponible muy pronto. Gracias por tu interés.`;
-                modal.classList.add('active');
-            }
-        }
+        // 🧹 LIMPIEZA: se eliminó abrirModalProximamente() — ninguna de las
+        // 3 tarjetas de categoría actuales la llama (todas están activas).
+        // Se deja cerrarModalProximamente() porque sí se usa en otros lados.
 
         // Cerrar modal "Próximamente"
         function cerrarModalProximamente() {
@@ -10671,9 +10432,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }, 300);
         }, { once: true });
         
-        window.verificarPlataforma = function() {
-            // Diagnóstico de la plataforma (función vacía por ahora)
-        };
+        // 🧹 LIMPIEZA: se eliminó window.verificarPlataforma() — estaba
+        // vacía ("función vacía por ahora") y nunca se llamaba.
         
         // ═══════════════════════════════════════════════════════════════
         // MODAL CONFIRMAR WHATSAPP
@@ -11303,15 +11063,6 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             }
             return null;
         }
-        function _firestoreUserRef() {
-            // 🔧 FIX: se mantiene solo para no romper otros lugares que
-            // todavía puedan llamarla — ya no hace ninguna consulta directa
-            // a Firestore. El guardado real ahora vive en _guardarEnFirestore().
-            return null;
-        }
-        async function _firestoreUserRefAsync(_intento) {
-            return null;
-        }
         // Helper para guardar en Firestore con fallback async
         // ── localStorage safe: Safari iOS modo privado lanza excepción en setItem ──
         var _lsMem = {};
@@ -11639,12 +11390,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             return 0;
         }
 
-        function getPrecioSugerido(producto) {
-            if (!producto) return 0;
-            const pct = getMargenSugerido(producto.precio);
-            return Math.round(producto.precio + (producto.precio * pct / 100));
-        }
-
+        // 🧹 LIMPIEZA: se eliminó getPrecioSugerido() — nunca se llamaba.
 
         function getProductosParaConfigActual() {
             if (window.currentCatalog === 'calzados') return window.shoes || [];
@@ -11881,21 +11627,7 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
         }
 
         // Usar margen personalizado si existe, sino tabla original
-        function getMarginForPrice(precio) {
-            try {
-                const cat = window.currentCatalog || 'general';
-                const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-                const config = allConfig[cat] || JSON.parse(localStorage.getItem('configTienda') || 'null');
-                if (config) {
-                    const rangos = Array.isArray(config.rangos) ? config.rangos : [];
-                    const rango = rangos
-                        .slice().sort((a, b) => a.hasta - b.hasta)
-                        .find(r => precio >= (r.de || 0) && precio <= r.hasta);
-                    return rango ? rango.porcentaje : 0;
-                }
-            } catch(e) {}
-            return calculateMarginByPrice(precio);
-        }
+        // 🧹 LIMPIEZA: se eliminó getMarginForPrice() — nunca se llamaba.
 
         // Mostrar modal WhatsApp al iniciar sesión si no está configurado
         // Se ejecuta DESPUÉS de que initializeUserSession termina
@@ -12454,9 +12186,8 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 bvOcultar();
                 if (typeof abrirLogin === 'function') abrirLogin();
             };
-            window.bvVisitante = function() {
-                bvOcultar();
-            };
+            // 🧹 LIMPIEZA: se eliminó window.bvVisitante() — el botón
+            // "Continuar como visitante" ya no existe en el modal.
 
         })();
 
@@ -13887,18 +13618,10 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         let _promoCat = null;
         let _promoGiftDraft = null; // {regaloDe, regaloHasta, condicionDe, condicionHasta}
 
-        function _getPromoCostoBaseAprox(cat) {
-            // Para el cálculo "en vivo" usamos un precio de costo ilustrativo:
-            // tomamos el promedio de los topes de rango definidos.
-            const rows = document.querySelectorAll('#promoRangosContainer .promo-row');
-            const tops = [];
-            rows.forEach(r => {
-                const h = Number(r.querySelector('.pr-hasta').value);
-                if (h > 0) tops.push(h);
-            });
-            if (tops.length === 0) return 10000;
-            return Math.round(tops.reduce((a,b)=>a+b,0) / tops.length);
-        }
+        // 🧹 LIMPIEZA: se eliminaron _getPromoCostoBaseAprox() y
+        // window.confirmarRangoPromo() — la fila de promoción ya calcula
+        // sola al escribir (el botón "confirmar" de esta versión vieja ya
+        // no existe en el HTML actual).
 
         window.agregarRangoPromo = function(de, hasta, pct) {
             const cont = document.getElementById('promoRangosContainer');
@@ -13926,29 +13649,6 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             `;
             cont.appendChild(row);
             row.querySelectorAll('input').forEach(i => i.addEventListener('input', refrescarPromoCalc));
-        };
-
-        window.confirmarRangoPromo = function(btn) {
-            const row = btn.parentElement;
-            const pct = row.querySelector('.pr-pct').value;
-            // Si no hay % cargado al apretar OK → sugerir activar Producto de Regalo
-            if (pct === '' || Number(pct) === 0) {
-                document.getElementById('promoGiftSection').scrollIntoView({behavior:'smooth', block:'center'});
-                const giftBtn = document.querySelector('#promoGiftSection .promo-gift-btn');
-                if (giftBtn) {
-                    giftBtn.style.boxShadow = '0 0 0 3px rgba(0,102,255,.18)';
-                    setTimeout(()=> giftBtn.style.boxShadow = '', 1800);
-                }
-            } else {
-                // Marca visual de confirmado y pasa al cálculo
-                btn.textContent = '✓';
-                btn.style.background = '#d1fae5';
-                btn.style.color = '#065f46';
-                btn.style.borderColor = '#a7f3d0';
-                refrescarPromoCalc();
-                const calc = document.getElementById('promoCalcToggle');
-                if (calc && !calc.classList.contains('open')) togglePromoCalc();
-            }
         };
 
         window.guardarDescuentosPromo = function() {
@@ -14847,18 +14547,6 @@ function mostrarToastOk(msg) {
         else if (h<300){r=x;b=c;} else {r=c;b=x;}
         var to = function(v){ return ('0'+Math.round((v+m)*255).toString(16)).slice(-2); };
         return ('#'+to(r)+to(g)+to(b)).toUpperCase();
-    }
-    function hexToHue(hex){
-        var m = /^#?([0-9a-f]{6})$/i.exec(hex||''); if(!m) return 220;
-        var n = parseInt(m[1],16);
-        var r=(n>>16)/255, g=((n>>8)&255)/255, b=(n&255)/255;
-        var mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn, h=0;
-        if (d===0) h=0;
-        else if (mx===r) h=((g-b)/d)%6;
-        else if (mx===g) h=(b-r)/d+2;
-        else h=(r-g)/d+4;
-        h = Math.round(h*60); if (h<0) h+=360;
-        return h;
     }
     function applyHex(hex, opts){
         opts = opts || {};
