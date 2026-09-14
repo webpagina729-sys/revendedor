@@ -9991,16 +9991,22 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     
                 } else {
                     // 🔧 FIX CRÍTICO: mismo bug que en index.html — no borrar
-                    // la sesión por código si existe una guardada.
+                    // la sesión por código si existe una guardada, Y TAMPOCO
+                    // ocultar la cinta negra / mostrar "Iniciar sesión" en
+                    // ese caso — esto último era lo que en la práctica hacía
+                    // desaparecer la cinta con Inicio/Perfil/Guía Rápida,
+                    // aunque la sesión por código siguiera activa.
                     const haySesionPorCodigo = !!(localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado'));
                     if (!haySesionPorCodigo) {
                         window.currentUser = null;
-                    }
-                    updateUIForAuthentication(false);
-                    const loginBtn = document.querySelector('.login-btn');
-                    if (loginBtn) {
-                        loginBtn.textContent = 'Iniciar sesión';
-                        loginBtn.onclick = abrirLogin;
+                        updateUIForAuthentication(false);
+                        const loginBtn = document.querySelector('.login-btn');
+                        if (loginBtn) {
+                            loginBtn.textContent = 'Iniciar sesión';
+                            loginBtn.onclick = abrirLogin;
+                        }
+                    } else {
+                        updateUIForAuthentication(true);
                     }
                 }
             });
@@ -10251,9 +10257,23 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 if (window.carruselInterval) clearInterval(window.carruselInterval);
             }
             
-            if (window.currentUser) {
-                // Verificar si ya validó el código (localStorage)
-                const codigoEnSesion = localStorage.getItem('codigoRevendedorValidado');
+            // 🔧 FIX: antes esto exigía que window.currentUser YA estuviera
+            // poblado para siquiera mirar si había un código guardado — si
+            // por cualquier timing de carga de scripts eso todavía no había
+            // pasado, las categorías directamente no se mostraban (pantalla
+            // vacía, sin la cinta negra de Inicio/Perfil/Guía). Ahora se
+            // revisa localStorage directo como respaldo, sin depender de
+            // que esa variable ya esté lista.
+            const codigoGuardadoLocal = localStorage.getItem('codigoRevendedorValidado') || localStorage.getItem('codigoVendedorLocal');
+            if (window.currentUser || codigoGuardadoLocal) {
+                if (!window.currentUser) window.currentUser = {};
+                if (codigoGuardadoLocal && !window.currentUser.codigoVendedor) {
+                    window.currentUser.codigoVendedor = codigoGuardadoLocal;
+                }
+                // Verificar si ya validó el código (localStorage) — se
+                // revisan las dos claves, porque distintos flujos de login
+                // de la plataforma guardan en una u otra.
+                const codigoEnSesion = codigoGuardadoLocal;
                 if (codigoEnSesion) {
                     // Antes de confiar en el flag guardado, se revalida contra el
                     // Worker — si el código ya no existe en la base de datos (por
@@ -10308,8 +10328,23 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     }
 
                     // Usuario logueado y código validado: mostrar catálogo
+                    // 🔧 FIX: si todavía no eligió ninguna categoría en ESTA
+                    // página (currentCatalog sigue en null, por ejemplo
+                    // llegando directo desde index.html recién logueado),
+                    // mostrarCatalogo() ocultaba las categorías sin tener
+                    // nada válido para mostrar en su lugar — pantalla en
+                    // blanco. Ahora, en ese caso puntual, se muestran las
+                    // categorías para elegir, aunque la sesión ya esté
+                    // validada.
                     window.codigoValidado = true;
-                    mostrarCatalogo();
+                    if (window.currentCatalog) {
+                        mostrarCatalogo();
+                    } else {
+                        if (nichosSection) nichosSection.classList.remove('hide');
+                        setTimeout(inicializarCarrusel, 50);
+                        setTimeout(inicializarCarruselShoesPreview, 100);
+                        setTimeout(inicializarCarruselBelleza, 50);
+                    }
                 } else {
                     // Usuario logueado pero sin código validado: mostrar nichos
                     if (nichosSection) {
