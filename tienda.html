@@ -4182,27 +4182,35 @@ function cerrarCheckout() {
 
 // 🔒 NUEVO: dispara el desafío invisible de Turnstile y espera el token
 // antes de enviar el pedido. Si Turnstile no cargó, no bloquea la compra.
+// 🔧 FIX CRÍTICO: antes esto podía esperar hasta ~10-14 segundos combinados
+// (4s a que la librería esté lista + hasta 6s por el token) antes de
+// seguir — si el dispositivo del cliente no podía conectarse a Cloudflare
+// (red/firewall bloqueando challenges.cloudflare.com, como se vio en un
+// caso real), esa espera larga se sentía como que el pedido quedaba
+// trabado justo antes de ir a WhatsApp, el paso más importante de todo el
+// flujo. Ahora el límite total es de 1.5 segundos: si Turnstile no
+// respondió para entonces, se sigue sin él — nunca vale la pena hacer
+// esperar al cliente por esto en el paso de ir a WhatsApp.
 window._turnstileCheckoutResolve = null;
 function onTurnstileCheckoutOk(token) {
     if (window._turnstileCheckoutResolve) window._turnstileCheckoutResolve(token);
 }
 function obtenerTokenTurnstileCheckout() {
     return new Promise((resolve) => {
-        let intentos = 0;
-        const esperarLibreria = setInterval(() => {
-            intentos++;
+        let resuelto = false;
+        const resolverUnaVez = (valor) => {
+            if (resuelto) return;
+            resuelto = true;
+            resolve(valor);
+        };
+        // Límite absoluto: pase lo que pase, seguimos en 1.5s.
+        setTimeout(() => resolverUnaVez(null), 1500);
+        try {
             if (typeof turnstile !== 'undefined' && document.getElementById('turnstile-checkout')) {
-                clearInterval(esperarLibreria);
-                window._turnstileCheckoutResolve = resolve;
-                try {
-                    turnstile.execute('#turnstile-checkout');
-                } catch (_e) { resolve(null); }
-                setTimeout(() => resolve(null), 6000);
-            } else if (intentos > 40) {
-                clearInterval(esperarLibreria);
-                resolve(null);
+                window._turnstileCheckoutResolve = resolverUnaVez;
+                turnstile.execute('#turnstile-checkout');
             }
-        }, 100);
+        } catch (_e) { resolverUnaVez(null); }
     });
 }
 
@@ -4347,7 +4355,7 @@ async function enviarPedidoConDatos() {
         ]);
     };
     try {
-        await _conLimiteDeTiempo(_registrarPedido(), 6000);
+        await _conLimiteDeTiempo(_registrarPedido(), 3000);
         document.getElementById('co-status').style.display = 'block';
         btn.textContent = '✓ Pedido confirmado';
         registrarAceptacionLegales(_pedidoIdConfirmado || '', nombre, apellido, telefono, payload.codigoVendedor, fecha, hora);
