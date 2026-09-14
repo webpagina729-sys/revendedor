@@ -9607,12 +9607,14 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     const haySesionPorCodigo = !!(localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado'));
                     if (!haySesionPorCodigo) {
                         window.currentUser = null;
-                    }
-                    updateUIForAuthentication(false);
-                    const loginBtn = document.querySelector('.login-btn');
-                    if (loginBtn) {
-                        loginBtn.textContent = 'Iniciar sesión';
-                        loginBtn.onclick = abrirLogin;
+                        updateUIForAuthentication(false);
+                        const loginBtn = document.querySelector('.login-btn');
+                        if (loginBtn) {
+                            loginBtn.textContent = 'Iniciar sesión';
+                            loginBtn.onclick = abrirLogin;
+                        }
+                    } else {
+                        updateUIForAuthentication(true);
                     }
                 }
             });
@@ -9948,6 +9950,16 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     input.value = '';
                 }
                 if (error) error.classList.remove('show');
+                // 🔧 FIX: antes Turnstile recién empezaba a ejecutarse
+                // cuando el usuario tocaba "Ingresar" — si no terminaba a
+                // tiempo (6s), el primer intento fallaba siempre, y recién
+                // funcionaba al refrescar la página. Ahora se dispara acá,
+                // apenas se abre el modal, para que el token ya esté listo
+                // (o casi) mientras el usuario todavía está escribiendo su
+                // código.
+                if (typeof obtenerTokenTurnstile === 'function') {
+                    window._turnstileTokenPromise = obtenerTokenTurnstile();
+                }
             }
         }
 
@@ -9988,6 +10000,17 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                     if (typeof turnstile !== 'undefined' && document.getElementById('turnstile-login')) {
                         clearInterval(esperarLibreria);
                         window._turnstileResolve = resolve;
+                        try {
+                            // 🔧 FIX: si el widget ya se había ejecutado antes (por
+                            // un intento previo fallido), volver a llamar a
+                            // execute() sin resetear primero podía quedar en un
+                            // estado raro y no devolver un token válido nuevo —
+                            // por eso el login fallaba en el primer intento pero
+                            // funcionaba al refrescar la página (que crea el
+                            // widget desde cero). Ahora se resetea siempre antes
+                            // de ejecutar, para garantizar un token fresco.
+                            turnstile.reset('#turnstile-login');
+                        } catch (_e) {}
                         try {
                             turnstile.execute('#turnstile-login');
                         } catch (_e) { resolve(null); }
@@ -10057,9 +10080,13 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                 // mandaba una petición POR CADA variante del código con el
                 // MISMO token, y la primera ya lo consumía. Ahora se mandan
                 // todas las variantes juntas en una sola petición.
-                const turnstileToken = await obtenerTokenTurnstile();
+                const turnstileToken = window._turnstileTokenPromise
+                    ? await window._turnstileTokenPromise
+                    : await obtenerTokenTurnstile();
+                window._turnstileTokenPromise = null;
 
                 let vendedorEncontrado = null;
+                let motivoErrorServidor = null;
                 try {
                     const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
                         method: 'POST',
@@ -10071,19 +10098,61 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
                         if (data && data.success && data.vendedor) {
                             vendedorEncontrado = data.vendedor;
                         }
-                    } else if (res.status === 429 || res.status === 403) {
+                    } else {
+                        // 🔧 FIX: antes solo se mostraba el motivo real del
+                        // servidor si el status era 429 o 403 — cualquier otro
+                        // error (por ejemplo, uno transitorio del Worker) quedaba
+                        // oculto detrás del mensaje genérico "código inválido",
+                        // aunque el código fuera correcto. Ahora se intenta
+                        // reintentar UNA vez automáticamente antes de darse por
+                        // vencido, y si igual falla, se guarda el motivo real
+                        // para mostrarlo.
                         const data = await res.json().catch(() => ({}));
-                        error.textContent = data.error || 'No se pudo validar el código. Intentá de nuevo en unos minutos.';
-                        error.classList.add('show');
-                        btnValidar.textContent = textOriginal;
-                        btnValidar.disabled = false;
-                        return;
+                        motivoErrorServidor = data.error || null;
+                        // 🔧 FIX: antes un 403 (típicamente Turnstile que no
+                        // llegó a tiempo en el primer intento) cortaba acá
+                        // mismo sin reintentar — por eso el primer intento
+                        // fallaba siempre y recién funcionaba al refrescar la
+                        // página (que le daba a Turnstile un widget nuevo
+                        // desde cero). Ahora el 403 también entra al
+                        // reintento automático de abajo, que ya resetea y
+                        // vuelve a ejecutar Turnstile para conseguir un
+                        // token fresco. Solo el 429 (límite de intentos)
+                        // corta de una, porque reintentar no lo arregla.
+                        if (res.status === 429) {
+                            error.textContent = motivoErrorServidor || 'No se pudo validar el código. Intentá de nuevo en unos minutos.';
+                            error.classList.add('show');
+                            btnValidar.textContent = textOriginal;
+                            btnValidar.disabled = false;
+                            return;
+                        }
+                        // Reintento único ante un error transitorio del servidor
+                        // (por ejemplo, justo después de un registro nuevo).
+                        try {
+                            const turnstileToken2 = await obtenerTokenTurnstile();
+                            const res2 = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ candidatos, turnstileToken: turnstileToken2 })
+                            });
+                            if (res2.ok) {
+                                const data2 = await res2.json();
+                                if (data2 && data2.success && data2.vendedor) {
+                                    vendedorEncontrado = data2.vendedor;
+                                } else {
+                                    motivoErrorServidor = null;
+                                }
+                            } else {
+                                const dataErr2 = await res2.json().catch(() => ({}));
+                                motivoErrorServidor = dataErr2.error || motivoErrorServidor;
+                            }
+                        } catch (_e2) {}
                     }
                 } catch (_e) { /* se maneja como código no encontrado */ }
 
                 if (!vendedorEncontrado) {
                     // Código NO válido
-                    error.textContent = 'Código de revendedor inválido. Verifica que sea exacto (sin espacios extras) e intenta de nuevo.';
+                    error.textContent = motivoErrorServidor || 'Código de revendedor inválido. Verifica que sea exacto (sin espacios extras) e intenta de nuevo.';
                     error.classList.add('show');
                 } else {
                     // Código VÁLIDO — vincular el UID real del vendedor
@@ -12146,8 +12215,17 @@ const CATALOGO_MAYORISTA_POR_NOMBRE = {"ARABE PERFUME YARA ROSA 35ML 1912-95 PER
             // se guarda en localStorage.recordarSesionRevendedor, y NUNCA
             // se activa solo, sin que el usuario lo haya pedido.
             window.addEventListener('load', function() {
-                var quiereRecordar = localStorage.getItem('recordarSesionRevendedor') === 'true';
-                var codigoGuardado = quiereRecordar ? bvCodigoVigente() : null;
+                // 🔧 FIX CRÍTICO: este gate exigía una bandera aparte
+                // (recordarSesionRevendedor) para no forzar el modal de "Mi
+                // Tienda" — pero eso ignoraba por completo que YA podía
+                // haber una sesión válida restaurada por el código de
+                // revendedor guardado (el sistema que usa el resto de la
+                // página). Resultado: aunque la sesión estuviera bien
+                // restaurada, este gate aparecía igual tapando todo y
+                // pidiendo el código de nuevo. Ahora, si hay CUALQUIER
+                // código guardado (esté o no marcada esa bandera extra),
+                // no se fuerza el gate — se sigue directo con el auto-login.
+                var codigoGuardado = bvCodigoVigente();
 
                 if (!codigoGuardado) {
                     bvMostrar();
