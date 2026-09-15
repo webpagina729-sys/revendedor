@@ -750,7 +750,7 @@
 <!-- ERROR -->
 <div id="error-screen">
     <div class="icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-    <h2 id="error-titulo">Tienda no encontrada</h2>
+    <h2 id="error-titulo">Tienda Actualizada</h2>
     <p id="error-msg">El enlace que usaste no es válido o la tienda no existe. Pedile al vendedor que te comparta el enlace correcto.</p>
     <!-- 🔧 Diagnóstico visible: para poder ver EXACTAMENTE en qué paso
          falló sin tener que abrir la consola del navegador — alcanza con
@@ -981,7 +981,12 @@
 
         <!-- 🔒 NUEVO: Cloudflare Turnstile — protección anti-bot para el
              checkout. Modo invisible, no agrega fricción visual. -->
-        <div class="cf-turnstile" id="turnstile-checkout" data-sitekey="0x4AAAAAAEuP7UTtW1odDnHM" data-size="normal" data-execution="execute" data-callback="onTurnstileCheckoutOk"></div>
+        <!-- 🔧 FIX: se oculta visualmente (sin display:none, para que el
+             desafío pueda seguir ejecutándose en segundo plano) — así, si
+             Cloudflare no puede conectarse, ese error nativo ya no se ve
+             en pantalla durante el pedido. La verificación ya no bloquea
+             el pedido de todas formas; esto es puramente estético. -->
+        <div class="cf-turnstile" id="turnstile-checkout" data-sitekey="0x4AAAAAAEuP7UTtW1odDnHM" data-size="normal" data-execution="execute" data-callback="onTurnstileCheckoutOk" style="position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;"></div>
 
         <button class="checkout-submit" id="co-btn-submit" onclick="enviarPedidoConDatos()">
             Confirmar pedido
@@ -2845,7 +2850,7 @@ async function cargarVendedor() {
             mostrarError('Revisá tu conexión y volvé a intentar.');
             mostrarBotonReintentar();
         } else {
-            mostrarError('No se encontró el código de vendedor en el enlace.');
+            mostrarError('El vendedor actualizó su tienda. Comunícate con él y podrás pedirle su nuevo stock.');
         }
         return;
     }
@@ -2956,7 +2961,7 @@ async function cargarVendedor() {
 
     if (!userData) {
         /* silenciado */
-        mostrarError('Tienda no encontrada. Verificá el enlace con el vendedor.');
+        mostrarError('El vendedor actualizó su tienda. Comunícate con él y podrás pedirle su nuevo stock.');
         return;
     }
 
@@ -4620,21 +4625,6 @@ window.promoGiftElegido = null; // {producto, cat}
         }
     } catch(e) {}
 })();
-
-// Modal flotante: la promo se asigna en cargarVendedor() con timing correcto
-// Esta función queda disponible por compatibilidad
-function _cargarPromoDesdeVendedor() {
-    try {
-        if (window.promoActiva) return;
-        if (!catParam) return;
-        const promos = vendedor && vendedor.promocionesTienda;
-        if (!promos || typeof promos !== 'object' || Object.keys(promos).length === 0) return;
-        const promo = promos[catParam];
-        if (promo && promo.activo !== false && (Array.isArray(promo.rangos) || promo.gift)) {
-            window.promoActiva = promo;
-        }
-    } catch(e) {}
-}
 
 function mostrarBienvenidaModal() {
     const modal = document.getElementById('bienvenidaModal');
