@@ -9939,12 +9939,23 @@
                     // no dispare el flujo de datos DE NUEVO (ese flujo
                     // compartido lo hace en el orden inverso para el modal de
                     // "Mi Tienda", que no se toca).
-                    const _waGuardado        = localStorage.getItem('whatsappRevendedor')     || vendedorEncontrado.whatsappRevendedor || '';
-                    const _sexoGuardado      = localStorage.getItem('sexoRevendedor')          || '';
-                    const _provinciaGuardada = localStorage.getItem('provinciaRevendedor')     || '';
-                    const _ciudadGuardada    = localStorage.getItem('ciudadRevendedor')        || '';
-                    const _cpGuardado        = localStorage.getItem('codigoPostalRevendedor')  || '';
-                    if (!_waGuardado || !_sexoGuardado || !_provinciaGuardada || !_ciudadGuardada || !_cpGuardado) {
+                    // 🔧 FIX: antes esto miraba localStorage genérico
+                    // (whatsappRevendedor, sexoRevendedor, etc.) — si
+                    // CUALQUIER vendedor había completado el modal antes en
+                    // este mismo navegador, esas claves quedaban pobladas
+                    // para siempre, y el modal "Confirma tus Datos" nunca
+                    // volvía a aparecer para NINGÚN código nuevo. Ahora se usa
+                    // el dato real del servidor para WhatsApp/CUIT (que sí
+                    // vienen en la respuesta del login) y localStorage con
+                    // el código de vendedor como parte de la clave para el
+                    // resto — cada vendedor con su propio registro real.
+                    const _waGuardado        = vendedorEncontrado.whatsappRevendedor || '';
+                    const _cuitGuardado      = vendedorEncontrado.cuitRevendedor || '';
+                    const _sexoGuardado      = localStorage.getItem('sexoRevendedor_' + codigo) || '';
+                    const _provinciaGuardada = localStorage.getItem('provinciaRevendedor_' + codigo) || '';
+                    const _ciudadGuardada    = localStorage.getItem('ciudadRevendedor_' + codigo) || '';
+                    const _cpGuardado        = localStorage.getItem('codigoPostalRevendedor_' + codigo) || '';
+                    if (!_waGuardado || !_cuitGuardado || !_sexoGuardado || !_provinciaGuardada || !_ciudadGuardada || !_cpGuardado) {
                         window._pendienteGuardarSesionDespuesDeDatos = true;
                         window._omitirFlujoPostSesion = true;
                         setTimeout(() => {
@@ -10532,6 +10543,19 @@
             _lsSet('provinciaRevendedor', provincia);
             _lsSet('ciudadRevendedor', ciudad);
             _lsSet('codigoPostalRevendedor', codigoPostal);
+            // 🔧 FIX: además de las claves genéricas de arriba (que servían
+            // para CUALQUIER vendedor que haya usado este navegador antes,
+            // haciendo que el modal nunca volviera a aparecer para otro
+            // código), se guardan también con el código de vendedor como
+            // parte de la clave — así cada vendedor tiene su propio registro
+            // real de si ya completó sus datos.
+            const _codigoParaGuardado = (window.currentUser && window.currentUser.codigoVendedor) || (window._ultimoUserDataLogin && window._ultimoUserDataLogin.codigoVendedor) || '';
+            if (_codigoParaGuardado) {
+                _lsSet('sexoRevendedor_' + _codigoParaGuardado, sexo);
+                _lsSet('provinciaRevendedor_' + _codigoParaGuardado, provincia);
+                _lsSet('ciudadRevendedor_' + _codigoParaGuardado, ciudad);
+                _lsSet('codigoPostalRevendedor_' + _codigoParaGuardado, codigoPostal);
+            }
             _guardarEnFirestore({
                 whatsappRevendedor: val,
                 cuitRevendedor: cuitFormateado,
@@ -12146,12 +12170,21 @@
                 // que a un revendedor que ya lo tenía de antes (pero nunca
                 // completó Sexo/Provincia/Ciudad/CP, campos nuevos) el modal
                 // ya no le volvía a aparecer.
-                var waGuardado        = _lsGet('whatsappRevendedor') || (window._ultimoUserDataLogin && window._ultimoUserDataLogin.whatsappRevendedor) || '';
-                var sexoGuardado      = _lsGet('sexoRevendedor') || (window._ultimoUserDataLogin && window._ultimoUserDataLogin.sexo) || '';
-                var provinciaGuardada = _lsGet('provinciaRevendedor') || (window._ultimoUserDataLogin && window._ultimoUserDataLogin.provincia) || '';
-                var ciudadGuardada    = _lsGet('ciudadRevendedor') || (window._ultimoUserDataLogin && window._ultimoUserDataLogin.ciudad) || '';
-                var cpGuardado        = _lsGet('codigoPostalRevendedor') || (window._ultimoUserDataLogin && window._ultimoUserDataLogin.codigoPostal) || '';
-                if (!waGuardado || !sexoGuardado || !provinciaGuardada || !ciudadGuardada || !cpGuardado) {
+                // 🔧 FIX: mismo problema que en validarCodigoRevendedor — las
+                // claves de localStorage eran genéricas (compartidas entre
+                // CUALQUIER vendedor de este navegador), así que una vez
+                // completadas para uno, el modal dejaba de aparecer para
+                // todos los demás. Ahora WhatsApp/CUIT usan el dato real del
+                // servidor, y el resto usa localStorage con el código de
+                // vendedor como parte de la clave.
+                var _codigoActual = (window._ultimoUserDataLogin && window._ultimoUserDataLogin.codigoVendedor) || (window.currentUser && window.currentUser.codigoVendedor) || '';
+                var waGuardado        = (window._ultimoUserDataLogin && window._ultimoUserDataLogin.whatsappRevendedor) || '';
+                var cuitGuardado      = (window._ultimoUserDataLogin && window._ultimoUserDataLogin.cuitRevendedor) || '';
+                var sexoGuardado      = _lsGet('sexoRevendedor_' + _codigoActual) || '';
+                var provinciaGuardada = _lsGet('provinciaRevendedor_' + _codigoActual) || '';
+                var ciudadGuardada    = _lsGet('ciudadRevendedor_' + _codigoActual) || '';
+                var cpGuardado        = _lsGet('codigoPostalRevendedor_' + _codigoActual) || '';
+                if (!waGuardado || !cuitGuardado || !sexoGuardado || !provinciaGuardada || !ciudadGuardada || !cpGuardado) {
                     setTimeout(function() {
                         var modal = document.getElementById('whatsappConfirmModal');
                         if (modal) {
