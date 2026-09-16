@@ -9764,6 +9764,35 @@
             });
         }
 
+        // 🔧 FIX: esta lógica estaba duplicada en 2 lugares con ORDEN
+        // DISTINTO — el login por código (validarCodigoRevendedor) hacía
+        // el orden pedido (Datos primero, Guardar Sesión después), pero
+        // el login desde "Mi Tienda" (bvIngresar) hacía exactamente lo
+        // contrario (Guardar Sesión primero, Datos después), generando el
+        // comportamiento inconsistente reportado — el modal de "Confirmar
+        // Datos" nunca aparecía de entrada, y el de "Guardar Sesión"
+        // terminaba disparándose dos veces. Ahora ambos login llaman a
+        // esta única función, con el mismo orden correcto.
+        function _decidirFlujoPostLogin(vendedorData, codigo) {
+            const _waGuardado        = (vendedorData && vendedorData.whatsappRevendedor) || '';
+            const _cuitGuardado      = (vendedorData && vendedorData.cuitRevendedor) || '';
+            const _sexoGuardado      = localStorage.getItem('sexoRevendedor_' + codigo) || '';
+            const _provinciaGuardada = localStorage.getItem('provinciaRevendedor_' + codigo) || '';
+            const _ciudadGuardada    = localStorage.getItem('ciudadRevendedor_' + codigo) || '';
+            const _cpGuardado        = localStorage.getItem('codigoPostalRevendedor_' + codigo) || '';
+            if (!_waGuardado || !_cuitGuardado || !_sexoGuardado || !_provinciaGuardada || !_ciudadGuardada || !_cpGuardado) {
+                window._pendienteGuardarSesionDespuesDeDatos = true;
+                setTimeout(() => {
+                    const wModal = document.getElementById('whatsappConfirmModal');
+                    const wInput = document.getElementById('whatsapp-input-modal');
+                    if (wInput) wInput.value = '';
+                    if (wModal) wModal.classList.add('active');
+                }, 600);
+            } else {
+                setTimeout(() => mostrarModalGuardarSesion(), 600);
+            }
+        }
+
         async function validarCodigoRevendedor() {
             const codigoInput = document.getElementById('codigo-input');
             const error = document.getElementById('codigo-error');
@@ -9935,39 +9964,21 @@
                     // 🔧 FIX: después de validar el código, el orden pedido es
                     // 1° pedir los datos del usuario (WhatsApp, CUIT, etc. si
                     // faltan) y 2° recién ahí preguntar si guardar la sesión.
-                    // Se guarda una bandera para que responderGuardarSesion()
-                    // no dispare el flujo de datos DE NUEVO (ese flujo
-                    // compartido lo hace en el orden inverso para el modal de
-                    // "Mi Tienda", que no se toca).
-                    // 🔧 FIX: antes esto miraba localStorage genérico
-                    // (whatsappRevendedor, sexoRevendedor, etc.) — si
-                    // CUALQUIER vendedor había completado el modal antes en
-                    // este mismo navegador, esas claves quedaban pobladas
-                    // para siempre, y el modal "Confirma tus Datos" nunca
-                    // volvía a aparecer para NINGÚN código nuevo. Ahora se usa
-                    // el dato real del servidor para WhatsApp/CUIT (que sí
-                    // vienen en la respuesta del login) y localStorage con
-                    // el código de vendedor como parte de la clave para el
+                    // 🔧 FIX: esta lógica está unificada en
+                    // _decidirFlujoPostLogin() (definida más abajo), para
+                    // que el login por código y el login desde "Mi Tienda"
+                    // (bvIngresar) usen exactamente el mismo orden: Datos
+                    // primero, Guardar Sesión después. Antes esto miraba
+                    // localStorage genérico (whatsappRevendedor,
+                    // sexoRevendedor, etc.) — si CUALQUIER vendedor había
+                    // completado el modal antes en este mismo navegador,
+                    // esas claves quedaban pobladas para siempre y el modal
+                    // "Confirma tus Datos" nunca volvía a aparecer para
+                    // NINGÚN código nuevo. Ahora usa el dato real del
+                    // servidor para WhatsApp/CUIT, y localStorage con el
+                    // código de vendedor como parte de la clave para el
                     // resto — cada vendedor con su propio registro real.
-                    const _waGuardado        = vendedorEncontrado.whatsappRevendedor || '';
-                    const _cuitGuardado      = vendedorEncontrado.cuitRevendedor || '';
-                    const _sexoGuardado      = localStorage.getItem('sexoRevendedor_' + codigo) || '';
-                    const _provinciaGuardada = localStorage.getItem('provinciaRevendedor_' + codigo) || '';
-                    const _ciudadGuardada    = localStorage.getItem('ciudadRevendedor_' + codigo) || '';
-                    const _cpGuardado        = localStorage.getItem('codigoPostalRevendedor_' + codigo) || '';
-                    if (!_waGuardado || !_cuitGuardado || !_sexoGuardado || !_provinciaGuardada || !_ciudadGuardada || !_cpGuardado) {
-                        window._pendienteGuardarSesionDespuesDeDatos = true;
-                        window._omitirFlujoPostSesion = true;
-                        setTimeout(() => {
-                            const wModal = document.getElementById('whatsappConfirmModal');
-                            const wInput = document.getElementById('whatsapp-input-modal');
-                            if (wInput) wInput.value = '';
-                            if (wModal) wModal.classList.add('active');
-                        }, 600);
-                    } else {
-                        window._omitirFlujoPostSesion = true;
-                        setTimeout(() => mostrarModalGuardarSesion(), 600);
-                    }
+                    _decidirFlujoPostLogin(vendedorEncontrado, codigo);
                 }
             } catch (error) {
                 
@@ -10475,14 +10486,11 @@
         function responderGuardarSesion(recordar) {
             localStorage.setItem('recordarSesionRevendedor', recordar ? 'true' : 'false');
             document.getElementById('guardarSesionModal').classList.remove('active');
-            // 🔧 FIX: si venimos del login por código de revendedor, los
-            // datos del usuario ya se pidieron ANTES (orden pedido: datos
-            // primero, guardar sesión después) — no volver a disparar ese
-            // flujo acá, o se mostraría el modal de WhatsApp dos veces.
-            if (window._omitirFlujoPostSesion) {
-                window._omitirFlujoPostSesion = false;
-                return;
-            }
+            // 🔧 FIX: antes esto se saltaba según una bandera para no
+            // mostrar el modal de datos dos veces — ya no hace falta,
+            // porque _continuarFlujoPostSesion() ya no tiene ese modal
+            // (esa decisión ahora la toma _decidirFlujoPostLogin() ANTES
+            // de este paso). Siempre se llama, para la guía rápida.
             _continuarFlujoPostSesion();
         }
 
@@ -12143,14 +12151,27 @@
                 bvOcultar();
                 window._ultimoUserDataLogin = userData;
 
-                // Preguntar si quiere recordar la sesión antes de seguir con
-                // el resto del flujo (guía rápida / WhatsApp).
-                mostrarModalGuardarSesion();
+                // 🔧 FIX: antes esto llamaba directo a
+                // mostrarModalGuardarSesion() — Guardar Sesión SIEMPRE
+                // aparecía primero acá, al revés que el login por código.
+                // Ahora usa la misma función compartida: si faltan datos
+                // (WhatsApp/CUIT/Sexo/Provincia/Ciudad/CP), pide eso
+                // primero, y recién al confirmarlos pregunta si guardar la
+                // sesión — igual que el otro login.
+                _decidirFlujoPostLogin(userData, codigo);
             };
 
             // Continúa el flujo normal (guía rápida + modal de WhatsApp) una
             // vez que el revendedor ya contestó Sí/No en el modal de sesión.
-            function _continuarFlujoPostSesion() {
+            // 🔧 FIX CRÍTICO: esta función vivía como function() {} local a
+            // esta IIFE — pero responderGuardarSesion() (definida MUCHO
+            // antes en el archivo, fuera de esta IIFE) la llama, y no podía
+            // verla. Eso lanzaba un ReferenceError sin capturar cada vez
+            // que alguien respondía el modal de "Guardar Sesión" desde el
+            // login por código — cortando el flujo en seco, dejando todo
+            // "colgado" hasta recargar la página. Ahora queda expuesta en
+            // window para que sea visible desde cualquier lado.
+            window._continuarFlujoPostSesion = function _continuarFlujoPostSesion() {
                 // Mostrar guía rápida en los primeros 3 inicios/recargas
                 setTimeout(function() {
                     var vecesVista = parseInt(localStorage.getItem('guiaRapidaVeces') || '0');
@@ -12163,36 +12184,11 @@
                         }
                     }
                 }, 5000);
-
-                // 4. Modal de WhatsApp/CUIT/Sexo/Provincia/Ciudad/CP si no está
-                // configurado. Se pide de nuevo si falta CUALQUIERA de los
-                // datos — antes solo miraba si había WhatsApp guardado, así
-                // que a un revendedor que ya lo tenía de antes (pero nunca
-                // completó Sexo/Provincia/Ciudad/CP, campos nuevos) el modal
-                // ya no le volvía a aparecer.
-                // 🔧 FIX: mismo problema que en validarCodigoRevendedor — las
-                // claves de localStorage eran genéricas (compartidas entre
-                // CUALQUIER vendedor de este navegador), así que una vez
-                // completadas para uno, el modal dejaba de aparecer para
-                // todos los demás. Ahora WhatsApp/CUIT usan el dato real del
-                // servidor, y el resto usa localStorage con el código de
-                // vendedor como parte de la clave.
-                var _codigoActual = (window._ultimoUserDataLogin && window._ultimoUserDataLogin.codigoVendedor) || (window.currentUser && window.currentUser.codigoVendedor) || '';
-                var waGuardado        = (window._ultimoUserDataLogin && window._ultimoUserDataLogin.whatsappRevendedor) || '';
-                var cuitGuardado      = (window._ultimoUserDataLogin && window._ultimoUserDataLogin.cuitRevendedor) || '';
-                var sexoGuardado      = _lsGet('sexoRevendedor_' + _codigoActual) || '';
-                var provinciaGuardada = _lsGet('provinciaRevendedor_' + _codigoActual) || '';
-                var ciudadGuardada    = _lsGet('ciudadRevendedor_' + _codigoActual) || '';
-                var cpGuardado        = _lsGet('codigoPostalRevendedor_' + _codigoActual) || '';
-                if (!waGuardado || !cuitGuardado || !sexoGuardado || !provinciaGuardada || !ciudadGuardada || !cpGuardado) {
-                    setTimeout(function() {
-                        var modal = document.getElementById('whatsappConfirmModal');
-                        if (modal) {
-                            document.getElementById('whatsapp-input-modal').value = '';
-                            modal.classList.add('active');
-                        }
-                    }, 1000);
-                }
+                // 🔧 FIX: el modal de WhatsApp/CUIT/Sexo/Provincia/Ciudad/CP
+                // que vivía acá se sacó — ahora esa decisión la toma
+                // _decidirFlujoPostLogin() ANTES de "Guardar Sesión" (mismo
+                // orden que el login por código), así que dejarlo también
+                // acá lo hubiera mostrado una segunda vez.
             }
 
             window.bvIrRegistro = function() {
