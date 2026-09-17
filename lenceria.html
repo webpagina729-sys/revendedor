@@ -7270,7 +7270,7 @@ function catalogoEfectivoMultishop(p) {
         // Bazar, Juguetería, Librería o Multishop caía en el "else" y
         // terminaba etiquetado como "perfumes" por error, por lo que nunca
         // aparecía en su categoría real dentro del panel de gestión.
-        const CATEGORIAS_PEDIDO = ['perfumes','calzados','belleza','bazar','jugueteria','libreria','multishop'];
+        const CATEGORIAS_PEDIDO = ['perfumes','calzados','belleza','bazar','jugueteria','libreria','lenceria','multishop'];
 
         function getCartMinimumStatus(cartItems = window.cart) {
             const buckets = {};
@@ -7853,6 +7853,7 @@ function catalogoEfectivoMultishop(p) {
             if (claveStock === 'jugueteria_juguetes') return (window.productsJugueteria || []).filter(p => p._jugSub !== 'peluches');
             if (claveStock === 'jugueteria_peluches') return (window.productsJugueteria || []).filter(p => p._jugSub === 'peluches');
             if (claveStock === 'libreria') return window.productsLibreria || [];
+            if (claveStock === 'lenceria') return window.productsLenceria || [];
             if (claveStock === 'calzados') return window.shoes || [];
             return [];
         }
@@ -10071,7 +10072,7 @@ function catalogoEfectivoMultishop(p) {
                         //    de pedido completo, es la fuente de verdad real)
                         // 2) item.catalogo (si algún ítem lo trae explícito)
                         // 3) palabras clave en el nombre (solo pedidos viejos)
-                        const categoriasValidas = new Set(['perfumes','calzados','belleza','bazar','jugueteria','libreria','multishop']);
+                        const categoriasValidas = new Set(['perfumes','calzados','belleza','bazar','jugueteria','libreria','lenceria','multishop']);
                         let nicho = null;
                         if (pedido.nicho && categoriasValidas.has(String(pedido.nicho).toLowerCase())) {
                             nicho = String(pedido.nicho).toLowerCase();
@@ -12011,6 +12012,7 @@ function catalogoEfectivoMultishop(p) {
                 : cat === 'jugueteria_juguetes' ? 'Juguetería — Juguetes'
                 : cat === 'jugueteria_peluches' ? 'Juguetería — Peluches'
                 : cat === 'libreria' ? 'Librería'
+                : cat === 'lenceria' ? 'Conjuntos/Lencería'
                 : cat === 'electronicos' ? 'Electrónicos'
                 : cat === 'multishop' ? 'Multishop'
                 : 'General';
@@ -12471,6 +12473,7 @@ function catalogoEfectivoMultishop(p) {
             if (cat === 'jugueteria_juguetes') return (window.productsJugueteria || []).filter(p => p._jugSub === 'juguetes');
             if (cat === 'jugueteria_peluches') return (window.productsJugueteria || []).filter(p => p._jugSub === 'peluches');
             if (cat === 'libreria') return window.productsLibreria || [];
+            if (cat === 'lenceria') return window.productsLenceria || [];
             if (cat === 'electronicos') return window.productsElectronicos || [];
             if (cat === 'multishop') return window.productsMultishop || [];
             return [];
@@ -14124,6 +14127,7 @@ function catalogoEfectivoMultishop(p) {
                                 : cat === 'jugueteria_juguetes' ? '🧸 Juguetería — Juguetes'
                                 : cat === 'jugueteria_peluches' ? '🧸 Juguetería — Peluches'
                                 : cat === 'libreria' ? '📚 Librería'
+                                : cat === 'lenceria' ? '👙 Conjuntos/Lencería'
                                 : cat === 'electronicos' ? '🔌 Electrónicos'
                                 : cat === 'multishop' ? '🛍 Multishop'
                                 : '📦 ' + cat;
@@ -14140,6 +14144,7 @@ function catalogoEfectivoMultishop(p) {
                                   :  cat === 'jugueteria_juguetes' ? 'Mi tienda de Juguetes'
                                   :  cat === 'jugueteria_peluches' ? 'Mi tienda de Peluches'
                                   :  cat === 'libreria' ? 'Mi tienda de Librería'
+                                  :  cat === 'lenceria' ? 'Mi tienda de Conjuntos/Lencería'
                                   :  cat === 'electronicos' ? 'Mi tienda de Electrónicos'
                                   :  cat === 'multishop' ? 'Mi Multishop'
                                   : 'Mi tienda');
