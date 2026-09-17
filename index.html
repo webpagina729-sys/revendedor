@@ -3379,6 +3379,28 @@
                 </div>
             </div>
 
+            <!-- NICHO 2.5: CONJUNTOS/LENCERÍA -->
+            <div class="nicho-item">
+                <div class="nicho-info">
+                    <h3 class="nicho-title">Conjuntos/Lencería</h3>
+                    <p class="nicho-subtitle">Lencerías de Mujer. Ropa interior de Niñas y Niños</p>
+                </div>
+
+                <!-- CARRUSEL ANCHO (mismo estilo que el resto de nichos) -->
+                <div class="carrusel-container" id="carrusel-container-lenceria">
+                    <div class="carrusel-wrapper" id="carrusel-wrapper-lenceria"></div>
+                    <button class="carrusel-nav carrusel-prev" onclick="carruselAnteriorLenceria()" title="Anterior">‹</button>
+                    <button class="carrusel-nav carrusel-next" onclick="carruselSiguienteLenceria()" title="Siguiente">›</button>
+                    <div class="carrusel-dots" id="carrusel-dots-lenceria"></div>
+                </div>
+
+                <!-- BADGE + BOTÓN: va directo al catálogo en lenceria.html -->
+                <div class="nicho-footer">
+                    <div class="nicho-badge">💰 Monto mínimo: $150.000</div>
+                    <a class="nicho-button" href="lenceria.html" style="display:block; text-align:center; text-decoration:none;">Comenzar próximo pedido en este lugar</a>
+                </div>
+            </div>
+
             <!-- NICHO 3: CALZADOS -->
             <div class="nicho-item">
                 <div class="nicho-info">
@@ -9513,6 +9535,71 @@
         let carruselActualBelleza = 0;
         let productosCarruselBelleza = [];
 
+        // ═══ LENCERÍA: carrusel de la tarjeta de Inicio ═══
+        let carruselActualLenceria = 0;
+        let productosCarruselLenceria = [];
+        const LENCERIA_REPO_BASE_CARD = 'https://raw.githubusercontent.com/webpagina729-sys/Lenceria/main/';
+
+        function inicializarCarruselLenceria() {
+            // Imágenes fijas pedidas para el carrusel de la tarjeta de
+            // Conjuntos/Lencería en Inicio.
+            const CARRUSEL_LENCERIA_IMGS = ['maia.png', 'maiacinco.png', 'lodytres.png', 'fairuzcinco.png', 'fairuzseis.png', 'maiadoce.png'];
+            productosCarruselLenceria = CARRUSEL_LENCERIA_IMGS.map(fname => ({
+                nombre: 'Conjuntos/Lencería',
+                imagen: LENCERIA_REPO_BASE_CARD + fname
+            }));
+
+            const wrapper = document.getElementById('carrusel-wrapper-lenceria');
+            const dotsContainer = document.getElementById('carrusel-dots-lenceria');
+            if (!wrapper || !dotsContainer) return;
+
+            wrapper.innerHTML = '';
+            dotsContainer.innerHTML = '';
+
+            productosCarruselLenceria.forEach((producto, index) => {
+                const slide = document.createElement('div');
+                slide.className = 'carrusel-slide';
+                slide.innerHTML = `<img src="${producto.imagen}" alt="${producto.nombre}" loading="lazy">`;
+                wrapper.appendChild(slide);
+
+                const dot = document.createElement('button');
+                dot.className = `carrusel-dot ${index === 0 ? 'active' : ''}`;
+                dot.onclick = () => irASlideLenceria(index);
+                dotsContainer.appendChild(dot);
+            });
+
+            carruselActualLenceria = 0;
+            actualizarCarruselLenceria();
+        }
+
+        function actualizarCarruselLenceria() {
+            const wrapper = document.getElementById('carrusel-wrapper-lenceria');
+            if (wrapper) {
+                const offset = carruselActualLenceria * -100;
+                wrapper.style.transform = `translateX(${offset}%)`;
+            }
+            document.querySelectorAll('#carrusel-dots-lenceria .carrusel-dot').forEach((dot, index) => {
+                dot.classList.toggle('active', index === carruselActualLenceria);
+            });
+        }
+
+        function carruselAnteriorLenceria() {
+            if (productosCarruselLenceria.length === 0) return;
+            carruselActualLenceria = (carruselActualLenceria - 1 + productosCarruselLenceria.length) % productosCarruselLenceria.length;
+            actualizarCarruselLenceria();
+        }
+
+        function carruselSiguienteLenceria() {
+            if (productosCarruselLenceria.length === 0) return;
+            carruselActualLenceria = (carruselActualLenceria + 1) % productosCarruselLenceria.length;
+            actualizarCarruselLenceria();
+        }
+
+        function irASlideLenceria(index) {
+            carruselActualLenceria = index;
+            actualizarCarruselLenceria();
+        }
+
         function inicializarCarruselBelleza() {
             // Imágenes fijas pedidas para el carrusel de la tarjeta de
             // Belleza y Cuidado Personal (todas de Maquillaje).
@@ -10407,6 +10494,7 @@
                 inicializarCarrusel();
                 inicializarCarruselShoesPreview();
                 inicializarCarruselBelleza();
+                inicializarCarruselLenceria();
                 
                 // Actualizar vista de nichos
                 actualizarVistaNichos();
