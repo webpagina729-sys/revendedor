@@ -3416,7 +3416,7 @@
     </footer>
 
     <!-- ══ MODAL BIENVENIDA — INGRESO CON CÓDIGO DE REVENDEDOR ══ -->
-    <div id="bv-overlay">
+    <div id="bv-overlay" class="bv-hide">
         <div class="bv-box">
             <a class="bv-home-link" href="https://tutiendapropia.revendeways.shop" target="_blank" rel="noopener">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>
@@ -8617,8 +8617,15 @@ window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOrigin
                         if (!window.codigoValidado) {
                             const codigoGuardado = localStorage.getItem('codigoRevendedorValidado') || localStorage.getItem('codigoVendedorLocal');
                             if (codigoGuardado) {
-                                await restaurarSesionGuardada(codigoGuardado);
+                                const restaurada = await restaurarSesionGuardada(codigoGuardado);
                                 if (typeof actualizarBotonesRevend === 'function') actualizarBotonesRevend();
+                                // 🔧 FIX: si el código guardado ya no es válido
+                                // (cuenta borrada, etc.), antes esto no hacía
+                                // nada — las pelotitas se ocultaban y no
+                                // quedaba claro que hacía falta loguear de
+                                // nuevo. Ahora, en ese caso puntual, se
+                                // muestra el panel de login explícitamente.
+                                if (!restaurada && typeof bvMostrar === 'function') bvMostrar();
                             }
                         }
                     } finally {
@@ -9073,6 +9080,23 @@ window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOrigin
             if (!user) { abrirLogin(); return; }
 
             const cat = window.currentCatalog || 'lenceria';
+
+            // 🔧 FIX: mismo reinicio explícito que index.html/mas-categorias.html,
+            // por consistencia — limpia todos los campos a un estado
+            // neutral antes de cargar los datos reales de la categoría.
+            const rangosContainerReset = document.getElementById('config-rangos-container');
+            if (rangosContainerReset) rangosContainerReset.innerHTML = '';
+            const nombreTiendaReset = document.getElementById('config-nombre-tienda');
+            if (nombreTiendaReset) nombreTiendaReset.value = '';
+            const whatsappReset = document.getElementById('config-whatsapp');
+            if (whatsappReset) whatsappReset.value = '';
+            const cuitReset = document.getElementById('config-cuit');
+            if (cuitReset) cuitReset.value = '';
+            const colorPickerReset = document.getElementById('config-color-tienda');
+            if (colorPickerReset) colorPickerReset.value = '#0066ff';
+            const colorHexReset = document.getElementById('config-color-tienda-hex');
+            if (colorHexReset) colorHexReset.value = '#0066FF';
+
             const catLabel = 'Conjuntos/Lencería';
             const el = document.getElementById('configTiendaCatLabel');
             if (el) el.textContent = '📁 Categoría: ' + catLabel;
@@ -10747,7 +10771,20 @@ window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOrigin
             return { nombre, apellido };
         }
 
-        async function armarSlugRevendedor() {
+        // 🔧 FIX CRÍTICO: antes esto generaba un número aleatorio nuevo
+        // (rand6) CADA VEZ que se llamaba — así que editar una tienda
+        // guardada y volver a compartirla generaba un slug (y por lo
+        // tanto una URL corta) totalmente distinta, dejando el enlace
+        // viejo activo con la configuración vieja en vez de actualizarse.
+        // Ahora el slug se genera UNA sola vez por categoría (o por
+        // producto puntual) y se guarda en localStorage — toda edición
+        // posterior reusa el mismo slug, así que actualiza el mismo
+        // enlace en vez de crear uno nuevo.
+        async function armarSlugRevendedor(catConfig, productId) {
+            const clave = productId != null ? `slugProducto_${catConfig}_${productId}` : `slugTienda_${catConfig}`;
+            const existente = catConfig ? localStorage.getItem(clave) : null;
+            if (existente) return existente;
+
             const { nombre: nombreRaw, apellido: apellidoRaw } = await obtenerNombreApellidoRevendedor();
             const nombre = (nombreRaw || '').toString().toLowerCase()
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -10756,7 +10793,10 @@ window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOrigin
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
                 .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || '';
             const rand6 = Math.floor(100000 + Math.random() * 900000);
-            return (apellido ? nombre + '-' + apellido : nombre) + '-' + rand6;
+            const nuevoSlug = (apellido ? nombre + '-' + apellido : nombre) + '-' + rand6;
+
+            if (catConfig) localStorage.setItem(clave, nuevoSlug);
+            return nuevoSlug;
         }
 
         // Arma la URL final de tienda.html. Se usa como FALLBACK si el
@@ -10945,7 +10985,7 @@ window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOrigin
 
             const { cfgFull, promo } = armarCfgFullYPromo(catConfig);
             const { cat, sub } = derivarRutaYSub(catConfig);
-            const slugId = await armarSlugRevendedor();
+            const slugId = await armarSlugRevendedor(catConfig);
             const urlCorta = await acortarEnlace(slugId, codigo, cat, cfgFull, promo, null, sub);
             window._enlacesCortosCache[catConfig] = urlCorta;
             return urlCorta;
@@ -10974,7 +11014,7 @@ window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOrigin
                 }
             } catch(e) {}
             const { cat, sub } = derivarRutaYSub(catConfig);
-            const slugId = await armarSlugRevendedor();
+            const slugId = await armarSlugRevendedor(catConfig, productId);
             return await acortarEnlace(slugId, codigo, cat, cfgFull, promo, productId, sub);
         }
 
@@ -12217,7 +12257,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             if (btn) { btn.disabled = true; btn.innerHTML = '⏳...'; }
             try {
                 const codigoVendedor = window.getCodigoVendedor();
-                const slugId = await armarSlugRevendedor();
+                const slugId = await armarSlugRevendedor(cat + '_' + tipo + '_' + itemId);
                 const guardado = await comboFetch('/slug', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
