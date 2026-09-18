@@ -3534,8 +3534,49 @@
         </div>
     </footer>
 
+    <!-- 🔧 NUEVO: overlay de "verificando sesión" — mismo estilo de
+         pelotitas azul/verde rebotando que el resto del sitio, con el
+         fondo difuminado. Se muestra por defecto (antes de que corra
+         cualquier JS async) SOLO si hay un código guardado — así, en
+         vez de que el panel de login "Mi Tienda" se vea tapando todo
+         mientras se verifica Turnstile/el código contra el servidor
+         (confundiendo si hay que volver a tipear el código), se ve esta
+         pantalla de carga hasta que el auto-login termine. El panel de
+         login solo aparece si de verdad hace falta iniciar sesión. -->
+    <div id="bv-checking-overlay" style="position:fixed;inset:0;z-index:10499;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+        <div style="display:flex;gap:8px;">
+            <span style="width:12px;height:12px;border-radius:50%;background:#0066ff;animation:bvCheckingBounce 1s ease-in-out infinite;animation-delay:0s;"></span>
+            <span style="width:12px;height:12px;border-radius:50%;background:#00a650;animation:bvCheckingBounce 1s ease-in-out infinite;animation-delay:.15s;"></span>
+            <span style="width:12px;height:12px;border-radius:50%;background:#0066ff;animation:bvCheckingBounce 1s ease-in-out infinite;animation-delay:.3s;"></span>
+            <span style="width:12px;height:12px;border-radius:50%;background:#00a650;animation:bvCheckingBounce 1s ease-in-out infinite;animation-delay:.45s;"></span>
+        </div>
+    </div>
+    <style>
+        @keyframes bvCheckingBounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: .6; }
+            40% { transform: translateY(-10px); opacity: 1; }
+        }
+    </style>
+    <script>
+        // Decisión SÍNCRONA, antes de cualquier otra cosa: si hay un
+        // código de revendedor guardado, mostrar la pantalla de
+        // "verificando" en vez del panel de login — el panel arranca
+        // oculto (ver CSS de #bv-overlay más abajo) y solo se muestra
+        // si el auto-login determina que hace falta.
+        (function() {
+            try {
+                var hayCodigoGuardado = localStorage.getItem('bv_codigo_sesion')
+                    || localStorage.getItem('codigoRevendedorValidado')
+                    || localStorage.getItem('codigoVendedorLocal');
+                if (hayCodigoGuardado) {
+                    document.write('<style>#bv-checking-overlay{display:flex !important;}</style>');
+                }
+            } catch(_e) {}
+        })();
+    </script>
+
     <!-- ══ MODAL BIENVENIDA — INGRESO CON CÓDIGO DE REVENDEDOR ══ -->
-    <div id="bv-overlay">
+    <div id="bv-overlay" class="bv-hide">
         <div class="bv-box">
             <a class="bv-home-link" href="https://tutiendapropia.revendeways.shop" target="_blank" rel="noopener">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>
@@ -11056,6 +11097,28 @@
             if (!user) { abrirLogin(); return; }
 
             const cat = window.currentCatalog || 'general';
+
+            // 🔧 FIX: antes, el botón de engranaje (que abre este modal
+            // directo, sin pasar por "Mis Tiendas Guardadas") no tenía
+            // ninguna garantía de que el formulario arrancara limpio —
+            // solo "Mis Tiendas Guardadas" forzaba currentCatalog antes de
+            // abrir. Ahora el reinicio es explícito acá mismo, para
+            // CUALQUIER camino que abra este modal: se limpian todos los
+            // campos a un estado neutral ANTES de cargar los datos reales
+            // de "cat", así nunca puede quedar algo de otra categoría.
+            const rangosContainerReset = document.getElementById('config-rangos-container');
+            if (rangosContainerReset) rangosContainerReset.innerHTML = '';
+            const nombreTiendaReset = document.getElementById('config-nombre-tienda');
+            if (nombreTiendaReset) nombreTiendaReset.value = '';
+            const whatsappReset = document.getElementById('config-whatsapp');
+            if (whatsappReset) whatsappReset.value = '';
+            const cuitReset = document.getElementById('config-cuit');
+            if (cuitReset) cuitReset.value = '';
+            const colorPickerReset = document.getElementById('config-color-tienda');
+            if (colorPickerReset) colorPickerReset.value = '#0066ff';
+            const colorHexReset = document.getElementById('config-color-tienda-hex');
+            if (colorHexReset) colorHexReset.value = '#0066FF';
+
             const catLabel = cat === 'perfumes' ? 'Perfumería' : cat === 'calzados' ? 'Calzados Importados' : cat === 'belleza_maquillaje' ? 'Belleza y Cuidado Personal — Maquillaje' : cat === 'belleza_perfume' ? 'Belleza y Cuidado Personal — Perfumes' : cat === 'belleza' ? 'Belleza y Cuidado Personal' : 'General';
             const el = document.getElementById('configTiendaCatLabel');
             if (el) el.textContent = '📁 Categoría: ' + catLabel;
@@ -11834,8 +11897,12 @@
             function bvOcultar() {
                 var el = document.getElementById('bv-overlay');
                 if (el) el.classList.add('bv-hide');
+                var chk = document.getElementById('bv-checking-overlay');
+                if (chk) chk.style.display = 'none';
             }
             function bvMostrar() {
+                var chk = document.getElementById('bv-checking-overlay');
+                if (chk) chk.style.display = 'none';
                 var el = document.getElementById('bv-overlay');
                 if (el) el.classList.remove('bv-hide');
                 setTimeout(function() {
@@ -12819,7 +12886,20 @@
             return { nombre, apellido };
         }
 
-        async function armarSlugRevendedor() {
+        // 🔧 FIX CRÍTICO: antes esto generaba un número aleatorio nuevo
+        // (rand6) CADA VEZ que se llamaba — así que editar una tienda
+        // guardada y volver a compartirla generaba un slug (y por lo
+        // tanto una URL corta) totalmente distinta, dejando el enlace
+        // viejo activo con la configuración vieja en vez de actualizarse.
+        // Ahora el slug se genera UNA sola vez por categoría (o por
+        // producto puntual) y se guarda en localStorage — toda edición
+        // posterior reusa el mismo slug, así que actualiza el mismo
+        // enlace en vez de crear uno nuevo.
+        async function armarSlugRevendedor(catConfig, productId) {
+            const clave = productId != null ? `slugProducto_${catConfig}_${productId}` : `slugTienda_${catConfig}`;
+            const existente = catConfig ? localStorage.getItem(clave) : null;
+            if (existente) return existente;
+
             const { nombre: nombreRaw, apellido: apellidoRaw } = await obtenerNombreApellidoRevendedor();
             const nombre = (nombreRaw || '').toString().toLowerCase()
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -12828,7 +12908,10 @@
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
                 .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || '';
             const rand6 = Math.floor(100000 + Math.random() * 900000);
-            return (apellido ? nombre + '-' + apellido : nombre) + '-' + rand6;
+            const nuevoSlug = (apellido ? nombre + '-' + apellido : nombre) + '-' + rand6;
+
+            if (catConfig) localStorage.setItem(clave, nuevoSlug);
+            return nuevoSlug;
         }
 
         // Arma la URL final de tienda.html. Se usa como FALLBACK si el
@@ -13004,7 +13087,7 @@
 
             const { cfgFull, promo } = armarCfgFullYPromo(catConfig);
             const { cat, sub } = derivarRutaYSub(catConfig);
-            const slugId = await armarSlugRevendedor();
+            const slugId = await armarSlugRevendedor(catConfig);
             const urlCorta = await acortarEnlace(slugId, codigo, cat, cfgFull, promo, null, sub);
             window._enlacesCortosCache[catConfig] = urlCorta;
             return urlCorta;
@@ -13034,7 +13117,7 @@
                 }
             } catch(e) {}
             const { cat, sub } = derivarRutaYSub(catConfig);
-            const slugId = await armarSlugRevendedor();
+            const slugId = await armarSlugRevendedor(catConfig, productId);
             return await acortarEnlace(slugId, codigo, cat, cfgFull, promo, productId, sub);
         }
 
@@ -14266,7 +14349,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             if (btn) { btn.disabled = true; btn.innerHTML = '⏳...'; }
             try {
                 const codigoVendedor = window.getCodigoVendedor();
-                const slugId = await armarSlugRevendedor();
+                const slugId = await armarSlugRevendedor(cat + '_' + tipo + '_' + itemId);
                 const guardado = await comboFetch('/slug', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
