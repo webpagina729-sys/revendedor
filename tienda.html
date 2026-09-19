@@ -813,7 +813,7 @@
         </div>
         <div class="modal-product-name" id="modal-nombre"></div>
         <div class="modal-product-price" id="modal-precio"></div>
-        <!-- talle selector (sólo calzados) -->
+        <!-- talle selector (calzados y Lencería, campo "talles") -->
         <div class="talle-selector" id="talle-selector" style="display:none;">
             <label>Elegí tu talle</label>
             <div class="talles" id="talles-container"></div>
@@ -822,6 +822,11 @@
         <div class="talle-selector" id="variante-selector" style="display:none;">
             <label>Elegí la variante *</label>
             <div class="talles" id="variantes-container"></div>
+        </div>
+        <!-- color selector (Lencería) -->
+        <div class="talle-selector" id="color-selector" style="display:none;">
+            <label>Elegí tu color</label>
+            <div class="talles" id="colores-container"></div>
         </div>
         <div class="modal-section-title">Características</div>
         <ul class="modal-chars" id="modal-chars"></ul>
@@ -2061,6 +2066,24 @@ const LENCERIA_DATA = [
 let vendedor       = null;   // datos del vendedor
 let configTienda   = {};     // configTiendaAll del vendedor
 let catalogoActual = null;   // 'perfumes' | 'calzados'
+
+// 🔧 NUEVO: variantes/talles que el dueño de la plataforma sacó o
+// agregó puntualmente para un producto (desde pedidos.html → Stock →
+// ⚙️ Variantes). Se usa para filtrar los colores/talles/variantes que
+// se muestran en el selector del cliente, para que coincida con lo
+// que ve el revendedor en su propio catálogo.
+window.VARIANTES_GLOBAL_PLATAFORMA = {};
+fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
+    .then(r => r.json())
+    .then(data => {
+        if (data && data.ok) window.VARIANTES_GLOBAL_PLATAFORMA = data.variantes || {};
+    })
+    .catch(() => {});
+
+function _variantesActivasDe(catalogo, productId, campo, listaBase) {
+    const override = window.VARIANTES_GLOBAL_PLATAFORMA?.[catalogo]?.[String(productId)]?.[campo];
+    return Array.isArray(override) ? override : (listaBase || []);
+}
 let cfgUrlColorTienda  = null; // color principal embebido en ?cfg= del enlace (prioridad máxima)
 let cfgUrlColoresExtra = null; // colores extra (fondo/contorno/nombre/precio) embebidos en ?cfg=
 let todosProductos = [];     // array original con precio ajustado
@@ -3850,6 +3873,7 @@ filtrarProductos = function() {
 // MODAL PRODUCTO
 // ═══════════════════════════════════════════════════════════════
 let varianteSelec = null;
+let colorSelec = null;
 let modalImagenes = [];
 let modalImagenIndex = 0;
 
@@ -3858,6 +3882,7 @@ function abrirModal(id) {
     if (!productoModal) return;
     talleSelec = null;
     varianteSelec = null;
+    colorSelec = null;
 
     modalImagenes = (Array.isArray(productoModal.imagenes) && productoModal.imagenes.length > 1) ? productoModal.imagenes : [productoModal.imagen];
     modalImagenIndex = 0;
@@ -3882,11 +3907,14 @@ function abrirModal(id) {
     const chars = document.getElementById('modal-chars');
     chars.innerHTML = (productoModal.caracteristicas || []).map(c => `<li>${c}</li>`).join('');
 
-    // Talles (calzados)
+    // Talles (calzados: campo "talle"; Lencería: campo "talles" plural — comparten la misma sección visual y el mismo talleSelec, ya que ambos se guardan como "talle" en el carrito)
     const talleSection = document.getElementById('talle-selector');
-    if (productoModal.talle && productoModal.talle.length > 0) {
+    const tallesActivosCalzado = _variantesActivasDe(catalogoActual, productoModal.id, 'talle', productoModal.talle);
+    const tallesActivosLenceria = _variantesActivasDe(catalogoActual, productoModal.id, 'talles', productoModal.talles);
+    const tallesActivos = tallesActivosCalzado.length ? tallesActivosCalzado : tallesActivosLenceria;
+    if (tallesActivos.length > 0) {
         talleSection.style.display = 'block';
-        document.getElementById('talles-container').innerHTML = productoModal.talle.map(t =>
+        document.getElementById('talles-container').innerHTML = tallesActivos.map(t =>
             `<button class="talle-btn" onclick="seleccionarTalle('${t}', this)">${t}</button>`
         ).join('');
     } else {
@@ -3895,13 +3923,26 @@ function abrirModal(id) {
 
     // Variantes (perfumería / maquillaje) — selección obligatoria
     const varianteSection = document.getElementById('variante-selector');
-    if (productoModal.variantes && productoModal.variantes.length > 0) {
+    const variantesActivas = _variantesActivasDe(catalogoActual, productoModal.id, 'variantes', productoModal.variantes);
+    if (variantesActivas.length > 0) {
         varianteSection.style.display = 'block';
-        document.getElementById('variantes-container').innerHTML = productoModal.variantes.map(v =>
+        document.getElementById('variantes-container').innerHTML = variantesActivas.map(v =>
             `<button class="talle-btn" onclick="seleccionarVariante('${v.replace(/'/g, "\\'")}', this)">${v}</button>`
         ).join('');
     } else {
         varianteSection.style.display = 'none';
+    }
+
+    // Colores (Lencería)
+    const colorSection = document.getElementById('color-selector');
+    const coloresActivos = _variantesActivasDe(catalogoActual, productoModal.id, 'colores', productoModal.colores);
+    if (coloresActivos.length > 0) {
+        colorSection.style.display = 'block';
+        document.getElementById('colores-container').innerHTML = coloresActivos.map(c =>
+            `<button class="talle-btn" onclick="seleccionarColor('${c.replace(/'/g, "\\'")}', this)">${c}</button>`
+        ).join('');
+    } else {
+        colorSection.style.display = 'none';
     }
 
     document.getElementById('modal-producto').classList.add('active');
@@ -3926,7 +3967,13 @@ function seleccionarVariante(valor, btn) {
 
 function seleccionarTalle(talle, btn) {
     talleSelec = talle;
-    document.querySelectorAll('.talle-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('#talles-container .talle-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+}
+
+function seleccionarColor(color, btn) {
+    colorSelec = color;
+    document.querySelectorAll('#colores-container .talle-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
 }
 
@@ -3935,44 +3982,60 @@ function cerrarModalProducto() {
     productoModal = null;
     talleSelec = null;
     varianteSelec = null;
+    colorSelec = null;
 }
 
 function agregarDesdeModal() {
     if (!productoModal) return;
-    if (productoModal.talle && productoModal.talle.length > 0 && !talleSelec) {
+    const tallesActivos = _variantesActivasDe(catalogoActual, productoModal.id, 'talle', productoModal.talle).length
+        ? _variantesActivasDe(catalogoActual, productoModal.id, 'talle', productoModal.talle)
+        : _variantesActivasDe(catalogoActual, productoModal.id, 'talles', productoModal.talles);
+    const variantesActivas = _variantesActivasDe(catalogoActual, productoModal.id, 'variantes', productoModal.variantes);
+    const coloresActivos = _variantesActivasDe(catalogoActual, productoModal.id, 'colores', productoModal.colores);
+    if (tallesActivos.length > 0 && !talleSelec) {
         mostrarToast('Elegí un talle para continuar');
         return;
     }
-    if (productoModal.variantes && productoModal.variantes.length > 0 && !varianteSelec) {
+    if (variantesActivas.length > 0 && !varianteSelec) {
         mostrarToast('Elegí una variante para continuar');
         return;
     }
-    agregarAlCarritoObj(productoModal, talleSelec, varianteSelec);
+    if (coloresActivos.length > 0 && !colorSelec) {
+        mostrarToast('Elegí un color para continuar');
+        return;
+    }
+    agregarAlCarritoObj(productoModal, talleSelec, varianteSelec, colorSelec);
     cerrarModalProducto();
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // CARRITO
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 function agregarAlCarrito(id) {
     const p = todosProductos.find(x => x.id === id);
     if (!p) return;
-    if (p.talle && p.talle.length > 0) {
+    const tallesActivos = _variantesActivasDe(catalogoActual, p.id, 'talle', p.talle).length
+        ? _variantesActivasDe(catalogoActual, p.id, 'talle', p.talle)
+        : _variantesActivasDe(catalogoActual, p.id, 'talles', p.talles);
+    if (tallesActivos.length > 0) {
         abrirModal(id); return; // necesita talle
     }
-    if (p.variantes && p.variantes.length > 0) {
+    if (_variantesActivasDe(catalogoActual, p.id, 'variantes', p.variantes).length > 0) {
         abrirModal(id); return; // necesita variante
     }
-    agregarAlCarritoObj(p, null, null);
+    if (_variantesActivasDe(catalogoActual, p.id, 'colores', p.colores).length > 0) {
+        abrirModal(id); return; // necesita color
+    }
+    agregarAlCarritoObj(p, null, null, null);
 }
 
-function agregarAlCarritoObj(producto, talle, variante) {
-    const key = producto.id + (talle ? '-' + talle : '') + (variante ? '-' + variante : '');
+function agregarAlCarritoObj(producto, talle, variante, color) {
+    const key = producto.id + (talle ? '-' + talle : '') + (variante ? '-' + variante : '') + (color ? '-' + color : '');
     const existing = carrito.find(x => x.key === key);
     if (existing) {
         existing.qty++;
     } else {
-        carrito.push({ key, producto, qty: 1, talle, variante });
+        carrito.push({ key, producto, qty: 1, talle, variante, color });
     }
     actualizarContadorCarrito();
     mostrarToast('Agregado al carrito ✓');
@@ -4022,7 +4085,7 @@ function renderizarCarrito() {
             <img src="${resolveImgUrl(item.producto.imagen)}" alt="${item.producto.nombre}"
                  onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22%3E%3Crect fill=%22%23f5f5f5%22 width=%2260%22 height=%2260%22/%3E%3C/svg%3E'">
             <div class="cart-item-info">
-                <div class="cart-item-name">${item.producto.nombre}${item.talle ? ' — T. ' + item.talle : ''}${item.variante ? ' — ' + item.variante : ''}</div>
+                <div class="cart-item-name">${item.producto.nombre}${item.talle ? ' — T. ' + item.talle : ''}${item.variante ? ' — ' + item.variante : ''}${item.color ? ' — ' + item.color : ''}</div>
                 <div class="cart-item-price">${formatPrice(item.producto.precioFinal * item.qty)}</div>
                 <div class="cart-qty">
                     <button class="qty-btn" onclick="cambiarCantidad('${item.key}',-1)">−</button>
@@ -4051,7 +4114,7 @@ function enviarPorWhatsApp() {
     }
 
     const lineas = carrito.map(item =>
-        `• ${item.producto.nombre}${item.talle ? ' (T. ' + item.talle + ')' : ''} x${item.qty} — ${formatPrice(item.producto.precioFinal * item.qty)}`
+        `• ${item.producto.nombre}${item.talle ? ' (T. ' + item.talle + ')' : ''}${item.color ? ' (Color: ' + item.color + ')' : ''} x${item.qty} — ${formatPrice(item.producto.precioFinal * item.qty)}`
     );
     const total = carrito.reduce((s, x) => s + x.producto.precioFinal * x.qty, 0);
     const msg = [
@@ -4520,6 +4583,7 @@ async function enviarPedidoConDatos() {
         precio:      i.producto.precioFinal,
         talle:       i.talle || null,
         variante:    i.variante || null,
+        color:       i.color || null,
         catalogo:    _catalogoRealDe(i),
         precioCosto: 0 // el costo mayorista real lo calcula index.html/mas-categorias.html contra el Worker preciosmayoristasrevendedores al aprobar el pedido
     }));
@@ -4528,7 +4592,7 @@ async function enviarPedidoConDatos() {
     // "preciosIndividuales" (con el talle/variante como texto legible)
     // SOLO por compatibilidad hacia atrás — el mensaje de WhatsApp y
     // cualquier lector viejo los siguen usando tal cual.
-    const productos           = carrito.map(i => i.producto.nombre + (i.talle ? ` (T.${i.talle})` : '') + (i.variante ? ` (Variante: ${i.variante})` : ''));
+    const productos           = carrito.map(i => i.producto.nombre + (i.talle ? ` (T.${i.talle})` : '') + (i.variante ? ` (Variante: ${i.variante})` : '') + (i.color ? ` (Color: ${i.color})` : ''));
     const cantidades          = carrito.map(i => i.qty);
     const preciosIndividuales = carrito.map(i => i.producto.precioFinal);
     const subtotal            = carrito.reduce((s, x) => s + x.producto.precioFinal * x.qty, 0);
@@ -4740,9 +4804,9 @@ function _enviarWAConTipoEntrega(tipo, datosEnvio) {
 
     const lineas = carrito.map(item => {
         if (item.regalo) {
-            return `• *${item.producto.nombre}*${item.talle ? ' (T. ' + item.talle + ')' : ''}\n  Precio: GRATIS 🎁\n  Cantidad: ${item.qty}`;
+            return `• *${item.producto.nombre}*${item.talle ? ' (T. ' + item.talle + ')' : ''}${item.color ? ' (Color: ' + item.color + ')' : ''}\n  Precio: GRATIS 🎁\n  Cantidad: ${item.qty}`;
         }
-        return `• *${item.producto.nombre}*${item.talle ? ' (T. ' + item.talle + ')' : ''}\n  Precio: ${formatPrice(item.producto.precioFinal)}\n  Cantidad: ${item.qty}`;
+        return `• *${item.producto.nombre}*${item.talle ? ' (T. ' + item.talle + ')' : ''}${item.color ? ' (Color: ' + item.color + ')' : ''}\n  Precio: ${formatPrice(item.producto.precioFinal)}\n  Cantidad: ${item.qty}`;
     });
 
     const partes = [
@@ -5358,7 +5422,7 @@ enviarPorWhatsApp = function() {
     if (!wa) { alert('Este vendedor aún no configuró su WhatsApp.'); return; }
     const lineas = carrito.map(item => {
         if (item.regalo) {
-            return `• ${item.producto.nombre}${item.talle ? ' (T. ' + item.talle + ')' : ''} x${item.qty} — 🎁 REGALO`;
+            return `• ${item.producto.nombre}${item.talle ? ' (T. ' + item.talle + ')' : ''}${item.color ? ' (Color: ' + item.color + ')' : ''} x${item.qty} — 🎁 REGALO`;
         }
         return `• ${item.producto.nombre}${item.talle ? ' (T. ' + item.talle + ')' : ''} x${item.qty} — ${formatPrice(item.producto.precioFinal * item.qty)}`;
     });
