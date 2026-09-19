@@ -3583,9 +3583,10 @@
                     // ni bvOcultar() (error no capturado en algún punto,
                     // el listener de 'load' nunca llega a dispararse, etc.),
                     // esta pantalla no debe quedar visible para siempre.
-                    // El flujo real puede tardar hasta ~10s en el peor caso
-                    // (esperando confirmación de Firebase Auth por UID), así
-                    // que el margen de seguridad va a 14s para no taparlo.
+                    // El flujo real puede tardar hasta ~20s en el peor caso
+                    // (5s esperando Firebase Auth + reintentos de Firestore
+                    // + espera de Turnstile), así que el margen de
+                    // seguridad va a 22s para no taparlo antes de tiempo.
                     document.addEventListener('DOMContentLoaded', function() {
                         setTimeout(function() {
                             var chk = document.getElementById('bv-checking-overlay');
@@ -3593,7 +3594,7 @@
                                 chk.style.display = 'none';
                                 if (!window.codigoValidado && typeof bvMostrar === 'function') bvMostrar();
                             }
-                        }, 14000);
+                        }, 22000);
                     });
                 }
             } catch(_e) {}
@@ -12205,18 +12206,25 @@
             // sin ella) — nunca cuelga: si Firebase tarda en cargar o
             // nunca confirma nada, se resuelve como "sin usuario" a los
             // 5 segundos como máximo.
+            // Espera el PRIMER resultado de Firebase Auth (con sesión o
+            // sin ella) — nunca cuelga: si Firebase tarda en cargar o
+            // nunca confirma nada, se resuelve como "sin usuario" a los
+            // 5 segundos como máximo. Se desuscribe apenas resuelve, para
+            // no dejar un listener de más escuchando para siempre.
             function esperarPrimerAuthState() {
                 return new Promise(function(resolve) {
                     var resuelto = false;
+                    var unsub = null;
                     var resolverUnaVez = function(user) {
                         if (resuelto) return;
                         resuelto = true;
+                        if (unsub) { try { unsub(); } catch(e) {} }
                         resolve(user || null);
                     };
                     setTimeout(function() { resolverUnaVez(null); }, 5000);
                     esperarFirebase().then(function() {
                         try {
-                            firebase.auth().onAuthStateChanged(function(user) { resolverUnaVez(user); });
+                            unsub = firebase.auth().onAuthStateChanged(function(user) { resolverUnaVez(user); });
                         } catch (e) { resolverUnaVez(null); }
                     }).catch(function() { resolverUnaVez(null); });
                 });
@@ -12245,32 +12253,34 @@
                 // 🔧 FIX CRÍTICO: acá NO había código todavía, pero eso NO
                 // significa que no haya sesión — si el usuario inició
                 // sesión con Google (Firebase Auth, vía UID) en vez de con
-                // código de revendedor, el código recién se guarda en
-                // localStorage DESPUÉS de que onAuthStateChanged confirme
-                // el usuario y initializeUserSession() complete una
-                // consulta a Firestore (todo asíncrono). Antes, este gate
-                // mostraba el panel de login INMEDIATAMENTE sin darle esa
-                // oportunidad — así que alguien con sesión de Google
-                // guardada veía el panel pidiendo el código igual, hasta
-                // que la carga eterna de pelotitas (sin red de seguridad)
-                // terminaba revelándolo. Ahora se espera a Firebase Auth
-                // primero, dándole tiempo real a esa sesión de completarse.
+                // código de revendedor, el código de revendedor vive en
+                // FIRESTORE, indexado por ese mismo UID.
+                //
+                // La versión anterior de este arreglo esperaba a que
+                // OTRO flujo completamente separado (el onAuthStateChanged
+                // de initializeUserSession, más abajo en el archivo)
+                // terminara SU PROPIA consulta a Firestore y recién
+                // entonces copiara el código a localStorage — y este gate
+                // se quedaba escaneando localStorage a la espera de que
+                // eso pasara. Dos sistemas async corriendo en paralelo,
+                // sin garantía de orden ni de tiempo: si esa otra consulta
+                // tardaba (reintentos de red, etc.), este gate se quedaba
+                // esperando algo que todavía no había llegado — la "carga
+                // eterna" reportada.
+                //
+                // Ahora este gate NO depende de localStorage ni de ese
+                // otro flujo en absoluto: apenas Firebase Auth confirma el
+                // UID, consulta FIRESTORE DIRECTAMENTE (mismo endpoint que
+                // usa el resto de la página) para obtener el perfil y su
+                // codigoVendedor — una sola consulta propia, sin esperar
+                // a nadie más.
                 (async function() {
                     var authUser = await esperarPrimerAuthState();
                     if (authUser) {
-                        // Dar tiempo a que initializeUserSession() (que
-                        // corre en su propio onAuthStateChanged, en
-                        // paralelo) termine de poblar el código en
-                        // localStorage — hasta 4 segundos, chequeando cada
-                        // 200ms.
-                        var codigoTrasEspera = null;
-                        for (var i = 0; i < 20; i++) {
-                            codigoTrasEspera = bvCodigoVigente();
-                            if (codigoTrasEspera) break;
-                            await new Promise(function(r) { setTimeout(r, 200); });
-                        }
-                        if (codigoTrasEspera) {
-                            var ok = await intentarAutoLoginBv(codigoTrasEspera);
+                        var perfil = null;
+                        try { perfil = await loadUserDataFromFirestoreWithRetry(authUser.uid); } catch(e) { /* silenciado */ }
+                        if (perfil && perfil.codigoVendedor) {
+                            var ok = await intentarAutoLoginBv(perfil.codigoVendedor);
                             if (!ok) bvMostrar();
                             return;
                         }
