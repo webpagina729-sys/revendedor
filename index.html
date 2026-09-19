@@ -3583,10 +3583,11 @@
                     // ni bvOcultar() (error no capturado en algún punto,
                     // el listener de 'load' nunca llega a dispararse, etc.),
                     // esta pantalla no debe quedar visible para siempre.
-                    // El flujo real puede tardar hasta ~20s en el peor caso
-                    // (5s esperando Firebase Auth + reintentos de Firestore
-                    // + espera de Turnstile), así que el margen de
-                    // seguridad va a 22s para no taparlo antes de tiempo.
+                    // Ahora que CADA fetch interno del flujo tiene su
+                    // propio límite duro de tiempo (AbortController), el
+                    // peor caso real (Turnstile + 2 fetches con timeout)
+                    // es de unos 26s — este margen da tiempo de sobra sin
+                    // dejar la pantalla colgada más de lo necesario.
                     document.addEventListener('DOMContentLoaded', function() {
                         setTimeout(function() {
                             var chk = document.getElementById('bv-checking-overlay');
@@ -3594,7 +3595,7 @@
                                 chk.style.display = 'none';
                                 if (!window.codigoValidado && typeof bvMostrar === 'function') bvMostrar();
                             }
-                        }, 22000);
+                        }, 30000);
                     });
                 }
             } catch(_e) {}
@@ -9421,7 +9422,14 @@
         async function loadUserDataFromFirestoreWithRetry(uid, maxRetries = 3, delayMs = 500) {
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
                 try {
-                    const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(uid)}`);
+                    // 🔧 FIX: sin timeout, un fetch colgado acá se repetía
+                    // hasta 3 veces (maxRetries) sin límite de tiempo real,
+                    // pudiendo demorar el login por Google/UID mucho más de
+                    // lo que cualquier salvaguarda visual esperaba.
+                    const controller = new AbortController();
+                    const abortTimer = setTimeout(() => controller.abort(), 8000);
+                    const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(uid)}`, { signal: controller.signal });
+                    clearTimeout(abortTimer);
                     if (res.status === 404) return null;
                     if (!res.ok) throw new Error('Error al obtener perfil');
                     const data = await res.json();
@@ -12000,11 +12008,18 @@
             // Busca el vendedor por código (fallback — el Worker es la vía principal)
             async function buscarEnFirestore(codigo) {
                 try {
+                    // 🔧 FIX: mismo problema que en intentarAutoLoginBv — sin
+                    // timeout, un fetch colgado acá también podía correr en
+                    // segundo plano indefinidamente.
+                    var controller = new AbortController();
+                    var abortTimer = setTimeout(function() { controller.abort(); }, 8000);
                     const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/validar-codigo-existe', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codigo })
+                        body: JSON.stringify({ codigo }),
+                        signal: controller.signal
                     });
+                    clearTimeout(abortTimer);
                     if (!res.ok) return null;
                     const data = await res.json();
                     return (data && data.valido && data.vendedor) ? data.vendedor : null;
@@ -12174,14 +12189,30 @@
                 var userData = null;
                 try {
                     var turnstileTokenAuto = await obtenerTokenTurnstileBv();
+                    // 🔧 FIX CRÍTICO: este fetch no tenía NINGÚN timeout — si
+                    // la red estaba lenta o el Worker tardaba en responder
+                    // (sin necesariamente devolver un error), el await podía
+                    // quedar colgado por mucho tiempo (potencialmente
+                    // minutos), muy por encima de cualquier salvaguarda
+                    // visual. Esa era la causa real de la "carga eterna":
+                    // el overlay se ocultaba por el timeout visual, pero
+                    // este fetch seguía corriendo solo en segundo plano, y
+                    // al resolver tarde disparaba acciones inesperadas
+                    // (paneles superpuestos, etc.). Ahora tiene un límite
+                    // duro de 8 segundos, después del cual se lo da por
+                    // fallido y se sigue con el resto del flujo normal.
+                    var controller = new AbortController();
+                    var abortTimer = setTimeout(function() { controller.abort(); }, 8000);
                     var res = await fetch(WORKER_LOGIN, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codigo: codigoGuardado, turnstileToken: turnstileTokenAuto })
+                        body: JSON.stringify({ codigo: codigoGuardado, turnstileToken: turnstileTokenAuto }),
+                        signal: controller.signal
                     });
+                    clearTimeout(abortTimer);
                     var data = await res.json();
                     if (data.success && data.vendedor) userData = data.vendedor;
-                } catch(e) { /* silenciado */ }
+                } catch(e) { /* silenciado (incluye el abort por timeout) */ }
 
                 if (!userData) {
                     try {
