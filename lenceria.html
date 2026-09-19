@@ -5832,6 +5832,38 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
         // Comparte el producto actualmente abierto en el modal (mismo enlace
         // que "Compartir tienda desde acá": abre tienda.html directo en él).
 
+        // 🔧 FIX CRÍTICO: estas 2 funciones nunca existían en este archivo
+        // (sí existen en index.html/mas-categorias.html) — cada vez que
+        // renderGridGenerico intentaba mostrar CUALQUIER producto, esto
+        // lanzaba un ReferenceError inmediato en el primer producto,
+        // deteniendo TODO el renderizado del catálogo — silenciado por el
+        // try/catch de mostrarCatalogo(), así que el grid nunca se
+        // actualizaba y quedaba completamente vacío, sin ningún error
+        // visible. Esta era la causa real de que el catálogo no se viera.
+        function getMarginForPriceInCatalog(precio, catalogo) {
+            try {
+                const config = getConfigTiendaPorCatalogo(catalogo);
+                if (config) {
+                    const rangos = Array.isArray(config.rangos) ? config.rangos : [];
+                    const rango = rangos
+                        .slice().sort((a, b) => a.hasta - b.hasta)
+                        .find(r => precio >= (Number(r.de) || 0) && precio <= Number(r.hasta));
+                    return rango ? Number(rango.porcentaje) : 0;
+                }
+            } catch(e) {}
+            return 0;
+        }
+
+        function getPrecioManualProducto(catalogo, productId) {
+            try {
+                const precios = JSON.parse(localStorage.getItem('preciosManualCat') || '{}');
+                const valor = precios[catalogo] && precios[catalogo][productId];
+                return valor ? Number(valor) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
         function getPrecioProductoConfigurado(producto, catalogo) {
             if (!producto) return 0;
             const cat = catalogo || window.currentCatalog || 'general';
