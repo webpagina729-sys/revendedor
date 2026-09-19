@@ -3480,8 +3480,12 @@
                         <div class="price-original" id="modal-details-price-original" style="font-size: 12px; color: var(--text-light); text-decoration: line-through;"></div>
                     </div>
                     <div class="modal-details-section" id="modal-details-variantes-wrap" style="display:none; margin-bottom: 15px; width: 100%; text-align: left;">
-                        <div class="modal-details-section-title" style="font-weight: 600; margin-bottom: 10px; color: var(--text);">Variante</div>
+                        <div class="modal-details-section-title" id="modal-details-variantes-titulo" style="font-weight: 600; margin-bottom: 10px; color: var(--text);">Variante</div>
                         <div id="modal-details-variantes" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+                    </div>
+                    <div class="modal-details-section" id="modal-details-talles-wrap" style="display:none; margin-bottom: 15px; width: 100%; text-align: left;">
+                        <div class="modal-details-section-title" style="font-weight: 600; margin-bottom: 10px; color: var(--text);">Talle</div>
+                        <div id="modal-details-talles" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
                     </div>
                     <div class="modal-details-section" style="margin-bottom: 15px; width: 100%; text-align: left;">
                         <div class="modal-details-section-title" style="font-weight: 600; margin-bottom: 10px; color: var(--text);">Características</div>
@@ -4565,6 +4569,35 @@ const LENCERIA_DATA = [
 window.productsLenceria = LENCERIA_DATA;
 window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOriginal: p.precio }));
 
+// 🔧 FIX: window.STOCK_GLOBAL_PLATAFORMA se usaba en varios lugares de
+// este archivo (getStockProducto, etc.) pero nunca se cargaba — el
+// sistema de "En Stock/Sin Stock" de la plataforma (desde pedidos.html)
+// nunca funcionaba acá, silenciosamente (protegido por un try/catch que
+// tapaba el error). Ahora se carga igual que en index.html/mas-categorias.html.
+window.STOCK_GLOBAL_PLATAFORMA = {};
+fetch('https://panelgestionestados.tuweb.workers.dev/api/stock-global')
+    .then(r => r.json())
+    .then(data => {
+        if (data && data.ok) {
+            window.STOCK_GLOBAL_PLATAFORMA = data.stock || {};
+            if (typeof renderLenceriaProducts === 'function') renderLenceriaProducts();
+            if (window.currentCatalog) chequearCambiosStockGlobal(window.currentCatalog);
+        }
+    })
+    .catch(() => {});
+
+// 🔧 NUEVO: variantes/talles que el dueño de la plataforma sacó o
+// agregó puntualmente para un producto (desde pedidos.html → Stock →
+// ⚙️ Variantes) — independiente del stock global de arriba, que es del
+// producto completo.
+window.VARIANTES_GLOBAL_PLATAFORMA = {};
+fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
+    .then(r => r.json())
+    .then(data => {
+        if (data && data.ok) window.VARIANTES_GLOBAL_PLATAFORMA = data.variantes || {};
+    })
+    .catch(() => {});
+
 // 🧹 Se sacaron catalogoEfectivoBazar/Jugueteria/Multishop — categorías que ya no están en este archivo.
 
         // 🧹 Se sacó el bloque que asignaba categoría 'adultos' a zapatillas — Calzados ya no está en este archivo.
@@ -4696,7 +4729,8 @@ window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOrigin
                 grupo.items.forEach(item => {
                     const detalle = [
                         item.talle ? 'Talle ' + item.talle : null,
-                        item.variante ? 'Variante: ' + item.variante : null
+                        item.variante ? 'Variante: ' + item.variante : null,
+                        item.color ? 'Color: ' + item.color : null
                     ].filter(Boolean).join(' · ');
                     const talleText = detalle ? ` · ${detalle}` : '';
                     const precioVenta = item.precio || 0;
@@ -5066,7 +5100,8 @@ window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOrigin
                 lineas += `\n*Productos:*\n`;
                 window.cart.forEach(item => {
                     const talleStr = item.talle ? ` (Talle ${item.talle})` : '';
-                    lineas += `• ${item.nombre}${talleStr} x${item.cantidad} — $${(item.precio * item.cantidad).toLocaleString('es-AR')}\n`;
+                    const colorStr = item.color ? ` (Color ${item.color})` : '';
+                    lineas += `• ${item.nombre}${talleStr}${colorStr} x${item.cantidad} — $${(item.precio * item.cantidad).toLocaleString('es-AR')}\n`;
                 });
                 lineas += `\n💰 *Total: $${totales.totalFinal.toLocaleString('es-AR')}*\n`;
                 lineas += `🔖 *Pedido ID:* ${pedidoId}`;
@@ -5659,6 +5694,51 @@ window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOrigin
             modal.classList.add('active');
         }
 
+        // 🔧 FIX: estas 3 funciones se llamaban desde varios lugares del
+        // archivo pero nunca estaban definidas acá (sí existen en
+        // index.html/mas-categorias.html) — el aviso de "producto quitado/
+        // agregado al stock global" nunca funcionaba en Lencería.
+        // Simplificadas para esta única categoría, sin sub-claves.
+        function _clavesStockDeCatalogo(catalogo) {
+            return [catalogo];
+        }
+
+        function _productosDeClaveStock(claveStock) {
+            if (claveStock === 'lenceria') return window.productsLenceria || [];
+            return [];
+        }
+
+        function chequearCambiosStockGlobal(catalogo) {
+            if (!catalogo || !window.STOCK_GLOBAL_PLATAFORMA) return;
+            const claves = _clavesStockDeCatalogo(catalogo);
+            const quitados = [];
+            const agregados = [];
+
+            claves.forEach(clave => {
+                const actual = window.STOCK_GLOBAL_PLATAFORMA[clave] || {};
+                let visto = {};
+                try { visto = JSON.parse(localStorage.getItem('stockGlobalVisto_' + clave) || '{}'); } catch(e) {}
+                const productos = _productosDeClaveStock(clave);
+                const porId = {};
+                productos.forEach(p => { porId[p.id] = p; });
+
+                Object.keys(actual).forEach(pid => {
+                    const estaba = Object.prototype.hasOwnProperty.call(visto, pid) ? visto[pid] : true;
+                    const ahora = actual[pid];
+                    if (estaba !== false && ahora === false && porId[pid]) {
+                        quitados.push(porId[pid]);
+                    } else if (estaba === false && ahora !== false && porId[pid]) {
+                        agregados.push(porId[pid]);
+                    }
+                });
+
+                localStorage.setItem('stockGlobalVisto_' + clave, JSON.stringify(actual));
+            });
+
+            if (quitados.length) mostrarAvisoStockGlobal(quitados, false);
+            else if (agregados.length) mostrarAvisoStockGlobal(agregados, true);
+        }
+
         function cerrarAvisoStockGlobal() {
             document.getElementById('avisoStockGlobalModal')?.classList.remove('active');
             if (localStorage.getItem('tutorialStockOculto') === '1') return;
@@ -5766,6 +5846,16 @@ window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOrigin
             return producto && producto._origin === 'maquillaje' ? 'belleza_maquillaje' : 'belleza_perfume';
         }
 
+        // 🔧 NUEVO: devuelve la lista de colores/talles que deben
+        // mostrarse para un producto, aplicando lo que el dueño de la
+        // plataforma haya sacado o agregado puntualmente desde
+        // pedidos.html → Stock → ⚙️ Variantes. Si nunca se tocó nada
+        // para este producto+campo, se usa la lista original tal cual.
+        function _variantesActivasDe(catalogo, productId, campo, listaBase) {
+            const override = window.VARIANTES_GLOBAL_PLATAFORMA?.[catalogo]?.[String(productId)]?.[campo];
+            return Array.isArray(override) ? override : (listaBase || []);
+        }
+
         function poblarCarruselYVariantesModal(producto) {
             const imgs = (Array.isArray(producto.imagenes) && producto.imagenes.length > 1) ? producto.imagenes : [producto.imagen];
             window.currentModalImagenes = imgs;
@@ -5782,20 +5872,58 @@ window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOrigin
             }
             if (prevBtn) prevBtn.style.display = multi ? 'flex' : 'none';
             if (nextBtn) nextBtn.style.display = multi ? 'flex' : 'none';
+
+            // Grupo "Color" — reusa el contenedor genérico de variantes,
+            // renombrando el título a "Color" para Lencería.
             const varWrap = document.getElementById('modal-details-variantes-wrap');
             const varCont = document.getElementById('modal-details-variantes');
-            const variantes = Array.isArray(producto.variantes) ? producto.variantes : [];
+            const varTitulo = document.getElementById('modal-details-variantes-titulo');
+            const colores = _variantesActivasDe('lenceria', producto.id, 'colores', producto.colores);
             window.currentModalVarianteSeleccionada = null;
             if (varWrap && varCont) {
-                if (variantes.length > 0) {
+                if (varTitulo) varTitulo.textContent = 'Color';
+                if (colores.length > 0) {
                     varWrap.style.display = 'block';
-                    varCont.innerHTML = variantes.map((v, i) =>
+                    varCont.innerHTML = colores.map((v) =>
                         `<button type="button" onclick="seleccionarVarianteModal('${v.replace(/'/g, "\\'")}', this)" style="padding:6px 12px;border:1.5px solid var(--border);border-radius:20px;background:var(--surface);font-size:12.5px;color:var(--text);cursor:pointer;">${v}</button>`
                     ).join('');
                 } else {
                     varWrap.style.display = 'none';
                     varCont.innerHTML = '';
                 }
+            }
+
+            // Grupo "Talle" — segundo grupo, independiente del de Color.
+            const talleWrap = document.getElementById('modal-details-talles-wrap');
+            const talleCont = document.getElementById('modal-details-talles');
+            const talles = _variantesActivasDe('lenceria', producto.id, 'talles', producto.talles);
+            window.currentModalTalleSeleccionado = null;
+            if (talleWrap && talleCont) {
+                if (talles.length > 0) {
+                    talleWrap.style.display = 'block';
+                    talleCont.innerHTML = talles.map((v) =>
+                        `<button type="button" onclick="seleccionarTalleModal('${v.replace(/'/g, "\\'")}', this)" style="padding:6px 12px;border:1.5px solid var(--border);border-radius:20px;background:var(--surface);font-size:12.5px;color:var(--text);cursor:pointer;">${v}</button>`
+                    ).join('');
+                } else {
+                    talleWrap.style.display = 'none';
+                    talleCont.innerHTML = '';
+                }
+            }
+        }
+
+        function seleccionarTalleModal(valor, btnEl) {
+            window.currentModalTalleSeleccionado = valor;
+            document.querySelectorAll('#modal-details-talles button').forEach(b => {
+                b.style.borderColor = 'var(--border)';
+                b.style.background = 'var(--surface)';
+                b.style.color = 'var(--text)';
+                b.style.fontWeight = '400';
+            });
+            if (btnEl) {
+                btnEl.style.borderColor = 'var(--primary)';
+                btnEl.style.background = 'var(--primary)';
+                btnEl.style.color = '#fff';
+                btnEl.style.fontWeight = '600';
             }
         }
 
@@ -8619,13 +8747,26 @@ window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOrigin
                             if (codigoGuardado) {
                                 const restaurada = await restaurarSesionGuardada(codigoGuardado);
                                 if (typeof actualizarBotonesRevend === 'function') actualizarBotonesRevend();
-                                // 🔧 FIX: si el código guardado ya no es válido
-                                // (cuenta borrada, etc.), antes esto no hacía
-                                // nada — las pelotitas se ocultaban y no
-                                // quedaba claro que hacía falta loguear de
-                                // nuevo. Ahora, en ese caso puntual, se
-                                // muestra el panel de login explícitamente.
-                                if (!restaurada && typeof bvMostrar === 'function') bvMostrar();
+                                if (restaurada) {
+                                    // 🔧 FIX CRÍTICO: este camino (sesión ya
+                                    // guardada, típicamente llegando desde
+                                    // index.html) mostraba la cinta negra vía
+                                    // updateUIForAuthentication(true) dentro
+                                    // de restaurarSesionGuardada(), pero
+                                    // nunca llamaba a mostrarCatalogo() — así
+                                    // que el catálogo de productos se quedaba
+                                    // sin renderizar, dejando toda la página
+                                    // vacía. El login manual (tipeando el
+                                    // código) sí lo hacía bien; ahora este
+                                    // camino hace exactamente lo mismo.
+                                    mostrarCatalogo();
+                                } else if (typeof bvMostrar === 'function') {
+                                    // Si el código guardado ya no es válido
+                                    // (cuenta borrada, etc.), mostrar el panel
+                                    // de login explícitamente en vez de dejar
+                                    // la página sin nada que mostrar.
+                                    bvMostrar();
+                                }
                             }
                         }
                     } finally {
@@ -9748,7 +9889,7 @@ window.productsLenceria = window.productsLenceria.map(p => ({ ...p, precioOrigin
                 }).catch(() => {});
             }
             document.getElementById('configTiendaModal').classList.remove('active');
-            renderProducts();
+            if (typeof renderLenceriaProducts === 'function') renderLenceriaProducts();
             if (typeof window.refrescarMisTiendasFab === 'function') window.refrescarMisTiendasFab();
 
             // Toast de confirmación con estética de la web, en vez de alert() nativo
