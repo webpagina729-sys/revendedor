@@ -6271,7 +6271,8 @@ function catalogoEfectivoMultishop(p) {
                 grupo.items.forEach(item => {
                     const detalle = [
                         item.talle ? 'Talle ' + item.talle : null,
-                        item.variante ? 'Variante: ' + item.variante : null
+                        item.variante ? 'Variante: ' + item.variante : null,
+                        item.color ? 'Color: ' + item.color : null
                     ].filter(Boolean).join(' · ');
                     const talleText = detalle ? ` · ${detalle}` : '';
                     const precioVenta = item.precio || 0;
@@ -6645,7 +6646,8 @@ function catalogoEfectivoMultishop(p) {
                 lineas += `\n*Productos:*\n`;
                 window.cart.forEach(item => {
                     const talleStr = item.talle ? ` (Talle ${item.talle})` : '';
-                    lineas += `• ${item.nombre}${talleStr} x${item.cantidad} — $${(item.precio * item.cantidad).toLocaleString('es-AR')}\n`;
+                    const colorStr = item.color ? ` (Color ${item.color})` : '';
+                    lineas += `• ${item.nombre}${talleStr}${colorStr} x${item.cantidad} — $${(item.precio * item.cantidad).toLocaleString('es-AR')}\n`;
                 });
                 lineas += `\n💰 *Total: $${totales.totalFinal.toLocaleString('es-AR')}*\n`;
                 lineas += `🔖 *Pedido ID:* ${pedidoId}`;
@@ -7551,6 +7553,18 @@ function catalogoEfectivoMultishop(p) {
             })
             .catch(() => {});
 
+        // 🔧 NUEVO: variantes/talles que el dueño de la plataforma sacó o
+        // agregó puntualmente para un producto (desde pedidos.html →
+        // Stock → ⚙️ Variantes) — independiente del stock global de
+        // arriba, que es del producto completo.
+        window.VARIANTES_GLOBAL_PLATAFORMA = {};
+        fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
+            .then(r => r.json())
+            .then(data => {
+                if (data && data.ok) window.VARIANTES_GLOBAL_PLATAFORMA = data.variantes || {};
+            })
+            .catch(() => {});
+
         // 🔧 NUEVO: aviso al entrar a una categoría cuando la plataforma
         // quitó o volvió a agregar productos del stock global desde
         // pedidos.html — mismo mecanismo que index.html, adaptado a las
@@ -7738,6 +7752,16 @@ function catalogoEfectivoMultishop(p) {
             return producto && producto._origin === 'maquillaje' ? 'belleza_maquillaje' : 'belleza_perfume';
         }
 
+        // 🔧 NUEVO: devuelve la lista de colores/talles/variantes que
+        // deben mostrarse para un producto, aplicando lo que el dueño de
+        // la plataforma haya sacado o agregado puntualmente desde
+        // pedidos.html → Stock → ⚙️ Variantes. Si nunca se tocó nada
+        // para este producto+campo, se usa la lista original tal cual.
+        function _variantesActivasDe(catalogo, productId, campo, listaBase) {
+            const override = window.VARIANTES_GLOBAL_PLATAFORMA?.[catalogo]?.[String(productId)]?.[campo];
+            return Array.isArray(override) ? override : (listaBase || []);
+        }
+
         function poblarCarruselYVariantesModal(producto) {
             const imgs = (Array.isArray(producto.imagenes) && producto.imagenes.length > 1) ? producto.imagenes : [producto.imagen];
             window.currentModalImagenes = imgs;
@@ -7756,7 +7780,8 @@ function catalogoEfectivoMultishop(p) {
             if (nextBtn) nextBtn.style.display = multi ? 'flex' : 'none';
             const varWrap = document.getElementById('modal-details-variantes-wrap');
             const varCont = document.getElementById('modal-details-variantes');
-            const variantes = Array.isArray(producto.variantes) ? producto.variantes : [];
+            const catEfectiva = producto._origin === 'maquillaje' ? 'belleza_maquillaje' : (window.currentCatalog || 'belleza_perfume');
+            const variantes = _variantesActivasDe(catEfectiva, producto.id, 'variantes', producto.variantes);
             window.currentModalVarianteSeleccionada = null;
             if (varWrap && varCont) {
                 if (variantes.length > 0) {
@@ -11215,13 +11240,25 @@ function catalogoEfectivoMultishop(p) {
                             if (codigoGuardado) {
                                 const restaurada = await restaurarSesionGuardada(codigoGuardado);
                                 if (typeof actualizarBotonesRevend === 'function') actualizarBotonesRevend();
-                                // 🔧 FIX: si el código guardado ya no es válido
-                                // (cuenta borrada, etc.), antes esto no hacía
-                                // nada — las pelotitas se ocultaban y no
-                                // quedaba claro que hacía falta loguear de
-                                // nuevo. Ahora, en ese caso puntual, se
-                                // muestra el panel de login explícitamente.
-                                if (!restaurada && typeof bvMostrar === 'function') bvMostrar();
+                                if (restaurada) {
+                                    // 🔧 FIX CRÍTICO: este camino (sesión ya
+                                    // guardada, típicamente llegando desde
+                                    // index.html) mostraba la cinta negra vía
+                                    // updateUIForAuthentication(true) dentro
+                                    // de restaurarSesionGuardada(), pero
+                                    // nunca llamaba a mostrarCatalogo() — así
+                                    // que el catálogo de productos se quedaba
+                                    // sin renderizar. El login manual
+                                    // (tipeando el código) sí lo hacía bien;
+                                    // ahora este camino hace lo mismo.
+                                    mostrarCatalogo();
+                                } else if (typeof bvMostrar === 'function') {
+                                    // Si el código guardado ya no es válido
+                                    // (cuenta borrada, etc.), mostrar el panel
+                                    // de login explícitamente en vez de dejar
+                                    // la página sin nada que mostrar.
+                                    bvMostrar();
+                                }
                             }
                         }
                     } finally {
