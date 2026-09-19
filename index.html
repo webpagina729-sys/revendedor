@@ -3570,6 +3570,21 @@
                     || localStorage.getItem('codigoVendedorLocal');
                 if (hayCodigoGuardado) {
                     document.write('<style>#bv-checking-overlay{display:flex !important;}</style>');
+                    // 🔧 FIX: red de seguridad — si por lo que sea el resto
+                    // del flujo de auto-login no llega a llamar bvMostrar()
+                    // ni bvOcultar() (error no capturado en algún punto,
+                    // el listener de 'load' nunca llega a dispararse, etc.),
+                    // esta pantalla no debe quedar visible para siempre.
+                    // Como máximo 8 segundos, y se pasa al login manual.
+                    document.addEventListener('DOMContentLoaded', function() {
+                        setTimeout(function() {
+                            var chk = document.getElementById('bv-checking-overlay');
+                            if (chk && chk.style.display !== 'none') {
+                                chk.style.display = 'none';
+                                if (!window.codigoValidado && typeof bvMostrar === 'function') bvMostrar();
+                            }
+                        }, 8000);
+                    });
                 }
             } catch(_e) {}
         })();
