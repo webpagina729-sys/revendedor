@@ -3565,9 +3565,17 @@
         // si el auto-login determina que hace falta.
         (function() {
             try {
+                // 🔧 FIX: antes solo se consideraba el código de revendedor
+                // guardado — pero alguien que inició sesión con Google
+                // (Firebase Auth, vía UID) también tiene una sesión
+                // guardada aunque el código todavía no se haya copiado a
+                // localStorage (eso pasa después, de forma asíncrona). Si
+                // hay un UID guardado de una vez anterior, también hay que
+                // mostrar la pantalla de "verificando" en vez del panel.
                 var hayCodigoGuardado = localStorage.getItem('bv_codigo_sesion')
                     || localStorage.getItem('codigoRevendedorValidado')
-                    || localStorage.getItem('codigoVendedorLocal');
+                    || localStorage.getItem('codigoVendedorLocal')
+                    || localStorage.getItem('uidVendedorLocal');
                 if (hayCodigoGuardado) {
                     document.write('<style>#bv-checking-overlay{display:flex !important;}</style>');
                     // 🔧 FIX: red de seguridad — si por lo que sea el resto
@@ -3575,7 +3583,9 @@
                     // ni bvOcultar() (error no capturado en algún punto,
                     // el listener de 'load' nunca llega a dispararse, etc.),
                     // esta pantalla no debe quedar visible para siempre.
-                    // Como máximo 8 segundos, y se pasa al login manual.
+                    // El flujo real puede tardar hasta ~10s en el peor caso
+                    // (esperando confirmación de Firebase Auth por UID), así
+                    // que el margen de seguridad va a 14s para no taparlo.
                     document.addEventListener('DOMContentLoaded', function() {
                         setTimeout(function() {
                             var chk = document.getElementById('bv-checking-overlay');
@@ -3583,7 +3593,7 @@
                                 chk.style.display = 'none';
                                 if (!window.codigoValidado && typeof bvMostrar === 'function') bvMostrar();
                             }
-                        }, 8000);
+                        }, 14000);
                     });
                 }
             } catch(_e) {}
@@ -12154,6 +12164,64 @@
             // inicio de sesión?" después de loguearse — ese consentimiento
             // se guarda en localStorage.recordarSesionRevendedor, y NUNCA
             // se activa solo, sin que el usuario lo haya pedido.
+            // 🔧 FIX CRÍTICO: intenta el auto-login con un código dado
+            // (revalidándolo contra el Worker/Firestore), extraído a una
+            // función propia para poder reusarlo tanto si el código ya
+            // estaba en localStorage desde el arranque, como si recién
+            // apareció después de esperar a Firebase Auth (ver abajo).
+            async function intentarAutoLoginBv(codigoGuardado) {
+                var userData = null;
+                try {
+                    var turnstileTokenAuto = await obtenerTokenTurnstileBv();
+                    var res = await fetch(WORKER_LOGIN, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codigo: codigoGuardado, turnstileToken: turnstileTokenAuto })
+                    });
+                    var data = await res.json();
+                    if (data.success && data.vendedor) userData = data.vendedor;
+                } catch(e) { /* silenciado */ }
+
+                if (!userData) {
+                    try {
+                        await esperarFirebase();
+                        userData = await buscarEnFirestore(codigoGuardado);
+                    } catch(e) { /* silenciado */ }
+                }
+
+                if (userData) {
+                    try { await bvAplicarDatos(codigoGuardado, userData); } catch(e) { /* silenciado */ }
+                    bvOcultar();
+                    window._ultimoUserDataLogin = userData;
+                    _continuarFlujoPostSesion();
+                    return true;
+                } else {
+                    localStorage.setItem('recordarSesionRevendedor', 'false');
+                    return false;
+                }
+            }
+
+            // Espera el PRIMER resultado de Firebase Auth (con sesión o
+            // sin ella) — nunca cuelga: si Firebase tarda en cargar o
+            // nunca confirma nada, se resuelve como "sin usuario" a los
+            // 5 segundos como máximo.
+            function esperarPrimerAuthState() {
+                return new Promise(function(resolve) {
+                    var resuelto = false;
+                    var resolverUnaVez = function(user) {
+                        if (resuelto) return;
+                        resuelto = true;
+                        resolve(user || null);
+                    };
+                    setTimeout(function() { resolverUnaVez(null); }, 5000);
+                    esperarFirebase().then(function() {
+                        try {
+                            firebase.auth().onAuthStateChanged(function(user) { resolverUnaVez(user); });
+                        } catch (e) { resolverUnaVez(null); }
+                    }).catch(function() { resolverUnaVez(null); });
+                });
+            }
+
             window.addEventListener('load', function() {
                 // 🔧 FIX CRÍTICO: este gate exigía una bandera aparte
                 // (recordarSesionRevendedor) para no forzar el modal de "Mi
@@ -12167,58 +12235,47 @@
                 // no se fuerza el gate — se sigue directo con el auto-login.
                 var codigoGuardado = bvCodigoVigente();
 
-                if (!codigoGuardado) {
-                    bvMostrar();
+                if (codigoGuardado) {
+                    intentarAutoLoginBv(codigoGuardado).then(function(ok) {
+                        if (!ok) bvMostrar();
+                    });
                     return;
                 }
 
-                // Auto-restaurar sesión: se revalida el código contra el
-                // Worker/Firestore antes de confiar en él (por si la cuenta
-                // ya no existe), igual que si el usuario lo hubiera tipeado.
+                // 🔧 FIX CRÍTICO: acá NO había código todavía, pero eso NO
+                // significa que no haya sesión — si el usuario inició
+                // sesión con Google (Firebase Auth, vía UID) en vez de con
+                // código de revendedor, el código recién se guarda en
+                // localStorage DESPUÉS de que onAuthStateChanged confirme
+                // el usuario y initializeUserSession() complete una
+                // consulta a Firestore (todo asíncrono). Antes, este gate
+                // mostraba el panel de login INMEDIATAMENTE sin darle esa
+                // oportunidad — así que alguien con sesión de Google
+                // guardada veía el panel pidiendo el código igual, hasta
+                // que la carga eterna de pelotitas (sin red de seguridad)
+                // terminaba revelándolo. Ahora se espera a Firebase Auth
+                // primero, dándole tiempo real a esa sesión de completarse.
                 (async function() {
-                    var userData = null;
-                    // 🔒 FIX: le faltaba el token de Turnstile que el Worker
-                    // ahora exige. Acá SÍ se mantiene el respaldo a Firestore
-                    // (a diferencia del login manual) porque esto corre
-                    // automáticamente apenas carga la página, sin garantía
-                    // de que el widget de Turnstile ya esté listo — no debe
-                    // romper el auto-login de alguien que ya eligió
-                    // "recordar sesión" antes.
-                    try {
-                        var turnstileTokenAuto = await obtenerTokenTurnstileBv();
-                        var res = await fetch(WORKER_LOGIN, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ codigo: codigoGuardado, turnstileToken: turnstileTokenAuto })
-                        });
-                        var data = await res.json();
-                        if (data.success && data.vendedor) userData = data.vendedor;
-                    } catch(e) { /* silenciado */ }
-
-                    if (!userData) {
-                        try {
-                            await esperarFirebase();
-                            userData = await buscarEnFirestore(codigoGuardado);
-                        } catch(e) { /* silenciado */ }
+                    var authUser = await esperarPrimerAuthState();
+                    if (authUser) {
+                        // Dar tiempo a que initializeUserSession() (que
+                        // corre en su propio onAuthStateChanged, en
+                        // paralelo) termine de poblar el código en
+                        // localStorage — hasta 4 segundos, chequeando cada
+                        // 200ms.
+                        var codigoTrasEspera = null;
+                        for (var i = 0; i < 20; i++) {
+                            codigoTrasEspera = bvCodigoVigente();
+                            if (codigoTrasEspera) break;
+                            await new Promise(function(r) { setTimeout(r, 200); });
+                        }
+                        if (codigoTrasEspera) {
+                            var ok = await intentarAutoLoginBv(codigoTrasEspera);
+                            if (!ok) bvMostrar();
+                            return;
+                        }
                     }
-
-                    if (userData) {
-                        try { await bvAplicarDatos(codigoGuardado, userData); } catch(e) { /* silenciado */ }
-                        bvOcultar();
-                        window._ultimoUserDataLogin = userData;
-                        // 🔧 FIX: el auto-login (cuando ya se eligió "Sí" antes)
-                        // nunca llamaba a esto — por eso el modal de WhatsApp/
-                        // CUIT/Provincia/Ciudad/CP no volvía a aparecer si
-                        // faltaba completarlo. No hace falta preguntar de
-                        // nuevo "¿Guardar sesión?" (ya se sabe la respuesta),
-                        // pero sí seguir con el resto del flujo normal.
-                        _continuarFlujoPostSesion();
-                    } else {
-                        // El código guardado ya no es válido — no insistir
-                        // con "recordar sesión", pedirlo de nuevo a mano.
-                        localStorage.setItem('recordarSesionRevendedor', 'false');
-                        bvMostrar();
-                    }
+                    bvMostrar();
                 })();
             });
 
