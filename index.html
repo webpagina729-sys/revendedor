@@ -3577,7 +3577,17 @@
                     || localStorage.getItem('codigoVendedorLocal')
                     || localStorage.getItem('uidVendedorLocal');
                 if (hayCodigoGuardado) {
-                    document.write('<style>#bv-checking-overlay{display:flex !important;}</style>');
+                    // 🔧 FIX CRÍTICO: antes esto usaba document.write() para
+                    // inyectar un <style> que forzara la visibilidad — pero
+                    // document.write() es notoriamente frágil (en ciertas
+                    // condiciones puede alterar el resto del parseo del
+                    // documento de formas inesperadas). El elemento YA
+                    // EXISTE en el DOM en este punto exacto (este script
+                    // está DESPUÉS de su <div> en el HTML), así que no hace
+                    // falta ningún truco: se muestra con JS directo, simple
+                    // y confiable.
+                    var chkInicial = document.getElementById('bv-checking-overlay');
+                    if (chkInicial) chkInicial.style.display = 'flex';
 
                     // 🔧 FIX CRÍTICO: antes, esta pantalla SOLO se ocultaba
                     // si la cadena de promesas de MI propio flujo de
