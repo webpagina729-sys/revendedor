@@ -3578,6 +3578,35 @@
                     || localStorage.getItem('uidVendedorLocal');
                 if (hayCodigoGuardado) {
                     document.write('<style>#bv-checking-overlay{display:flex !important;}</style>');
+
+                    // 🔧 FIX CRÍTICO: antes, esta pantalla SOLO se ocultaba
+                    // si la cadena de promesas de MI propio flujo de
+                    // auto-login llegaba a bvOcultar()/bvMostrar() sin
+                    // ningún tropiezo — pero hay OTRO mecanismo de sesión
+                    // en esta misma página (Firebase Auth con Google, con
+                    // su propia persistencia nativa) que puede loguear al
+                    // usuario y mostrar el catálogo perfectamente
+                    // funcional POR SU CUENTA, sin pasar por mi cadena en
+                    // absoluto. En ese caso, el catálogo ya funciona (se
+                    // pueden deslizar categorías, etc.) pero esta pantalla
+                    // se queda arriba para siempre, porque mi flujo nunca
+                    // se enteró de que YA había una sesión activa.
+                    //
+                    // La solución robusta: dejar de depender de que una
+                    // cadena de promesas específica termine bien, y en vez
+                    // de eso VIGILAR DIRECTAMENTE la señal real de éxito
+                    // que CUALQUIER camino de login de esta página deja
+                    // escrita — window.codigoValidado = true — sin
+                    // importar cuál de los varios mecanismos la puso ahí.
+                    // Apenas se detecta, se oculta esta pantalla al toque.
+                    var vigilancia = setInterval(function() {
+                        if (window.codigoValidado) {
+                            clearInterval(vigilancia);
+                            var chk = document.getElementById('bv-checking-overlay');
+                            if (chk) chk.style.display = 'none';
+                        }
+                    }, 250);
+
                     // 🔧 FIX: red de seguridad — si por lo que sea el resto
                     // del flujo de auto-login no llega a llamar bvMostrar()
                     // ni bvOcultar() (error no capturado en algún punto,
@@ -3590,6 +3619,7 @@
                     // dejar la pantalla colgada más de lo necesario.
                     document.addEventListener('DOMContentLoaded', function() {
                         setTimeout(function() {
+                            clearInterval(vigilancia);
                             var chk = document.getElementById('bv-checking-overlay');
                             if (chk && chk.style.display !== 'none') {
                                 chk.style.display = 'none';
