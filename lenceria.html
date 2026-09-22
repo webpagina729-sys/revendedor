@@ -8165,6 +8165,33 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
         // Devuelve true si la sesión quedó activa, false si no se pudo.
         async function restaurarSesionGuardada(codigoGuardado) {
             const codigo = codigoGuardado.trim().replace(/\s+/g, '').toUpperCase();
+            // 🔧 FIX CRÍTICO: cada página (index.html, mas-categorias.html,
+            // lenceria.html, suplementos.html) hace su PROPIO auto-login
+            // al cargar — y ESTA función en particular podía llamar al
+            // Worker de login hasta 3 veces en una sola carga (probando
+            // 3 variantes del código). Ese Worker comparte un límite de
+            // 8 intentos cada 5 minutos por IP con TODAS las páginas —
+            // navegar rápido entre 2-3 de ellas lo agotaba en segundos, y
+            // cuando el Worker respondía 429 (límite alcanzado, NO "código
+            // inválido"), esto no se distinguía de un login fallido y
+            // terminaba pidiendo el código de nuevo como si ya no fuera
+            // válido. Ahora, si el último login fue hace muy poco (3
+            // minutos), se reconstruye la sesión desde ese cache local sin
+            // llamar a ningún Worker.
+            try {
+                const cacheFecha = parseInt(localStorage.getItem('currentUserCacheFecha') || '0');
+                const cacheStr = localStorage.getItem('currentUserCache');
+                if (cacheStr && (Date.now() - cacheFecha) < 3 * 60 * 1000) {
+                    const cached = JSON.parse(cacheStr);
+                    if (cached && cached.codigoVendedor && cached.codigoVendedor.toUpperCase() === codigo) {
+                        window.currentUser = cached;
+                        window.codigoValidado = true;
+                        if (typeof updateUIForAuthentication === 'function') updateUIForAuthentication(true);
+                        return true;
+                    }
+                }
+            } catch(_e) { /* si el cache está corrupto, seguir con el flujo normal */ }
+
             try {
                 // ESTRATEGIA 1: usuario logueado con Firebase → confirmar código directo
                 const usuarioActual = firebase.auth().currentUser || await esperarUsuarioFirebaseActual();
@@ -8185,13 +8212,16 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                 const candidatos = new Set([codigo, codigo.toLowerCase()]);
                 if (codigo.startsWith('RW-')) candidatos.add(codigo.substring(3));
 
+                let limiteAlcanzado = false;
                 for (const candidato of candidatos) {
+                    if (limiteAlcanzado) break; // 🔧 no seguir gastando el mismo límite compartido
                     try {
                         const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ codigo: candidato })
                         });
+                        if (res.status === 429) { limiteAlcanzado = true; break; }
                         if (res.ok) {
                             const data = await res.json();
                             if (data && data.success && data.vendedor) {
@@ -8216,11 +8246,30 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                                 if (vendedorEncontrado.configTienda) localStorage.setItem('configTienda', JSON.stringify(vendedorEncontrado.configTienda));
                                 if (vendedorEncontrado.configTiendaAll) localStorage.setItem('configTiendaAll', JSON.stringify(vendedorEncontrado.configTiendaAll));
                                 window.codigoValidado = true;
+                                try {
+                                    localStorage.setItem('currentUserCache', JSON.stringify(window.currentUser));
+                                    localStorage.setItem('currentUserCacheFecha', Date.now().toString());
+                                } catch(_e2) {}
                                 if (typeof updateUIForAuthentication === 'function') updateUIForAuthentication(true);
                                 return true;
                             }
                         }
                     } catch (_e) { /* se prueba el siguiente candidato */ }
+                }
+
+                if (limiteAlcanzado) {
+                    // 🔧 Un 429 significa "no se pudo verificar ahora
+                    // mismo", NO "el código ya no es válido" — se
+                    // reconstruye la sesión con lo que ya hay guardado
+                    // localmente en vez de dejar al usuario sin sesión.
+                    window.currentUser = {
+                        uid: codigo,
+                        codigoVendedor: codigo,
+                        whatsappRevendedor: localStorage.getItem('whatsappRevendedor') || '',
+                    };
+                    window.codigoValidado = true;
+                    if (typeof updateUIForAuthentication === 'function') updateUIForAuthentication(true);
+                    return true;
                 }
             } catch (_e) { /* seguimos y devolvemos false abajo */ }
             return false;
