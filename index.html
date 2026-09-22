@@ -5648,6 +5648,15 @@
             try { vistos = JSON.parse(localStorage.getItem('avisosVistos') || '[]'); } catch(e) {}
             if (vistos.includes(aviso.id)) return;
 
+            // 🔧 NUEVO: los avisos son para revendedores ya activos al
+            // momento de publicarse, no para los que se van registrando
+            // después. Cuentas de ANTES de este cambio no tienen
+            // fechaAlta guardada (null) — esas SIEMPRE se consideran
+            // activas, para no ocultarles avisos por falta de un dato
+            // que nunca se guardó históricamente.
+            const fechaAlta = window.currentUser && window.currentUser.fechaAlta;
+            if (fechaAlta && aviso.timestamp && fechaAlta > aviso.timestamp) return;
+
             const titulo = document.getElementById('avisoModalTitulo');
             const subtitulo = document.getElementById('avisoModalSubtitulo');
             const imagen = document.getElementById('avisoModalImagen');
@@ -12350,6 +12359,7 @@
                     descuentoNivel:     userData.descuentoNivel || 0,
                     whatsappRevendedor: userData.whatsappRevendedor || '',
                     configTienda:       userData.configTienda || null,
+                    fechaAlta:          userData.fechaAlta || null,
                 };
                 window.codigoValidado = true;
                 // 🔧 NUEVO: cache completo de la sesión ya validada, con su
