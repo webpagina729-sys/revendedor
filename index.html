@@ -4226,6 +4226,22 @@
         </div>
     </div>
 
+    <!-- MODAL AVISO (publicado desde pedidos.html) -->
+    <div class="modal-overlay" id="avisoModal">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="avisoModalTitulo"></h2>
+                <p id="avisoModalSubtitulo" style="font-size:13px;color:var(--text-light);margin:4px 0 0;"></p>
+            </div>
+
+            <p id="avisoModalTexto" style="font-size:14px;color:var(--text);white-space:pre-wrap;margin:0 0 8px;"></p>
+
+            <a id="avisoModalBoton" href="#" target="_blank" rel="noopener" class="confirmation-button confirmation-button-primary" style="display:none;width:100%;text-align:center;text-decoration:none;margin-top:12px;" onclick="cerrarAvisoModal()">Ver más</a>
+
+            <button type="button" class="confirmation-button" style="width:100%;margin-top:10px;" onclick="cerrarAvisoModal()">Cerrar</button>
+        </div>
+    </div>
+
     <!-- MODAL ESTADÍSTICAS -->
     <div class="modal-overlay" id="statisticsModal" onclick="closeStatisticsModal(event)">
         <div class="modal-content">
@@ -5617,6 +5633,61 @@
             .then(r => r.json())
             .then(data => {
                 if (data && data.ok) window.VARIANTES_GLOBAL_PLATAFORMA = data.variantes || {};
+            })
+            .catch(() => {});
+
+        // 🔧 NUEVO: aviso publicado desde pedidos.html → 📢 Avisos. Se
+        // muestra una única vez por aviso (guardado por id en
+        // localStorage, no un booleano único) — así, aunque el revendedor
+        // ya haya cerrado un aviso anterior, uno NUEVO sí se le muestra.
+        function mostrarAvisoModalSi(aviso) {
+            if (!aviso || !aviso.publicado || !aviso.id) return;
+            let vistos = [];
+            try { vistos = JSON.parse(localStorage.getItem('avisosVistos') || '[]'); } catch(e) {}
+            if (vistos.includes(aviso.id)) return;
+
+            const titulo = document.getElementById('avisoModalTitulo');
+            const subtitulo = document.getElementById('avisoModalSubtitulo');
+            const texto = document.getElementById('avisoModalTexto');
+            const boton = document.getElementById('avisoModalBoton');
+            const modal = document.getElementById('avisoModal');
+            if (!modal || !titulo) return;
+
+            titulo.textContent = aviso.titulo || '';
+            subtitulo.textContent = aviso.subtitulo || '';
+            subtitulo.style.display = aviso.subtitulo ? 'block' : 'none';
+            texto.textContent = aviso.texto || '';
+            texto.style.display = aviso.texto ? 'block' : 'none';
+            if (aviso.enlace && aviso.textoBoton) {
+                boton.href = aviso.enlace;
+                boton.textContent = aviso.textoBoton;
+                boton.style.display = 'block';
+            } else {
+                boton.style.display = 'none';
+            }
+            window._avisoActualId = aviso.id;
+            modal.classList.add('active');
+            if (typeof preventBodyScroll === 'function') preventBodyScroll(true);
+        }
+
+        function cerrarAvisoModal() {
+            const modal = document.getElementById('avisoModal');
+            if (modal) modal.classList.remove('active');
+            if (typeof preventBodyScroll === 'function') preventBodyScroll(false);
+            if (window._avisoActualId) {
+                try {
+                    let vistos = [];
+                    try { vistos = JSON.parse(localStorage.getItem('avisosVistos') || '[]'); } catch(e) {}
+                    if (!vistos.includes(window._avisoActualId)) vistos.push(window._avisoActualId);
+                    localStorage.setItem('avisosVistos', JSON.stringify(vistos.slice(-50)));
+                } catch(e) {}
+            }
+        }
+
+        fetch('https://panelgestionestados.tuweb.workers.dev/api/aviso')
+            .then(r => r.json())
+            .then(data => {
+                if (data && data.ok) mostrarAvisoModalSi(data.aviso);
             })
             .catch(() => {});
 
