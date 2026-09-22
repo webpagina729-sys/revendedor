@@ -3408,6 +3408,28 @@
                 </div>
             </div>
 
+            <!-- NICHO 2.6: SALUD/SUPLEMENTOS -->
+            <div class="nicho-item">
+                <div class="nicho-info">
+                    <h3 class="nicho-title">Salud/Suplementos</h3>
+                    <p class="nicho-subtitle">Colágenos, Vitaminas y Minerales, Específicos, Adaptógenos y Hongos</p>
+                </div>
+
+                <!-- CARRUSEL ANCHO (mismo estilo que el resto de nichos) -->
+                <div class="carrusel-container" id="carrusel-container-suplementos">
+                    <div class="carrusel-wrapper" id="carrusel-wrapper-suplementos"></div>
+                    <button class="carrusel-nav carrusel-prev" onclick="carruselAnteriorSuplementos()" title="Anterior">‹</button>
+                    <button class="carrusel-nav carrusel-next" onclick="carruselSiguienteSuplementos()" title="Siguiente">›</button>
+                    <div class="carrusel-dots" id="carrusel-dots-suplementos"></div>
+                </div>
+
+                <!-- BADGE + BOTÓN: va directo al catálogo en suplementos.html -->
+                <div class="nicho-footer">
+                    <div class="nicho-badge">💰 Objetivo: $150.000</div>
+                    <a class="nicho-button" href="suplementos.html" style="display:block; text-align:center; text-decoration:none;">Comenzar próximo pedido en este lugar</a>
+                </div>
+            </div>
+
             <!-- NICHO 3: CALZADOS -->
             <div class="nicho-item">
                 <div class="nicho-info">
@@ -9748,6 +9770,71 @@
             actualizarCarruselLenceria();
         }
 
+        // ═══ SALUD/SUPLEMENTOS: carrusel de la tarjeta de Inicio ═══
+        let carruselActualSuplementos = 0;
+        let productosCarruselSuplementos = [];
+        const SUPLEMENTOS_REPO_BASE_CARD = 'https://raw.githubusercontent.com/webpagina729-sys/Suplementos/main/';
+
+        function inicializarCarruselSuplementos() {
+            // Imágenes fijas pedidas para el carrusel de la tarjeta de
+            // Salud/Suplementos en Inicio.
+            const CARRUSEL_SUPLEMENTOS_IMGS = ['combo.png', 'multi.png', 'rejuvenece.png', 'prostaplus.png', 'vitaminasiete.png', 'biotina.png', 'collagentrece.png'];
+            productosCarruselSuplementos = CARRUSEL_SUPLEMENTOS_IMGS.map(fname => ({
+                nombre: 'Salud/Suplementos',
+                imagen: SUPLEMENTOS_REPO_BASE_CARD + fname
+            }));
+
+            const wrapper = document.getElementById('carrusel-wrapper-suplementos');
+            const dotsContainer = document.getElementById('carrusel-dots-suplementos');
+            if (!wrapper || !dotsContainer) return;
+
+            wrapper.innerHTML = '';
+            dotsContainer.innerHTML = '';
+
+            productosCarruselSuplementos.forEach((producto, index) => {
+                const slide = document.createElement('div');
+                slide.className = 'carrusel-slide';
+                slide.innerHTML = `<img src="${producto.imagen}" alt="${producto.nombre}" loading="lazy">`;
+                wrapper.appendChild(slide);
+
+                const dot = document.createElement('button');
+                dot.className = `carrusel-dot ${index === 0 ? 'active' : ''}`;
+                dot.onclick = () => irASlideSuplementos(index);
+                dotsContainer.appendChild(dot);
+            });
+
+            carruselActualSuplementos = 0;
+            actualizarCarruselSuplementos();
+        }
+
+        function actualizarCarruselSuplementos() {
+            const wrapper = document.getElementById('carrusel-wrapper-suplementos');
+            if (wrapper) {
+                const offset = carruselActualSuplementos * -100;
+                wrapper.style.transform = `translateX(${offset}%)`;
+            }
+            document.querySelectorAll('#carrusel-dots-suplementos .carrusel-dot').forEach((dot, index) => {
+                dot.classList.toggle('active', index === carruselActualSuplementos);
+            });
+        }
+
+        function carruselAnteriorSuplementos() {
+            if (productosCarruselSuplementos.length === 0) return;
+            carruselActualSuplementos = (carruselActualSuplementos - 1 + productosCarruselSuplementos.length) % productosCarruselSuplementos.length;
+            actualizarCarruselSuplementos();
+        }
+
+        function carruselSiguienteSuplementos() {
+            if (productosCarruselSuplementos.length === 0) return;
+            carruselActualSuplementos = (carruselActualSuplementos + 1) % productosCarruselSuplementos.length;
+            actualizarCarruselSuplementos();
+        }
+
+        function irASlideSuplementos(index) {
+            carruselActualSuplementos = index;
+            actualizarCarruselSuplementos();
+        }
+
         function inicializarCarruselBelleza() {
             // Imágenes fijas pedidas para el carrusel de la tarjeta de
             // Belleza y Cuidado Personal (todas de Maquillaje).
@@ -10643,6 +10730,7 @@
                 inicializarCarruselShoesPreview();
                 inicializarCarruselBelleza();
                 inicializarCarruselLenceria();
+                inicializarCarruselSuplementos();
                 
                 // Actualizar vista de nichos
                 actualizarVistaNichos();
