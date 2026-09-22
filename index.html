@@ -12352,6 +12352,16 @@
                     configTienda:       userData.configTienda || null,
                 };
                 window.codigoValidado = true;
+                // 🔧 NUEVO: cache completo de la sesión ya validada, con su
+                // propio timestamp — lo usa el gate de arranque para saltar
+                // TODA llamada de red si la validación fue reciente (ver
+                // más abajo). Esto es lo que evita agotar el límite de
+                // intentos por IP del Worker de login al navegar rápido
+                // entre index.html/mas-categorias.html/lenceria.html/etc.
+                try {
+                    localStorage.setItem('currentUserCache', JSON.stringify(window.currentUser));
+                    localStorage.setItem('currentUserCacheFecha', Date.now().toString());
+                } catch(e) {}
 
                 // FIX: mostrar cinta negra superior tras login con código
                 try {
@@ -12402,7 +12412,43 @@
             // estaba en localStorage desde el arranque, como si recién
             // apareció después de esperar a Firebase Auth (ver abajo).
             async function intentarAutoLoginBv(codigoGuardado) {
+                // 🔧 FIX CRÍTICO: cada página (index.html, mas-categorias.html,
+                // lenceria.html, suplementos.html) hace su PROPIO auto-login
+                // completo al cargar — y cada intento podía llamar hasta a
+                // 3 rutas distintas del mismo Worker de login, que
+                // COMPARTEN un límite de 8 intentos cada 5 minutos por IP.
+                // Navegar rápido entre 3-4 páginas agotaba ese límite en
+                // segundos — y peor: cuando el Worker respondía 429 (límite
+                // alcanzado, NO "código inválido"), el código de acá abajo
+                // no distinguía los dos casos y terminaba mostrando el
+                // panel de login como si el código hubiera dejado de ser
+                // válido. Esto es lo que se reportó como "vuelve a pedir el
+                // código y dice que son demasiados intentos".
+                //
+                // Ahora, si el último login exitoso fue hace MUY poco
+                // (3 minutos), se reconstruye la sesión desde ese cache
+                // local — sin llamar a NINGÚN Worker — porque no tiene
+                // sentido re-validar algo que se acaba de validar hace
+                // instantes al entrar a la página anterior.
+                try {
+                    const cacheFecha = parseInt(localStorage.getItem('currentUserCacheFecha') || '0');
+                    const cacheStr = localStorage.getItem('currentUserCache');
+                    if (cacheStr && (Date.now() - cacheFecha) < 3 * 60 * 1000) {
+                        const cached = JSON.parse(cacheStr);
+                        if (cached && cached.codigoVendedor && cached.codigoVendedor.toUpperCase() === String(codigoGuardado).toUpperCase()) {
+                            window.currentUser = cached;
+                            window.codigoValidado = true;
+                            bvOcultar();
+                            try { updateUIForAuthentication(true); } catch(e) {}
+                            window._ultimoUserDataLogin = cached;
+                            _continuarFlujoPostSesion();
+                            return true;
+                        }
+                    }
+                } catch(e) { /* si el cache está corrupto, seguir con el flujo normal */ }
+
                 var userData = null;
+                var limiteAlcanzado = false;
                 try {
                     // 🔧 FIX CRÍTICO: el auto-login (a diferencia del login
                     // manual) esperaba hasta 10 segundos a Turnstile antes
@@ -12423,11 +12469,17 @@
                         signal: controller.signal
                     });
                     clearTimeout(abortTimer);
+                    if (res.status === 429) limiteAlcanzado = true;
                     var data = await res.json();
                     if (data.success && data.vendedor) userData = data.vendedor;
                 } catch(e) { /* silenciado (incluye el abort por timeout) */ }
 
-                if (!userData) {
+                // 🔧 FIX: si ya se pegó contra el límite de intentos, NO
+                // seguir golpeando otra ruta del mismo Worker (comparten el
+                // mismo contador) — eso solo empeora la espera para
+                // cualquier intento futuro, sin ninguna chance real de que
+                // esta vez sí responda.
+                if (!userData && !limiteAlcanzado) {
                     try {
                         await esperarFirebase();
                         userData = await buscarEnFirestore(codigoGuardado);
@@ -12438,6 +12490,25 @@
                     try { await bvAplicarDatos(codigoGuardado, userData); } catch(e) { /* silenciado */ }
                     bvOcultar();
                     window._ultimoUserDataLogin = userData;
+                    _continuarFlujoPostSesion();
+                    return true;
+                } else if (limiteAlcanzado) {
+                    // 🔧 FIX CRÍTICO: un 429 significa "no se pudo
+                    // verificar ahora mismo", NO "el código ya no es
+                    // válido" — el código YA se validó con éxito antes
+                    // (por eso está guardado). Se reconstruye la sesión
+                    // con lo que ya hay guardado localmente en vez de
+                    // echar al usuario al panel de login.
+                    var reconstruido = {
+                        uid: codigoGuardado,
+                        codigoVendedor: codigoGuardado,
+                        whatsappRevendedor: localStorage.getItem('whatsappRevendedor') || '',
+                    };
+                    window.currentUser = reconstruido;
+                    window.codigoValidado = true;
+                    bvOcultar();
+                    try { updateUIForAuthentication(true); } catch(e) {}
+                    window._ultimoUserDataLogin = reconstruido;
                     _continuarFlujoPostSesion();
                     return true;
                 } else {
