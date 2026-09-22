@@ -4234,6 +4234,8 @@
                 <p id="avisoModalSubtitulo" style="font-size:13px;color:var(--text-light);margin:4px 0 0;"></p>
             </div>
 
+            <img id="avisoModalImagen" src="" alt="" style="display:none;width:100%;border-radius:10px;margin-bottom:12px;max-height:220px;object-fit:cover;" onerror="this.style.display='none'">
+
             <p id="avisoModalTexto" style="font-size:14px;color:var(--text);white-space:pre-wrap;margin:0 0 8px;"></p>
 
             <a id="avisoModalBoton" href="#" target="_blank" rel="noopener" class="confirmation-button confirmation-button-primary" style="display:none;width:100%;text-align:center;text-decoration:none;margin-top:12px;" onclick="cerrarAvisoModal()">Ver más</a>
@@ -5648,6 +5650,7 @@
 
             const titulo = document.getElementById('avisoModalTitulo');
             const subtitulo = document.getElementById('avisoModalSubtitulo');
+            const imagen = document.getElementById('avisoModalImagen');
             const texto = document.getElementById('avisoModalTexto');
             const boton = document.getElementById('avisoModalBoton');
             const modal = document.getElementById('avisoModal');
@@ -5656,6 +5659,13 @@
             titulo.textContent = aviso.titulo || '';
             subtitulo.textContent = aviso.subtitulo || '';
             subtitulo.style.display = aviso.subtitulo ? 'block' : 'none';
+            if (aviso.imagen) {
+                imagen.src = 'https://raw.githubusercontent.com/webpagina729-sys/Avisos/main/' + aviso.imagen;
+                imagen.alt = aviso.titulo || '';
+                imagen.style.display = 'block';
+            } else {
+                imagen.style.display = 'none';
+            }
             texto.textContent = aviso.texto || '';
             texto.style.display = aviso.texto ? 'block' : 'none';
             if (aviso.enlace && aviso.textoBoton) {
