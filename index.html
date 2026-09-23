@@ -7957,7 +7957,7 @@
             const nameEl = document.getElementById('profileName');
             if (nameEl) nameEl.textContent = wUser?.nombre
                 ? (wUser.nombre + (wUser.apellido ? ' ' + wUser.apellido : ''))
-                : (user ? user.email.split('@')[0] : '—');
+                : (user && user.email ? user.email.split('@')[0] : '—');
 
             // Intentar mostrar código en este orden: localStorage → window.currentUser → Firestore → Generar nuevo
             let codigoEncontrado = false;
@@ -9422,7 +9422,7 @@
                         // 2) item.catalogo (si algún ítem lo trae explícito)
                         // 3) palabras clave en el nombre (solo pedidos viejos
                         //    que no tienen ninguno de los dos datos anteriores)
-                        const categoriasValidas = new Set(['perfumes','calzados','belleza','bazar','jugueteria','libreria','multishop']);
+                        const categoriasValidas = new Set(['perfumes','calzados','belleza','bazar','jugueteria','libreria','lenceria','suplementos','multishop']);
                         let nicho = null;
                         if (pedido.nicho && categoriasValidas.has(String(pedido.nicho).toLowerCase())) {
                             nicho = String(pedido.nicho).toLowerCase();
