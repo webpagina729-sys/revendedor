@@ -6108,7 +6108,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                         body: JSON.stringify({
                             uid: user.uid,
                             datos: {
-                                nombre: user.displayName ? user.displayName.split(' ')[0] : user.email.split('@')[0],
+                                nombre: user.displayName ? user.displayName.split(' ')[0] : (user.email ? user.email.split('@')[0] : 'Usuario'),
                                 apellido: user.displayName ? user.displayName.split(' ').slice(1).join(' ') : '',
                                 email: user.email,
                                 codigoVendedor: codigoVendedor,
@@ -6293,7 +6293,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                                         uid: userCredential.user.uid,
                                         datos: {
                                             email: userCredential.user.email,
-                                            nombre: userCredential.user.email.split('@')[0],
+                                            nombre: userCredential.user.email ? userCredential.user.email.split('@')[0] : 'Usuario',
                                             codigoVendedor: nuevoCodigoVendedor,
                                             creado: Date.now()
                                         }
@@ -6617,7 +6617,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                                 uid: user.uid,
                                 datos: {
                                     email: user.email,
-                                    nombre: window.currentUser?.nombre || user.email.split('@')[0],
+                                    nombre: window.currentUser?.nombre || (user.email ? user.email.split('@')[0] : 'Usuario'),
                                     codigoVendedor: codigoFinal,
                                     creado: window.currentUser?.creado || Date.now()
                                 }
@@ -6880,7 +6880,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
 
             // Si no hay datos de Firestore, crear objeto mínimo
             const safeUserData = userData || {
-                nombre: authUser.email.split('@')[0],
+                nombre: authUser.email ? authUser.email.split('@')[0] : 'Usuario',
                 codigoVendedor: '',
                 creado: new Date()
             };
@@ -6904,7 +6904,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             window.currentUser = {
                 uid: authUser.uid,
                 email: authUser.email,
-                nombre: safeUserData.nombre || authUser.email.split('@')[0],
+                nombre: safeUserData.nombre || (authUser.email ? authUser.email.split('@')[0] : 'Usuario'),
                 codigoVendedor: codigoFinal,
                 creado: safeUserData.creado || new Date()
             };
