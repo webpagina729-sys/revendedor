@@ -6537,7 +6537,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             const nameEl = document.getElementById('profileName');
             if (nameEl) nameEl.textContent = wUser?.nombre
                 ? (wUser.nombre + (wUser.apellido ? ' ' + wUser.apellido : ''))
-                : (user ? user.email.split('@')[0] : '—');
+                : (user && user.email ? user.email.split('@')[0] : '—');
 
             // Intentar mostrar código en este orden: localStorage → window.currentUser → Firestore → Generar nuevo
             let codigoEncontrado = false;
@@ -12897,6 +12897,25 @@ function mostrarToastOk(msg) {
         var to = function(v){ return ('0'+Math.round((v+m)*255).toString(16)).slice(-2); };
         return ('#'+to(r)+to(g)+to(b)).toUpperCase();
     }
+    // 🔧 FIX: esta función vivía en OTRO bloque <script> posterior (fuera
+    // de esta IIFE) — applyHex() la necesitaba ANTES de que ese bloque
+    // se hubiera ejecutado, causando un ReferenceError no capturado cada
+    // vez que se abría el selector de color de "Configurar mi tienda".
+    function hexToHue(hex) {
+        hex = hex.replace('#','');
+        const r = parseInt(hex.slice(0,2),16)/255;
+        const g = parseInt(hex.slice(2,4),16)/255;
+        const b = parseInt(hex.slice(4,6),16)/255;
+        const max = Math.max(r,g,b), min = Math.min(r,g,b);
+        if (max === min) return 0;
+        const d = max - min;
+        let h = 0;
+        if (max === r)      h = ((g-b)/d + (g<b?6:0)) * 60;
+        else if (max === g) h = ((b-r)/d + 2) * 60;
+        else                h = ((r-g)/d + 4) * 60;
+        return Math.round(h);
+    }
+
     function applyHex(hex, opts){
         opts = opts || {};
         hex = (hex||'').toUpperCase();
