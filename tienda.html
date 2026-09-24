@@ -892,7 +892,7 @@
 <div class="promo-float-overlay" id="avisoDomicilioModal">
     <div class="promo-float-box">
         <span class="promo-float-tag">🚚 Recibir a domicilio</span>
-        <div class="promo-float-sub" style="font-size:14px;color:var(--text);line-height:1.5;margin-top:6px;">Si deseas elegir transporte... Arreglá con tu revendedor el transporte deseado y pagás al recibir.</div>
+        <div class="promo-float-sub" style="font-size:13px;color:var(--text);line-height:1.5;margin-top:6px;text-wrap:balance;">Si deseas elegir transporte... Arreglá con tu revendedor el transporte deseado y pagás al&nbsp;recibir.</div>
         <div class="promo-float-actions" style="margin-top:14px;">
             <button class="promo-float-btn primary" style="width:100%;" onclick="document.getElementById('avisoDomicilioModal').classList.remove('active');elegirEntrega('domicilio');">Aceptar</button>
         </div>
@@ -903,7 +903,7 @@
 <div class="promo-float-overlay" id="avisoRetiroModal">
     <div class="promo-float-box">
         <span class="promo-float-tag">🏪 Retirar por sucursal</span>
-        <div class="promo-float-sub" style="font-size:14px;color:var(--text);line-height:1.5;margin-top:6px;">El costo de este retiro es valorar el día de gestión de cada revendedor para entregar los pedidos. Si el revendedor lo desea, no lo abonás.</div>
+        <div class="promo-float-sub" style="font-size:13px;color:var(--text);line-height:1.5;margin-top:6px;text-wrap:balance;">El costo de este retiro es valorar el día de gestión de cada revendedor para entregar los pedidos. Si el revendedor lo desea, no lo&nbsp;abonás.</div>
         <div class="promo-float-actions" style="margin-top:14px;">
             <button class="promo-float-btn primary" style="width:100%;" onclick="document.getElementById('avisoRetiroModal').classList.remove('active');elegirEntrega('retiro');">Aceptar</button>
         </div>
@@ -962,7 +962,7 @@
         </div>
 
         <div class="checkout-field">
-            <label>Dirección alternativa</label>
+            <label>Dirección alternativa <span class="checkout-required">*</span></label>
             <input type="text" id="co-direccion-alt" placeholder="Referencia o segunda opción">
         </div>
 
@@ -4590,7 +4590,7 @@ async function enviarPedidoConDatos() {
     const costoEntrega = esRetiro ? COSTO_RETIRO : COSTO_DOMICILIO;
 
     // Validación
-    if (!nombre || !apellido || !telefono || !direccion) {
+    if (!nombre || !apellido || !telefono || !direccion || !dirAlt) {
         mostrarErrorCheckout('Completá los campos obligatorios (*).');
         return;
     }
