@@ -3264,6 +3264,24 @@
     </script>
 </head>
 <body>
+    <!-- 🔧 NUEVO: overlay de carga al Aprobar/No aprobar un pedido — antes
+         no pasaba nada visible hasta que el pedido desaparecía de la
+         lista, así que parecía que el botón no tenía ninguna función.
+         Mismo estilo que ya usa index.html. -->
+    <div id="aprobar-loading-overlay" style="position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+        <div style="display:flex;gap:8px;">
+            <span class="aprobar-loading-dot" style="width:12px;height:12px;border-radius:50%;background:#0066ff;animation:aprobarLoadingBounce 1s ease-in-out infinite;animation-delay:0s;"></span>
+            <span class="aprobar-loading-dot" style="width:12px;height:12px;border-radius:50%;background:#00a650;animation:aprobarLoadingBounce 1s ease-in-out infinite;animation-delay:.15s;"></span>
+            <span class="aprobar-loading-dot" style="width:12px;height:12px;border-radius:50%;background:#0066ff;animation:aprobarLoadingBounce 1s ease-in-out infinite;animation-delay:.3s;"></span>
+            <span class="aprobar-loading-dot" style="width:12px;height:12px;border-radius:50%;background:#00a650;animation:aprobarLoadingBounce 1s ease-in-out infinite;animation-delay:.45s;"></span>
+        </div>
+    </div>
+    <style>
+        @keyframes aprobarLoadingBounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: .6; }
+            40% { transform: translateY(-10px); opacity: 1; }
+        }
+    </style>
     <!-- OVERLAY: DETECTANDO SESIÓN (blur + puntos animados) -->
     <div id="session-restore-overlay" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#ffffff;">
         <div style="display:flex;flex-direction:column;align-items:center;gap:14px;">
@@ -3885,47 +3903,62 @@
     <!-- 🔧 NUEVO: tutorial de cómo gestionar el stock, aparece 1s después
          de cerrar el aviso anterior — se puede desactivar para siempre. -->
     <div class="modal-overlay" id="tutorialStockModal">
-        <div class="modal-content" style="max-width:380px;">
+        <div class="modal-content" style="max-width:340px;">
             <div class="modal-header" style="justify-content:center;">
-                <h2 class="modal-title" style="text-align:center;">Para modificar tu catálogo</h2>
+                <h2 class="modal-title" style="text-align:center;font-size:16px;">Para modificar tu catálogo</h2>
             </div>
-            <p style="font-size:13.5px;color:var(--text-light);line-height:1.6;text-align:center;margin-bottom:16px;">Podés quitar y agregar productos desde las opciones de <strong>Ver Más</strong>, dentro de cada producto:</p>
-            <div style="display:flex;gap:22px;align-items:center;justify-content:center;margin-bottom:20px;padding:14px;background:var(--gray-light);border-radius:10px;">
-                <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text);">
-                    <span style="width:12px;height:12px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px 2px rgba(34,197,94,.7);display:inline-block;"></span>
+            <p style="font-size:12.5px;color:var(--text-light);line-height:1.5;text-align:center;margin-bottom:14px;text-wrap:balance;">Podés quitar y agregar productos desde <strong>Ver Más</strong>, dentro de cada producto:</p>
+            <div style="display:flex;gap:18px;align-items:center;justify-content:center;margin-bottom:16px;padding:10px;background:var(--gray-light);border-radius:10px;">
+                <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text);">
+                    <span style="width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px 2px rgba(34,197,94,.7);display:inline-block;"></span>
                     En stock
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text);">
-                    <span style="width:12px;height:12px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px 2px rgba(239,68,68,.7);display:inline-block;"></span>
+                <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text);">
+                    <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px 2px rgba(239,68,68,.7);display:inline-block;"></span>
                     Sin stock
                 </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;">
-                <button type="button" class="confirmation-button" style="background:#f5f5f5;color:var(--text);" onclick="cerrarTutorialStock(true)">No volver a mostrar</button>
-                <button type="button" class="confirmation-button confirmation-button-primary" onclick="cerrarTutorialStock(false)">Aceptar</button>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;">
+                <button type="button" class="confirmation-button" style="background:#f5f5f5;color:var(--text);padding:9px 6px;font-size:12px;" onclick="cerrarTutorialStock(true)">No mostrar más</button>
+                <button type="button" class="confirmation-button confirmation-button-primary" style="padding:9px 6px;font-size:12px;" onclick="cerrarTutorialStock(false)">Entendido</button>
             </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="stockConfirmModal" onclick="if(event.target.id==='stockConfirmModal')this.classList.remove('active')">
-        <div class="modal-content" style="max-width:360px;">
+        <div class="modal-content" style="max-width:320px;">
             <div class="modal-header" style="justify-content:center;">
-                <h2 class="modal-title" id="stockConfirmTitulo" style="text-align:center;">¿Quieres quitar este producto de tu tienda?</h2>
+                <h2 class="modal-title" id="stockConfirmTitulo" style="text-align:center;font-size:15px;text-wrap:balance;">¿Quieres quitar este producto de tu tienda?</h2>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin-top:4px;">
-                <button type="button" class="confirmation-button" style="background:#f5f5f5;color:var(--text);" onclick="document.getElementById('stockConfirmModal').classList.remove('active')">Cancelar</button>
-                <button type="button" class="confirmation-button confirmation-button-primary" id="stockConfirmAceptarBtn">Aceptar</button>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-top:4px;">
+                <button type="button" class="confirmation-button" style="background:#f5f5f5;color:var(--text);padding:9px 6px;font-size:12.5px;" onclick="document.getElementById('stockConfirmModal').classList.remove('active')">Cancelar</button>
+                <button type="button" class="confirmation-button confirmation-button-primary" style="padding:9px 6px;font-size:12.5px;" id="stockConfirmAceptarBtn">Aceptar</button>
             </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="stockExitoModal" onclick="if(event.target.id==='stockExitoModal')this.classList.remove('active')">
-        <div class="modal-content" style="max-width:340px;text-align:center;">
-            <div style="width:56px;height:56px;border-radius:50%;background:#e8f9ef;display:flex;align-items:center;justify-content:center;margin:4px auto 14px;">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        <div class="modal-content" style="max-width:300px;text-align:center;">
+            <div style="width:48px;height:48px;border-radius:50%;background:#e8f9ef;display:flex;align-items:center;justify-content:center;margin:2px auto 12px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <h2 class="modal-title" id="stockExitoTexto" style="text-align:center;margin-bottom:18px;">Producto quitado de tu stock</h2>
-            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="document.getElementById('stockExitoModal').classList.remove('active')">Aceptar</button>
+            <h2 class="modal-title" id="stockExitoTexto" style="text-align:center;font-size:15px;margin-bottom:14px;">Producto quitado de tu stock</h2>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;" onclick="document.getElementById('stockExitoModal').classList.remove('active')">Aceptar</button>
+        </div>
+    </div>
+
+    <!-- 🔧 NUEVO: aviso con la imagen del producto cuando el dueño de la
+         plataforma quitó/agregó un producto del stock global o una
+         variante puntual desde pedidos.html. Se muestra al entrar a la
+         categoría afectada (Belleza, Bazar, Juguetería o Librería), uno
+         por cada cambio que el revendedor todavía no vio (se recuerda en
+         su localStorage). -->
+    <div class="modal-overlay" id="avisoCambioStockModal" onclick="if(event.target.id==='avisoCambioStockModal')cerrarAvisoCambioStock()">
+        <div class="modal-content" style="max-width:320px;text-align:center;">
+            <img id="avisoCambioStockImg" src="" alt="" style="width:100%;max-height:150px;object-fit:cover;border-radius:10px;margin-bottom:12px;display:none;" onerror="this.style.display='none'">
+            <h2 class="modal-title" id="avisoCambioStockTitulo" style="text-align:center;font-size:15px;margin-bottom:6px;text-wrap:balance;"></h2>
+            <p id="avisoCambioStockTexto" style="font-size:12.5px;color:var(--text-light);margin:0 0 14px;text-wrap:balance;"></p>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;" onclick="cerrarAvisoCambioStock()">Entendido</button>
         </div>
     </div>
 
@@ -7116,7 +7149,98 @@ function catalogoEfectivoMultishop(p) {
             window.itemsDisplayedBazar = 6;
             renderBazarProducts();
         }
+        // 🔧 NUEVO: avisos con imagen cuando el dueño de la plataforma quita
+        // o agrega un producto del stock global, o una variante puntual,
+        // desde pedidos.html. Se consultan una sola vez al entrar a
+        // cualquiera de las 4 categorías de este archivo (la primera que
+        // se muestre dispara la verificación de TODAS, con una sola
+        // guarda global), y se muestran uno por uno (cola) solo los que
+        // este revendedor todavía no vio — se recuerda en localStorage.
+        function _resolverImagenProductoMasCategorias(catalogo, productId) {
+            let arr = null;
+            if (String(catalogo).indexOf('belleza') === 0) arr = window.productsBelleza;
+            else if (String(catalogo).indexOf('bazar') === 0) arr = window.productsBazar;
+            else if (String(catalogo).indexOf('jugueteria') === 0) arr = window.productsJugueteria;
+            else if (catalogo === 'libreria') arr = window.productsLibreria;
+            if (!Array.isArray(arr)) return '';
+            const p = arr.find(x => x.id === productId);
+            return p ? resolveImgUrl(p.imagen) : '';
+        }
+
+        let _colaAvisosCambioStock = [];
+
+        async function _verificarCambiosStockCategoria(catalogos) {
+            try {
+                const vistos = JSON.parse(localStorage.getItem('cambiosStockVistos') || '[]');
+                const vistosSet = new Set(vistos);
+                const nuevos = [];
+                for (const cat of catalogos) {
+                    const res = await fetch('https://panelgestionestados.tuweb.workers.dev/api/cambios-stock?catalogo=' + encodeURIComponent(cat));
+                    const data = await res.json().catch(() => null);
+                    if (data && data.ok && Array.isArray(data.cambios)) {
+                        data.cambios.forEach(c => {
+                            if (!vistosSet.has(c.id)) nuevos.push(Object.assign({}, c, { catalogo: cat }));
+                        });
+                    }
+                }
+                if (nuevos.length === 0) return;
+                _colaAvisosCambioStock = nuevos;
+                _mostrarSiguienteAvisoCambioStock();
+            } catch (e) { /* silencioso: esto es un aviso informativo, no algo crítico */ }
+        }
+
+        function _mostrarSiguienteAvisoCambioStock() {
+            if (_colaAvisosCambioStock.length === 0) return;
+            const cambio = _colaAvisosCambioStock[0];
+            const modal = document.getElementById('avisoCambioStockModal');
+            const img = document.getElementById('avisoCambioStockImg');
+            const titulo = document.getElementById('avisoCambioStockTitulo');
+            const texto = document.getElementById('avisoCambioStockTexto');
+            if (!modal || !titulo || !texto) return;
+            const imgUrl = _resolverImagenProductoMasCategorias(cambio.catalogo, cambio.productId);
+            if (imgUrl) { img.src = imgUrl; img.style.display = 'block'; } else { img.style.display = 'none'; }
+            const nombreProducto = cambio.productNombre || 'Este producto';
+            if (cambio.tipo === 'producto') {
+                titulo.textContent = cambio.accion === 'quitado' ? 'Producto quitado del stock' : 'Producto disponible de nuevo';
+                texto.textContent = cambio.accion === 'quitado'
+                    ? `"${nombreProducto}" ya no está disponible por el momento.`
+                    : `"${nombreProducto}" volvió a estar disponible.`;
+            } else {
+                titulo.textContent = cambio.accion === 'quitado' ? 'Variante quitada del stock' : 'Nueva variante disponible';
+                texto.textContent = cambio.accion === 'quitado'
+                    ? `"${cambio.valor}" de "${nombreProducto}" ya no está disponible.`
+                    : `"${cambio.valor}" de "${nombreProducto}" ya está disponible.`;
+            }
+            modal.classList.add('active');
+        }
+
+        function cerrarAvisoCambioStock() {
+            const modal = document.getElementById('avisoCambioStockModal');
+            if (modal) modal.classList.remove('active');
+            if (_colaAvisosCambioStock.length > 0) {
+                const cambio = _colaAvisosCambioStock.shift();
+                const vistos = JSON.parse(localStorage.getItem('cambiosStockVistos') || '[]');
+                vistos.push(cambio.id);
+                localStorage.setItem('cambiosStockVistos', JSON.stringify(vistos.slice(-200)));
+            }
+            if (_colaAvisosCambioStock.length > 0) {
+                setTimeout(_mostrarSiguienteAvisoCambioStock, 350);
+            }
+        }
+
+        function _verificarCambiosStockMasCategoriasUnaVez() {
+            if (window._avisoStockMasCategoriasVerificado) return;
+            window._avisoStockMasCategoriasVerificado = true;
+            _verificarCambiosStockCategoria([
+                'belleza_maquillaje', 'belleza_perfume',
+                'bazar_bazar', 'bazar_melamina',
+                'jugueteria_juguetes', 'jugueteria_peluches',
+                'libreria'
+            ]);
+        }
+
         function renderBazarProducts() {
+            _verificarCambiosStockMasCategoriasUnaVez();
             const grid = document.getElementById('products-grid');
             if (!grid) return;
             let filtered = (window.productsBazar || []);
@@ -7164,6 +7288,7 @@ function catalogoEfectivoMultishop(p) {
             renderJugueteriaProducts();
         }
         function renderJugueteriaProducts() {
+            _verificarCambiosStockMasCategoriasUnaVez();
             const grid = document.getElementById('products-grid');
             if (!grid) return;
             let filtered = (window.productsJugueteria || []);
@@ -7220,6 +7345,7 @@ function catalogoEfectivoMultishop(p) {
             renderLibreriaProducts();
         }
         function renderLibreriaProducts() {
+            _verificarCambiosStockMasCategoriasUnaVez();
             const grid = document.getElementById('products-grid');
             if (!grid) return;
             let filtered = (window.productsLibreria || []);
@@ -7265,6 +7391,7 @@ function catalogoEfectivoMultishop(p) {
             renderMultishopProducts();
         }
         function renderMultishopProducts() {
+            _verificarCambiosStockMasCategoriasUnaVez();
             const grid = document.getElementById('products-grid');
             if (!grid) return;
             let filtered = (window.productsMultishop || []);
@@ -7787,7 +7914,7 @@ function catalogoEfectivoMultishop(p) {
             if (nextBtn) nextBtn.style.display = multi ? 'flex' : 'none';
             const varWrap = document.getElementById('modal-details-variantes-wrap');
             const varCont = document.getElementById('modal-details-variantes');
-            const catEfectiva = producto._origin === 'maquillaje' ? 'belleza_maquillaje' : (window.currentCatalog || 'belleza_perfume');
+            const catEfectiva = catalogoEfectivoBelleza(producto);
             const variantes = _variantesActivasDe(catEfectiva, producto.id, 'variantes', producto.variantes);
             window.currentModalVarianteSeleccionada = null;
             if (varWrap && varCont) {
@@ -9766,7 +9893,20 @@ function catalogoEfectivoMultishop(p) {
             try { if (typeof saveCartToFirebase === 'function') saveCartToFirebase(window.cart); } catch(_) {}
         }
 
+        // 🔧 NUEVO: mismo feedback visual inmediato que ya usa index.html —
+        // antes no pasaba nada hasta que el pedido desaparecía de la
+        // lista, parecía que el botón no hacía nada.
         async function cambiarEstadoPedido(pedidoId, nuevoEstado) {
+            const _loadingOverlay = document.getElementById('aprobar-loading-overlay');
+            if (_loadingOverlay) _loadingOverlay.style.display = 'flex';
+            try {
+                await _cambiarEstadoPedidoInterno(pedidoId, nuevoEstado);
+            } finally {
+                if (_loadingOverlay) _loadingOverlay.style.display = 'none';
+            }
+        }
+
+        async function _cambiarEstadoPedidoInterno(pedidoId, nuevoEstado) {
             const user = await esperarUsuarioFirebaseActual();
             const pedido = (window.pedidosRecibidosCache || []).find(x => x.id === pedidoId);
             // Si es aprobado: agregar al carrito principal
