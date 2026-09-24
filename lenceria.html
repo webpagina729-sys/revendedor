@@ -6967,14 +6967,42 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
         }
         
         // LOGOUT
+        // 🔧 FIX: logoutUser() sólo cerraba la sesión de Firebase, pero
+        // nunca limpiaba el localStorage — así que al recargar, el mismo
+        // sistema que reconstruye la sesión automáticamente (para no
+        // pedir el código de nuevo en cada visita) volvía a encontrar los
+        // datos guardados y la restauraba solo, ignorando que el usuario
+        // acababa de cerrar sesión. Ahora se limpia todo lo relacionado
+        // con la identidad de la sesión y la configuración de tienda del
+        // revendedor (para que otra persona en el mismo dispositivo no
+        // vea datos ajenos), sin tocar preferencias sueltas de la UI que
+        // no identifican a nadie (avisos ya vistos, tutoriales, etc.).
+        function _limpiarSesionLocal() {
+            [
+                'bv_codigo_sesion', 'bv_codigo_fecha',
+                'codigoRevendedorValidado', 'codigoRevendedorValidadoFecha',
+                'codigoVendedorLocal', 'uidVendedorLocal',
+                'currentUserCache', 'currentUserCacheFecha',
+                'recordarSesionRevendedor',
+                'configTienda', 'configTiendaAll',
+                'coloresExtraTienda', 'coloresTiendaPorCat', 'colorTienda',
+                'preciosManualCat', 'preciosIndividualCat',
+                'promocionesTienda', 'stockProductosCat',
+                'whatsappRevendedor', 'cuitRevendedor', 'sexoRevendedor',
+                'provinciaRevendedor', 'ciudadRevendedor', 'codigoPostalRevendedor',
+            ].forEach(k => localStorage.removeItem(k));
+        }
+
         async function logoutUser() {
             try {
                 await firebase.auth().signOut();
+                _limpiarSesionLocal();
                 // Cerrar cinta superior y recargar página
                 updateUIForAuthentication(false);
                 window.location.reload();
             } catch (error) {
                 console.error('Error al cerrar sesión:', error.message);
+                _limpiarSesionLocal();
                 window.location.reload();
             }
         }
@@ -9018,6 +9046,24 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             document.getElementById('whatsapp-input-modal').value = saved;
             const cuitInput = document.getElementById('cuit-input-modal');
             if (cuitInput) cuitInput.value = _lsGet('cuitRevendedor') || '';
+            // 🔧 FIX: si ya hay sexo/provincia/ciudad/código postal guardados
+            // (sincronizados desde Firestore, por ejemplo desde otro
+            // dispositivo), se precargan acá también — antes solo se
+            // precargaban whatsapp y cuit, así que si el modal se mostraba
+            // por faltar un solo campo, obligaba a reescribir todo el resto.
+            const sexoGuardado = _lsGet('sexoRevendedor');
+            if (sexoGuardado) {
+                const sexoInput = document.getElementById('sexo-input-modal');
+                const sexoLabel = document.getElementById('sexo-toggle-label');
+                if (sexoInput) sexoInput.value = sexoGuardado;
+                if (sexoLabel) { sexoLabel.textContent = sexoGuardado; sexoLabel.style.color = 'var(--text)'; }
+            }
+            const provinciaInput = document.getElementById('provincia-input-modal');
+            if (provinciaInput) provinciaInput.value = _lsGet('provinciaRevendedor') || '';
+            const ciudadInput = document.getElementById('ciudad-input-modal');
+            if (ciudadInput) ciudadInput.value = _lsGet('ciudadRevendedor') || '';
+            const cpInput = document.getElementById('cp-input-modal');
+            if (cpInput) cpInput.value = _lsGet('codigoPostalRevendedor') || '';
             modal.classList.add('active');
         }
         function closeWhatsappConfirmModal(e) {
@@ -10152,6 +10198,28 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                     if (data.whatsappRevendedor && !_lsGet('whatsappRevendedor')) {
                         _lsSet('whatsappRevendedor', data.whatsappRevendedor);
                     }
+                    // 🔧 FIX: whatsapp ya se sincronizaba desde Firestore acá,
+                    // pero el resto de los datos del mismo formulario (cuit,
+                    // sexo, provincia, ciudad, código postal) nunca se
+                    // traían — así que si el revendedor ya los había
+                    // completado antes (en otro dispositivo, por ejemplo),
+                    // acá seguían vacíos y el modal terminaba mostrándose de
+                    // nuevo, o pidiendo datos que ya existían.
+                    if (data.cuitRevendedor && !_lsGet('cuitRevendedor')) {
+                        _lsSet('cuitRevendedor', data.cuitRevendedor);
+                    }
+                    if (data.sexo && !_lsGet('sexoRevendedor')) {
+                        _lsSet('sexoRevendedor', data.sexo);
+                    }
+                    if (data.provincia && !_lsGet('provinciaRevendedor')) {
+                        _lsSet('provinciaRevendedor', data.provincia);
+                    }
+                    if (data.ciudad && !_lsGet('ciudadRevendedor')) {
+                        _lsSet('ciudadRevendedor', data.ciudad);
+                    }
+                    if (data.codigoPostal && !_lsGet('codigoPostalRevendedor')) {
+                        _lsSet('codigoPostalRevendedor', data.codigoPostal);
+                    }
                     if (data.configTienda && !localStorage.getItem('configTienda')) {
                         localStorage.setItem('configTienda', JSON.stringify(data.configTienda));
                     }
@@ -10184,8 +10252,17 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                         } catch(_) {}
                         if (typeof renderProducts === 'function') { try { renderProducts(); } catch(_) {} }
                     }
-                    // Si no tiene WhatsApp configurado, mostrar modal a los 7 segundos
-                    if (!_lsGet('whatsappRevendedor')) {
+                    // 🔧 FIX: antes solo se chequeaba whatsapp para decidir
+                    // si mostrar el modal — pero el formulario adentro pide
+                    // varios campos obligatorios más (cuit, sexo, provincia,
+                    // ciudad, código postal). Si el revendedor ya los tenía
+                    // todos completos (por ejemplo sincronizados recién
+                    // arriba desde otro dispositivo), el modal no debe
+                    // volver a aparecer.
+                    const _datosCompletos = _lsGet('whatsappRevendedor') && _lsGet('cuitRevendedor') &&
+                        _lsGet('sexoRevendedor') && _lsGet('provinciaRevendedor') &&
+                        _lsGet('ciudadRevendedor') && _lsGet('codigoPostalRevendedor');
+                    if (!_datosCompletos) {
                         setTimeout(() => openWhatsappConfirmModal(), 7000);
                     }
                 }).catch(() => {
