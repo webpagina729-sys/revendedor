@@ -3404,7 +3404,7 @@
                 <!-- BADGE + BOTÓN: va directo al catálogo en lenceria.html -->
                 <div class="nicho-footer">
                     <div class="nicho-badge">💰 Objetivo: $150.000</div>
-                    <a class="nicho-button" href="lenceria.html" style="display:block; text-align:center; text-decoration:none;">Comenzar próximo pedido en este lugar</a>
+                    <a class="nicho-button" href="lenceria.html" onclick="event.preventDefault();_chequearAntesDeIrA('lenceria','lenceria.html');" style="display:block; text-align:center; text-decoration:none;">Comenzar próximo pedido en este lugar</a>
                 </div>
             </div>
 
@@ -3426,7 +3426,7 @@
                 <!-- BADGE + BOTÓN: va directo al catálogo en suplementos.html -->
                 <div class="nicho-footer">
                     <div class="nicho-badge">💰 Objetivo: $150.000</div>
-                    <a class="nicho-button" href="suplementos.html" style="display:block; text-align:center; text-decoration:none;">Comenzar próximo pedido en este lugar</a>
+                    <a class="nicho-button" href="suplementos.html" onclick="event.preventDefault();_chequearAntesDeIrA('suplementos','suplementos.html');" style="display:block; text-align:center; text-decoration:none;">Comenzar próximo pedido en este lugar</a>
                 </div>
             </div>
 
@@ -4100,6 +4100,30 @@
             <h2 class="modal-title" id="avisoCambioStockTitulo" style="text-align:center;font-size:15px;margin-bottom:6px;text-wrap:balance;"></h2>
             <p id="avisoCambioStockTexto" style="font-size:12.5px;color:var(--text-light);margin:0 0 14px;text-wrap:balance;"></p>
             <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;" onclick="cerrarAvisoCambioStock()">Entendido</button>
+        </div>
+    </div>
+
+    <!-- 🔧 NUEVO: categorías frenadas temporalmente desde pedidos.html —
+         se avisa al tocar "Comenzar próximo pedido en este lugar" si la
+         categoría está pausada, y se notifica cuando vuelve a estar
+         disponible. -->
+    <div class="modal-overlay" id="categoriaPausadaModal" onclick="if(event.target.id==='categoriaPausadaModal')this.classList.remove('active')">
+        <div class="modal-content" style="max-width:300px;text-align:center;">
+            <div style="width:48px;height:48px;border-radius:50%;background:#fff3e0;display:flex;align-items:center;justify-content:center;margin:2px auto 12px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="14" y1="9" x2="14" y2="15"/></svg>
+            </div>
+            <h2 class="modal-title" style="text-align:center;font-size:15px;margin-bottom:14px;">Categoría en Actualización, intenta de nuevo mañana</h2>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;" onclick="document.getElementById('categoriaPausadaModal').classList.remove('active')">Entendido</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="categoriaReactivadaModal" onclick="if(event.target.id==='categoriaReactivadaModal')cerrarCategoriaReactivadaModal()">
+        <div class="modal-content" style="max-width:300px;text-align:center;">
+            <div style="width:48px;height:48px;border-radius:50%;background:#e8f9ef;display:flex;align-items:center;justify-content:center;margin:2px auto 12px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h2 class="modal-title" id="categoriaReactivadaTexto" style="text-align:center;font-size:15px;margin-bottom:14px;"></h2>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;" onclick="cerrarCategoriaReactivadaModal()">Entendido</button>
         </div>
     </div>
 
@@ -6028,6 +6052,103 @@
             if (_colaAvisosCambioStock.length > 0) {
                 setTimeout(_mostrarSiguienteAvisoCambioStock, 350);
             }
+        }
+
+        // 🔧 NUEVO: categorías frenadas temporalmente desde pedidos.html —
+        // Stock global. Un nicho (el nivel que ve el revendedor en la
+        // pantalla de inicio) se considera bloqueado solo si TODAS sus
+        // sub-categorías internas están pausadas — pausar solo Maquillaje
+        // no bloquea toda la sección Belleza si Perfumería sigue disponible.
+        const NICHO_LABEL_PAUSA = {
+            perfumes: 'Perfumería', belleza: 'Belleza', calzados: 'Calzados',
+            lenceria: 'Lencería', suplementos: 'Suplementos',
+        };
+        const NICHO_CATALOGOS_PAUSA = {
+            perfumes: ['perfumes'], belleza: ['belleza_maquillaje', 'belleza_perfume'],
+            calzados: ['calzados'], lenceria: ['lenceria'], suplementos: ['suplementos'],
+        };
+
+        let _categoriasFrenadasCache = null;
+        async function _cargarCategoriasFrenadas() {
+            if (_categoriasFrenadasCache) return _categoriasFrenadasCache;
+            try {
+                const res = await fetch('https://panelgestionestados.tuweb.workers.dev/api/categorias-frenadas');
+                const data = await res.json().catch(() => null);
+                _categoriasFrenadasCache = (data && data.ok) ? data.frenadas : {};
+            } catch (_) {
+                _categoriasFrenadasCache = {};
+            }
+            return _categoriasFrenadasCache;
+        }
+
+        async function _nichoEstaBloqueado(nicho) {
+            const frenadas = await _cargarCategoriasFrenadas();
+            const catalogos = NICHO_CATALOGOS_PAUSA[nicho] || [nicho];
+            const ahora = Date.now();
+            return catalogos.every(c => frenadas[c] && frenadas[c].hasta > ahora);
+        }
+
+        // lenceria.html y suplementos.html son links directos a otro
+        // archivo (no pasan por abrirModalCodigo), así que se chequea acá
+        // antes de dejar navegar.
+        async function _chequearAntesDeIrA(nicho, url) {
+            if (await _nichoEstaBloqueado(nicho)) {
+                mostrarCategoriaPausadaModal(nicho);
+                return;
+            }
+            window.location.href = url;
+        }
+
+        function mostrarCategoriaPausadaModal(nicho) {
+            // Se guarda que este revendedor ya vio esta categoría pausada,
+            // para poder avisarle después cuando se reactive.
+            if (nicho) localStorage.setItem('categoriaPausadaVista_' + nicho, '1');
+            const modal = document.getElementById('categoriaPausadaModal');
+            if (modal) modal.classList.add('active');
+        }
+
+        let _colaCategoriasReactivadas = [];
+
+        function _mostrarSiguienteCategoriaReactivada() {
+            if (_colaCategoriasReactivadas.length === 0) return;
+            const nicho = _colaCategoriasReactivadas[0];
+            const texto = document.getElementById('categoriaReactivadaTexto');
+            const modal = document.getElementById('categoriaReactivadaModal');
+            if (texto && modal) {
+                texto.textContent = `La categoría ${NICHO_LABEL_PAUSA[nicho] || nicho} ya está disponible nuevamente`;
+                modal.classList.add('active');
+            }
+        }
+
+        function cerrarCategoriaReactivadaModal() {
+            const modal = document.getElementById('categoriaReactivadaModal');
+            if (modal) modal.classList.remove('active');
+            if (_colaCategoriasReactivadas.length > 0) {
+                const nicho = _colaCategoriasReactivadas.shift();
+                localStorage.removeItem('categoriaPausadaVista_' + nicho);
+            }
+            if (_colaCategoriasReactivadas.length > 0) {
+                setTimeout(_mostrarSiguienteCategoriaReactivada, 350);
+            }
+        }
+
+        // Al cargar la página, si alguna categoría que este revendedor ya
+        // vio pausada dejó de estarlo, se lo notifica (una por vez, en cola).
+        async function _verificarReactivacionCategorias() {
+            const frenadas = await _cargarCategoriasFrenadas();
+            const ahora = Date.now();
+            Object.keys(NICHO_CATALOGOS_PAUSA).forEach(nicho => {
+                if (localStorage.getItem('categoriaPausadaVista_' + nicho) !== '1') return;
+                const catalogos = NICHO_CATALOGOS_PAUSA[nicho];
+                const siguePausada = catalogos.every(c => frenadas[c] && frenadas[c].hasta > ahora);
+                if (!siguePausada) _colaCategoriasReactivadas.push(nicho);
+            });
+            if (_colaCategoriasReactivadas.length > 0) _mostrarSiguienteCategoriaReactivada();
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', _verificarReactivacionCategorias);
+        } else {
+            _verificarReactivacionCategorias();
         }
 
         // Comparte el producto actualmente abierto en el modal (mismo enlace
@@ -10183,6 +10304,14 @@
         async function abrirModalCodigo(catalogo = 'perfumes') {
             // Evitar llamadas concurrentes
             if (window.isChangingCatalog) return;
+
+            // 🔧 NUEVO: si el dueño pausó esta categoría desde pedidos.html
+            // (Stock global → "Parar Temporalmente"), se avisa acá y no se
+            // continúa con el flujo normal de entrada.
+            if (await _nichoEstaBloqueado(catalogo)) {
+                mostrarCategoriaPausadaModal(catalogo);
+                return;
+            }
 
             // Por las dudas haya quedado abierto de otro flujo (ej. "agregar
             // al carrito" sin sesión) — nunca debe tapar el modal de código.
