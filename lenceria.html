@@ -3852,6 +3852,29 @@
         </div>
     </div>
 
+    <!-- 🔧 NUEVO: categoría frenada temporalmente desde pedidos.html —
+         se avisa si esta categoría está pausada, y se notifica cuando
+         vuelve a estar disponible. -->
+    <div class="modal-overlay" id="categoriaPausadaModal" onclick="if(event.target.id==='categoriaPausadaModal')this.classList.remove('active')">
+        <div class="modal-content" style="max-width:300px;text-align:center;">
+            <div style="width:48px;height:48px;border-radius:50%;background:#fff3e0;display:flex;align-items:center;justify-content:center;margin:2px auto 12px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="14" y1="9" x2="14" y2="15"/></svg>
+            </div>
+            <h2 class="modal-title" style="text-align:center;font-size:15px;margin-bottom:14px;">Categoría en Actualización, intenta de nuevo mañana</h2>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;" onclick="document.getElementById('categoriaPausadaModal').classList.remove('active')">Entendido</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="categoriaReactivadaModal" onclick="if(event.target.id==='categoriaReactivadaModal')cerrarCategoriaReactivadaModal()">
+        <div class="modal-content" style="max-width:300px;text-align:center;">
+            <div style="width:48px;height:48px;border-radius:50%;background:#e8f9ef;display:flex;align-items:center;justify-content:center;margin:2px auto 12px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h2 class="modal-title" id="categoriaReactivadaTexto" style="text-align:center;font-size:15px;margin-bottom:14px;"></h2>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;" onclick="cerrarCategoriaReactivadaModal()">Entendido</button>
+        </div>
+    </div>
+
     <!-- 🔧 NUEVO: aviso con la imagen del producto cuando el dueño de la
          plataforma quitó/agregó un producto del stock global o una
          variante puntual (talle/color) desde pedidos.html. Se muestra al
@@ -5677,12 +5700,71 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             }
         }
 
+        // 🔧 NUEVO: categoría frenada temporalmente desde pedidos.html.
+        // lenceria.html es un archivo dedicado a una sola categoría, así
+        // que "entrar" acá directamente equivale al botón "Comenzar
+        // próximo pedido en este lugar" de index.html — si ya está
+        // pausada, se avisa y se vuelve a la pantalla de inicio.
+        // 🔧 FIX: renderLenceriaProducts() se llama muy temprano en la
+        // carga de la página (bastante antes de esta línea), así que una
+        // variable "let" acá abajo causaría un error de "no inicializada
+        // todavía" apenas se ejecute esa primera llamada. Usar una
+        // propiedad de window evita ese problema por completo.
+        async function _cargarCategoriasFrenadas() {
+            if (window._categoriasFrenadasCacheL) return window._categoriasFrenadasCacheL;
+            try {
+                const res = await fetch('https://panelgestionestados.tuweb.workers.dev/api/categorias-frenadas');
+                const data = await res.json().catch(() => null);
+                window._categoriasFrenadasCacheL = (data && data.ok) ? data.frenadas : {};
+            } catch (_) {
+                window._categoriasFrenadasCacheL = {};
+            }
+            return window._categoriasFrenadasCacheL;
+        }
+
+        async function _lenceriaEstaBloqueada() {
+            const frenadas = await _cargarCategoriasFrenadas();
+            const info = frenadas.lenceria;
+            return !!(info && info.hasta > Date.now());
+        }
+
+        function mostrarCategoriaPausadaModal() {
+            localStorage.setItem('categoriaPausadaVista_lenceria', '1');
+            const modal = document.getElementById('categoriaPausadaModal');
+            if (modal) modal.classList.add('active');
+        }
+
+        function cerrarCategoriaReactivadaModal() {
+            const modal = document.getElementById('categoriaReactivadaModal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        async function _verificarPausaLenceria() {
+            if (await _lenceriaEstaBloqueada()) {
+                mostrarCategoriaPausadaModal();
+                window.location.href = 'index.html';
+                return;
+            }
+            // Si el revendedor ya había visto esta categoría pausada y
+            // ahora pudo entrar, es porque se reactivó — se lo notifica.
+            if (localStorage.getItem('categoriaPausadaVista_lenceria') === '1') {
+                localStorage.removeItem('categoriaPausadaVista_lenceria');
+                const texto = document.getElementById('categoriaReactivadaTexto');
+                const modal = document.getElementById('categoriaReactivadaModal');
+                if (texto && modal) {
+                    texto.textContent = 'La categoría Lencería ya está disponible nuevamente';
+                    modal.classList.add('active');
+                }
+            }
+        }
+
         function renderLenceriaProducts() {
             // Se dispara una sola vez por carga de página, no en cada
             // filtro/búsqueda — esta función se llama muy seguido.
             if (!window._avisoStockLenceriaVerificado) {
                 window._avisoStockLenceriaVerificado = true;
                 _verificarCambiosStockCategoria(['lenceria']);
+                _verificarPausaLenceria();
             }
             const grid = document.getElementById('products-grid');
             if (!grid) return;
