@@ -4117,6 +4117,32 @@
         </div>
     </div>
 
+    <!-- 🔧 NUEVO: excepción para revendedores YA activos (con pedidos en
+         curso) en una categoría que se pausó DESPUÉS de que empezaron —
+         no se los bloquea, solo se les avisa. "Más Información" abre el
+         segundo modal con el detalle del posible cambio de stock. -->
+    <div class="modal-overlay" id="categoriaPausadaActivoModal" onclick="if(event.target.id==='categoriaPausadaActivoModal')this.classList.remove('active')">
+        <div class="modal-content" style="max-width:300px;text-align:center;">
+            <div style="width:48px;height:48px;border-radius:50%;background:#eaf1ff;display:flex;align-items:center;justify-content:center;margin:2px auto 12px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3968f6" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </div>
+            <h2 class="modal-title" style="text-align:center;font-size:14.5px;margin-bottom:6px;" id="categoriaPausadaActivoTexto">Tu categoría fue pausada por actualización</h2>
+            <p style="font-size:12.5px;color:var(--text2,#666);margin:0 0 14px;line-height:1.5;">Podes completarla sin problemas porque ya estás dentro.</p>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;margin-bottom:8px;" onclick="document.getElementById('categoriaPausadaActivoModal').classList.remove('active')">Entendido</button>
+            <button type="button" class="confirmation-button" style="width:100%;padding:9px 6px;font-size:12.5px;background:transparent;border:1px solid #d0d5dd;" onclick="document.getElementById('categoriaPausadaActivoModal').classList.remove('active');document.getElementById('categoriaPausadaInfoModal').classList.add('active')">Más Información</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="categoriaPausadaInfoModal" onclick="if(event.target.id==='categoriaPausadaInfoModal')this.classList.remove('active')">
+        <div class="modal-content" style="max-width:320px;text-align:center;">
+            <div style="width:48px;height:48px;border-radius:50%;background:#eaf1ff;display:flex;align-items:center;justify-content:center;margin:2px auto 12px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3968f6" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </div>
+            <p style="font-size:12.5px;color:var(--text2,#444);margin:0 0 14px;line-height:1.55;">Les informamos tanto a los revendedores activos en la categoría como para sus clientes que al momento de pasar el pedido puede que el stock haya sido actualizado. En caso de que un producto no se encuentre en stock nuestro equipo se pondrá en contacto.</p>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;" onclick="document.getElementById('categoriaPausadaInfoModal').classList.remove('active')">Entendido</button>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="categoriaReactivadaModal" onclick="if(event.target.id==='categoriaReactivadaModal')cerrarCategoriaReactivadaModal()">
         <div class="modal-content" style="max-width:300px;text-align:center;">
             <div style="width:48px;height:48px;border-radius:50%;background:#e8f9ef;display:flex;align-items:center;justify-content:center;margin:2px auto 12px;">
@@ -4439,6 +4465,13 @@
             <div style="margin-bottom:16px;">
                 <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Código Postal <span style="color:#c00;">*</span></label>
                 <input type="text" id="cp-input-modal" placeholder="Ej: 1900" inputmode="numeric" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
+            </div>
+
+            <!-- 🔧 NUEVO: dirección — necesaria para que el dueño pueda
+                 enviarte tu mercadería directamente a vos. -->
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Dirección <span style="color:#c00;">*</span></label>
+                <input type="text" id="direccion-input-modal" placeholder="Calle, número, piso" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -6088,11 +6121,38 @@
             return catalogos.every(c => frenadas[c] && frenadas[c].hasta > ahora);
         }
 
+        // 🔧 NUEVO: excepción para revendedores que YA tienen pedidos en
+        // curso en una categoría que se pausó DESPUÉS de que empezaron —
+        // no corresponde bloquearlos, solo avisarles (ver
+        // mostrarCategoriaPausadaActivoModal). "Ya activo" = tiene al
+        // menos un pedido propio (usuarios/{uid}/pedidos) con ese nicho,
+        // sin importar su estado — alcanza con haber empezado.
+        let _activoEnCategoriaCache = null;
+        async function _yaActivoEnCategoria(nicho) {
+            try {
+                const uid = (typeof _getUidParaFirestore === 'function') ? _getUidParaFirestore() : null;
+                if (!uid) return false;
+                if (!_activoEnCategoriaCache) {
+                    const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/pedidos-personales?uid=${encodeURIComponent(uid)}`);
+                    const data = await res.json().catch(() => null);
+                    _activoEnCategoriaCache = (data && data.ok && Array.isArray(data.pedidos)) ? data.pedidos : [];
+                }
+                return _activoEnCategoriaCache.some(p => (p && p.nicho) === nicho);
+            } catch (_) {
+                return false;
+            }
+        }
+
         // lenceria.html y suplementos.html son links directos a otro
         // archivo (no pasan por abrirModalCodigo), así que se chequea acá
         // antes de dejar navegar.
         async function _chequearAntesDeIrA(nicho, url) {
             if (await _nichoEstaBloqueado(nicho)) {
+                if (await _yaActivoEnCategoria(nicho)) {
+                    mostrarCategoriaPausadaActivoModal(nicho);
+                    window.location.href = url;
+                    return;
+                }
                 mostrarCategoriaPausadaModal(nicho);
                 return;
             }
@@ -6104,6 +6164,16 @@
             // para poder avisarle después cuando se reactive.
             if (nicho) localStorage.setItem('categoriaPausadaVista_' + nicho, '1');
             const modal = document.getElementById('categoriaPausadaModal');
+            if (modal) modal.classList.add('active');
+        }
+
+        // 🔧 NUEVO: aviso NO bloqueante para revendedores ya activos en una
+        // categoría pausada — a diferencia de mostrarCategoriaPausadaModal(),
+        // esto nunca frena la navegación, solo informa.
+        function mostrarCategoriaPausadaActivoModal(nicho) {
+            const texto = document.getElementById('categoriaPausadaActivoTexto');
+            if (texto) texto.textContent = `Tu categoría ${NICHO_LABEL_PAUSA[nicho] || nicho} fue pausada por actualización`;
+            const modal = document.getElementById('categoriaPausadaActivoModal');
             if (modal) modal.classList.add('active');
         }
 
@@ -10307,10 +10377,17 @@
 
             // 🔧 NUEVO: si el dueño pausó esta categoría desde pedidos.html
             // (Stock global → "Parar Temporalmente"), se avisa acá y no se
-            // continúa con el flujo normal de entrada.
+            // continúa con el flujo normal de entrada — SALVO que el
+            // revendedor ya tenga un pedido en curso en esa categoría, en
+            // cuyo caso no se lo bloquea, solo se le avisa (ver instrucción
+            // de excepción para revendedores ya activos).
             if (await _nichoEstaBloqueado(catalogo)) {
-                mostrarCategoriaPausadaModal(catalogo);
-                return;
+                if (await _yaActivoEnCategoria(catalogo)) {
+                    mostrarCategoriaPausadaActivoModal(catalogo);
+                } else {
+                    mostrarCategoriaPausadaModal(catalogo);
+                    return;
+                }
             }
 
             // Por las dudas haya quedado abierto de otro flujo (ej. "agregar
@@ -11232,6 +11309,7 @@
             const provincia = document.getElementById('provincia-input-modal')?.value.trim() || '';
             const ciudad    = document.getElementById('ciudad-input-modal')?.value.trim() || '';
             const codigoPostal = document.getElementById('cp-input-modal')?.value.trim() || '';
+            const direccion = document.getElementById('direccion-input-modal')?.value.trim() || '';
 
             if (!sexo) {
                 showErr('Elegí una opción en "Sexo" — es obligatorio.');
@@ -11249,6 +11327,10 @@
                 showErr('Ingresá tu Código Postal — es obligatorio.');
                 return;
             }
+            if (!direccion) {
+                showErr('Ingresá tu Dirección — es obligatorio.');
+                return;
+            }
 
             _lsSet('whatsappRevendedor', val);
             _lsSet('cuitRevendedor', cuitFormateado);
@@ -11256,6 +11338,7 @@
             _lsSet('provinciaRevendedor', provincia);
             _lsSet('ciudadRevendedor', ciudad);
             _lsSet('codigoPostalRevendedor', codigoPostal);
+            _lsSet('direccionRevendedor', direccion);
             // 🔧 FIX: además de las claves genéricas de arriba (que servían
             // para CUALQUIER vendedor que haya usado este navegador antes,
             // haciendo que el modal nunca volviera a aparecer para otro
@@ -11268,6 +11351,7 @@
                 _lsSet('provinciaRevendedor_' + _codigoParaGuardado, provincia);
                 _lsSet('ciudadRevendedor_' + _codigoParaGuardado, ciudad);
                 _lsSet('codigoPostalRevendedor_' + _codigoParaGuardado, codigoPostal);
+                _lsSet('direccionRevendedor_' + _codigoParaGuardado, direccion);
             }
             _guardarEnFirestore({
                 whatsappRevendedor: val,
@@ -11275,12 +11359,13 @@
                 sexo: sexo,
                 provincia: provincia,
                 ciudad: ciudad,
-                codigoPostal: codigoPostal
+                codigoPostal: codigoPostal,
+                direccion: direccion
             });
             // Guardado confiable vía Worker (con cuenta de servicio): no depende
             // de si el vendedor tiene sesión de Firebase Auth activa, así que
             // funciona también para quienes entraron con código de revendedor.
-            _guardarWhatsappCuitEnWorker(val, cuitFormateado, { sexo, provincia, ciudad, codigoPostal });
+            _guardarWhatsappCuitEnWorker(val, cuitFormateado, { sexo, provincia, ciudad, codigoPostal, direccion });
 
             document.getElementById('whatsappConfirmModal').classList.remove('active');
 
@@ -11375,6 +11460,7 @@
                 if (extra.provincia) body.provincia = extra.provincia;
                 if (extra.ciudad) body.ciudad = extra.ciudad;
                 if (extra.codigoPostal) body.codigoPostal = extra.codigoPostal;
+                if (extra.direccion) body.direccion = extra.direccion;
             }
             fetch('https://datosderevendedor.tuweb.workers.dev/api/guardar-whatsapp-inicial', {
                 method: 'POST',
