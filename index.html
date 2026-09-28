@@ -3217,32 +3217,36 @@
         #promoConfirmModal .promo-save {
             width: 100%;
             margin-top: 8px;
-            padding: 12px;
+            padding: 11px;
             border: none;
             border-radius: var(--radius);
             background: var(--primary);
             color: #fff;
             font-weight: 700;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
             font-family: var(--font-body);
             box-shadow: 0 4px 12px rgba(0,102,255,.18);
             transition: background .15s ease;
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+            white-space: nowrap;
         }
         #promoConfirmModal .promo-save:hover { background: var(--primary-light); }
         #promoConfirmModal .promo-cancel {
             width: 100%;
             margin-top: 8px;
-            padding: 11px;
+            padding: 10px;
             border: 1px solid var(--border);
             border-radius: var(--radius);
             background: var(--gray-light);
             color: var(--text-light);
             font-weight: 600;
-            font-size: 13px;
+            font-size: 12.5px;
             cursor: pointer;
             font-family: var(--font-body);
             transition: background .15s ease, color .15s ease;
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+            white-space: nowrap;
         }
         #promoConfirmModal .promo-cancel:hover { background: #eceff3; color: var(--text); }
 
@@ -13474,6 +13478,41 @@
         display: flex; align-items: center; justify-content: center;
         box-shadow: 0 6px 16px rgba(0,102,255,.25);
     }
+    #promoConfirmModal .pc-text { font-size: 13px; color: var(--text-light, #666); margin: 0 0 12px; }
+
+    /* Rediseño compacto/profesional — título centrado en el encabezado,
+       igual criterio en el modal de confirmación y en el de "Ver combos
+       y promociones guardados". El botón de cerrar (×) queda flotando
+       arriba a la derecha para que el título quede realmente centrado. */
+    #promoConfirmModal .modal-header,
+    #combosPromosListaModal .modal-header {
+        position: relative;
+        justify-content: center;
+    }
+    #promoConfirmModal .modal-title,
+    #combosPromosListaModal .modal-title {
+        flex: 1;
+        text-align: center;
+    }
+    #promoConfirmModal .modal-close,
+    #combosPromosListaModal .modal-close {
+        position: absolute;
+        right: 0;
+        top: 0;
+    }
+    #combosPromosListaModal .cpl-item {
+        border: 1px solid var(--border); border-radius: 10px;
+        padding: 10px 12px; margin-bottom: 10px; font-size: 12.5px;
+    }
+    #combosPromosListaModal .cpl-actions {
+        display: flex; flex-direction: column; gap: 6px; margin-top: 6px;
+    }
+    #combosPromosListaModal .cpl-actions button {
+        width: 100%; display: flex; align-items: center; justify-content: center;
+        gap: 6px; border: none; border-radius: 6px; padding: 7px 10px;
+        font-size: 11.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+        white-space: nowrap;
+    }
     /* Modal Producto de Regalo (configuración) — misma estética */
     #promoGiftConfigModal .pg-section { margin-bottom: 14px; }
     #promoGiftConfigModal .pg-card {
@@ -14643,26 +14682,33 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
 
 <!-- Modal: Confirmación promoción creada + copiar enlace -->
 <div class="modal-overlay" id="promoConfirmModal" onclick="if(event.target.id==='promoConfirmModal')this.classList.remove('active')">
-    <div class="modal-content" style="max-width:440px;" onclick="event.stopPropagation()">
+    <div class="modal-content" style="max-width:380px;" onclick="event.stopPropagation()">
         <div class="modal-header">
-            <h2 class="modal-title">🎁 ¡Promoción confirmada!</h2>
+            <h2 class="modal-title">¡Promoción confirmada!</h2>
             <button type="button" class="modal-close" onclick="document.getElementById('promoConfirmModal').classList.remove('active')" aria-label="Cerrar">×</button>
         </div>
         <div class="pc-box">
             <div class="pc-check">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <p style="font-size:13px;color:var(--text-light,#666);margin:0 0 12px;">Compartí el enlace con tus clientes. Los descuentos se aplicarán automáticamente en la tienda.</p>
+            <p class="pc-text">Compartí el enlace con tus clientes.</p>
         </div>
         <input id="promoEnlaceInput" readonly class="nt-input" style="margin-bottom:10px;background:#f8fafc;font-size:12px;" />
-        <button type="button" class="promo-save" onclick="copiarEnlacePromocion(this)">📋 Copiar enlace de la promoción</button>
-        <button type="button" class="promo-save" style="background:linear-gradient(135deg,#1B7F3D,#2BA84F);margin-bottom:8px;" onclick="volverAPublicarPromo()">🔁 Volver a Publicar</button>
-        <button type="button" class="promo-cancel" onclick="document.getElementById('promoConfirmModal').classList.remove('active')">Cerrar</button>
+        <button type="button" class="promo-save" onclick="copiarEnlacePromocion(this)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar enlace</button>
+        <button type="button" class="promo-cancel" onclick="document.getElementById('promoConfirmModal').classList.remove('active')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Cerrar</button>
     </div>
 </div>
 
 <script>
     (function(){
+        // Iconos SVG compactos para las acciones del modal "Combos y
+        // Promociones guardados" (reemplazan los emojis sueltos por un
+        // set consistente, profesional y liviano).
+        const _CPL_ICO_LAPIZ = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
+        const _CPL_ICO_REPUBLICAR = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
+        const _CPL_ICO_COMPARTIR = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>';
+        const _CPL_ICO_ELIMINAR = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+
         let _resolverNT = null;
         window.pedirNombreTiendaModal = function(prev) {
             return new Promise((resolve) => {
@@ -15135,7 +15181,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                 html += '<p style="font-size:12.5px;color:var(--text-light);margin-bottom:16px;">Sin promoción creada en esta categoría.</p>';
             } else {
                 html += `
-                    <div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:12.5px;">
+                    <div class="cpl-item" data-tipo="promo">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                             <strong>${promo.nombre || 'Promoción'}</strong>
                             <div style="display:flex;gap:4px;flex-shrink:0;">
@@ -15143,9 +15189,10 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                                 <button type="button" onclick="togglePromoLocal('${cat}', false)" style="padding:3px 8px;border-radius:5px;border:1px solid ${!promoActiva ? '#ef4444' : 'var(--border)'};background:${!promoActiva ? '#ef4444' : '#fff'};color:${!promoActiva ? '#fff' : 'var(--text-light)'};font-size:10.5px;font-weight:700;cursor:pointer;">OFF</button>
                             </div>
                         </div>
-                        <div style="display:flex;gap:6px;">
-                            <button type="button" onclick="document.getElementById('combosPromosListaModal').classList.remove('active');abrirCrearPromocion('${cat}')" style="flex:1;background:#f5f5f5;border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">✏️ Editar</button>
-                            <button type="button" onclick="compartirEnlaceCategoriaConPromo('${cat}')" style="flex:1;background:#eff5ff;color:var(--primary);border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">🔗 Compartir tienda con la promo</button>
+                        <div class="cpl-actions">
+                            <button type="button" class="cpl-btn-editar" onclick="document.getElementById('combosPromosListaModal').classList.remove('active');abrirCrearPromocion('${cat}')" style="background:#f5f5f5;color:var(--text);">${_CPL_ICO_LAPIZ}Editar</button>
+                            <button type="button" class="cpl-btn-republicar" onclick="volverAPublicarPromo('${cat}')" style="background:#eafaf0;color:#1B7F3D;">${_CPL_ICO_REPUBLICAR}Volver a publicar</button>
+                            <button type="button" class="cpl-btn-compartir" onclick="compartirEnlaceCategoriaConPromo('${cat}')" style="background:#eff5ff;color:var(--primary);">${_CPL_ICO_COMPARTIR}Compartir promoción</button>
                         </div>
                     </div>`;
             }
@@ -15155,15 +15202,15 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                 html += '<p style="font-size:12.5px;color:var(--text-light);">Todavía no creaste ningún combo en esta categoría.</p>';
             } else {
                 html += combos.map(c => `
-                    <div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12.5px;">
+                    <div class="cpl-item" data-tipo="combo">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
                             <span style="font-weight:600;">${c.productos.map(p => p.nombre).join(' + ')}</span>
                             ${itemOnOffToggleHtml('combo', c.id, c.activo, cat)}
                         </div>
                         <div style="color:var(--text-light);margin-bottom:6px;">Precio final: <strong style="color:var(--primary);">$${c.precioFinal.toLocaleString()}</strong> · Ganancia: $${c.ganancia.toLocaleString()}</div>
-                        <div style="display:flex;gap:6px;">
-                            <button type="button" onclick="compartirItemIndividual('combo', '${c.id}', '${cat}')" style="flex:1;background:#eff5ff;color:var(--primary);border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">🔗 Compartir</button>
-                            <button type="button" onclick="eliminarComboOPromo('combo', '${c.id}', '${cat}')" style="flex:1;background:#fef2f2;color:#b91c1c;border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">Eliminar</button>
+                        <div class="cpl-actions">
+                            <button type="button" class="cpl-btn-compartir" onclick="compartirItemIndividual('combo', '${c.id}', '${cat}')" style="background:#eff5ff;color:var(--primary);">${_CPL_ICO_COMPARTIR}Compartir combo</button>
+                            <button type="button" onclick="eliminarComboOPromo('combo', '${c.id}', '${cat}')" style="background:#fef2f2;color:#b91c1c;">${_CPL_ICO_ELIMINAR}Eliminar</button>
                         </div>
                     </div>`).join('');
             }
@@ -15311,21 +15358,26 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         // promoción ahora se genera con generarEnlaceCorto() (mismo sistema
         // que el enlace de tienda), que nunca expone el código.
 
-        window.volverAPublicarPromo = function() {
-            // Re-guarda la promo para asegurar que tienda.html la lea fresca (vía Worker)
+        window.volverAPublicarPromo = function(catParam) {
+            // Re-guarda la promo para asegurar que tienda.html la lea fresca (vía Worker).
+            // catParam: categoría explícita (usada desde el modal "Ver combos y
+            // promociones guardados", donde puede republicarse una promo que no es
+            // la que está abierta en el formulario). Si no se pasa, se usa _promoCat
+            // (comportamiento original, invocado desde el modal de confirmación).
+            const cat = catParam || _promoCat;
             try {
                 const fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
                 const codigo = (window.currentUser && window.currentUser.codigoVendedor)
                     || localStorage.getItem('codigoVendedorLocal')
                     || localStorage.getItem('codigoRevendedorValidado');
-                if ((fbUser || codigo) && _promoCat) {
+                if ((fbUser || codigo) && cat) {
                     let promos = {};
                     try { promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}'); } catch(e) {}
-                    const promo = promos[_promoCat];
+                    const promo = promos[cat];
                     if (promo) {
                         // Actualizar timestamp para que tienda.html sepa que es nueva publicación
                         promo.publicadoEn = Date.now();
-                        promos[_promoCat] = promo;
+                        promos[cat] = promo;
                         localStorage.setItem('promocionesTienda', JSON.stringify(promos));
                         fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil', {
                             method: 'POST',
@@ -15333,12 +15385,12 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                             body: JSON.stringify({
                                 uid: fbUser ? fbUser.uid : undefined,
                                 codigoVendedor: codigo || undefined,
-                                campos: { [`promocionesTienda.${_promoCat}`]: promo }
+                                campos: { [`promocionesTienda.${cat}`]: promo }
                             })
                         }).then(res => {
                             if (res.ok) {
-                                const btn = event && event.target;
-                                if (btn) { const orig = btn.textContent; btn.textContent = '✅ ¡Publicada!'; setTimeout(() => { btn.textContent = orig; }, 2000); }
+                                const btn = event && event.target && event.target.closest ? event.target.closest('button') : (event && event.target);
+                                if (btn) { const orig = btn.innerHTML; btn.innerHTML = '✅ ¡Publicada!'; setTimeout(() => { btn.innerHTML = orig; }, 2000); }
                             }
                         }).catch(() => {});
                     }
