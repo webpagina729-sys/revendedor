@@ -3976,6 +3976,32 @@
         </div>
     </div>
 
+    <!-- 🔧 NUEVO: excepción para revendedores YA activos (con pedidos en
+         curso) en una categoría que se pausó DESPUÉS de que empezaron —
+         no se los bloquea, solo se les avisa. "Más Información" abre el
+         segundo modal con el detalle del posible cambio de stock. -->
+    <div class="modal-overlay" id="categoriaPausadaActivoModal" onclick="if(event.target.id==='categoriaPausadaActivoModal')this.classList.remove('active')">
+        <div class="modal-content" style="max-width:300px;text-align:center;">
+            <div style="width:48px;height:48px;border-radius:50%;background:#eaf1ff;display:flex;align-items:center;justify-content:center;margin:2px auto 12px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3968f6" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </div>
+            <h2 class="modal-title" style="text-align:center;font-size:14.5px;margin-bottom:6px;" id="categoriaPausadaActivoTexto">Tu categoría fue pausada por actualización</h2>
+            <p style="font-size:12.5px;color:var(--text2,#666);margin:0 0 14px;line-height:1.5;">Podes completarla sin problemas porque ya estás dentro.</p>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;margin-bottom:8px;" onclick="document.getElementById('categoriaPausadaActivoModal').classList.remove('active')">Entendido</button>
+            <button type="button" class="confirmation-button" style="width:100%;padding:9px 6px;font-size:12.5px;background:transparent;border:1px solid #d0d5dd;" onclick="document.getElementById('categoriaPausadaActivoModal').classList.remove('active');document.getElementById('categoriaPausadaInfoModal').classList.add('active')">Más Información</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="categoriaPausadaInfoModal" onclick="if(event.target.id==='categoriaPausadaInfoModal')this.classList.remove('active')">
+        <div class="modal-content" style="max-width:320px;text-align:center;">
+            <div style="width:48px;height:48px;border-radius:50%;background:#eaf1ff;display:flex;align-items:center;justify-content:center;margin:2px auto 12px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3968f6" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </div>
+            <p style="font-size:12.5px;color:var(--text2,#444);margin:0 0 14px;line-height:1.55;">Les informamos tanto a los revendedores activos en la categoría como para sus clientes que al momento de pasar el pedido puede que el stock haya sido actualizado. En caso de que un producto no se encuentre en stock nuestro equipo se pondrá en contacto.</p>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;" onclick="document.getElementById('categoriaPausadaInfoModal').classList.remove('active')">Entendido</button>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="categoriaReactivadaModal" onclick="if(event.target.id==='categoriaReactivadaModal')cerrarCategoriaReactivadaModal()">
         <div class="modal-content" style="max-width:300px;text-align:center;">
             <div style="width:48px;height:48px;border-radius:50%;background:#e8f9ef;display:flex;align-items:center;justify-content:center;margin:2px auto 12px;">
@@ -4211,6 +4237,47 @@
                 <small style="display:block;margin-top:6px;color:#777;font-size:12px;">Lo usamos para tus datos de facturación.</small>
                 <div id="cuit-modal-error" style="display:none;margin-top:10px;padding:10px 14px;background:#fff3f3;border:1px solid #fcc;border-radius:var(--radius);color:#c00;font-size:13px;font-weight:500;"></div>
             </div>
+
+            <!-- 🔧 NUEVO: sexo/provincia/ciudad/CP/dirección — este modal
+                 solo pedía whatsapp y CUIT; le faltaban los mismos campos
+                 que ya pide index.html, necesarios para vincular todos los
+                 datos del revendedor por UID y para la lista de envío. -->
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Sexo <span style="color:#c00;">*</span></label>
+                <button type="button" id="sexo-toggle-btn" onclick="toggleSexoDrawer()" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;font-size:14px;font-family:var(--font-body);cursor:pointer;">
+                    <span id="sexo-toggle-label" style="color:#888;">Elegí una opción</span>
+                    <svg id="sexo-toggle-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform .2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div id="sexo-drawer" style="max-height:0;overflow:hidden;transition:max-height .25s ease;border-radius:var(--radius);">
+                    <div style="display:flex;flex-direction:column;gap:6px;padding-top:8px;">
+                        <button type="button" class="sexo-opcion-btn" onclick="elegirSexo('Hombre')" style="width:100%;text-align:left;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;font-size:14px;font-family:var(--font-body);cursor:pointer;">Hombre</button>
+                        <button type="button" class="sexo-opcion-btn" onclick="elegirSexo('Mujer')" style="width:100%;text-align:left;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;font-size:14px;font-family:var(--font-body);cursor:pointer;">Mujer</button>
+                        <button type="button" class="sexo-opcion-btn" onclick="elegirSexo('Otro')" style="width:100%;text-align:left;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;font-size:14px;font-family:var(--font-body);cursor:pointer;">Otro</button>
+                    </div>
+                </div>
+                <input type="hidden" id="sexo-input-modal" value="">
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Provincia <span style="color:#c00;">*</span></label>
+                <input type="text" id="provincia-input-modal" placeholder="Ej: Buenos Aires" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Ciudad <span style="color:#c00;">*</span></label>
+                <input type="text" id="ciudad-input-modal" placeholder="Ej: La Plata" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Código Postal <span style="color:#c00;">*</span></label>
+                <input type="text" id="cp-input-modal" placeholder="Ej: 1900" inputmode="numeric" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Dirección <span style="color:#c00;">*</span></label>
+                <input type="text" id="direccion-input-modal" placeholder="Calle, número, piso" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
+            </div>
+
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                 <button type="button" class="confirmation-button" style="background:#f5f5f5;color:var(--text);" onclick="document.getElementById('whatsappConfirmModal').classList.remove('active')">Más tarde</button>
                 <button type="button" class="confirmation-button confirmation-button-primary" onclick="guardarWhatsappRevendedor()">Confirmar</button>
@@ -7289,9 +7356,38 @@ function catalogoEfectivoMultishop(p) {
             return catalogos.every(c => frenadas[c] && frenadas[c].hasta > ahora);
         }
 
+        // 🔧 NUEVO: excepción para revendedores que YA tienen pedidos en
+        // curso en una categoría que se pausó DESPUÉS de que empezaron —
+        // no corresponde bloquearlos, solo avisarles. "Ya activo" = tiene
+        // al menos un pedido propio (usuarios/{uid}/pedidos) con ese nicho.
+        let _activoEnCategoriaCache = null;
+        async function _yaActivoEnCategoria(nicho) {
+            try {
+                const uid = (typeof _getUidParaFirestore === 'function') ? _getUidParaFirestore() : null;
+                if (!uid) return false;
+                if (!_activoEnCategoriaCache) {
+                    const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/pedidos-personales?uid=${encodeURIComponent(uid)}`);
+                    const data = await res.json().catch(() => null);
+                    _activoEnCategoriaCache = (data && data.ok && Array.isArray(data.pedidos)) ? data.pedidos : [];
+                }
+                return _activoEnCategoriaCache.some(p => (p && p.nicho) === nicho);
+            } catch (_) {
+                return false;
+            }
+        }
+
         function mostrarCategoriaPausadaModal(nicho) {
             if (nicho) localStorage.setItem('categoriaPausadaVista_' + nicho, '1');
             const modal = document.getElementById('categoriaPausadaModal');
+            if (modal) modal.classList.add('active');
+        }
+
+        // 🔧 NUEVO: aviso NO bloqueante para revendedores ya activos en una
+        // categoría pausada — nunca frena la navegación, solo informa.
+        function mostrarCategoriaPausadaActivoModal(nicho) {
+            const texto = document.getElementById('categoriaPausadaActivoTexto');
+            if (texto) texto.textContent = `Tu categoría ${NICHO_LABEL_PAUSA[nicho] || nicho} fue pausada por actualización`;
+            const modal = document.getElementById('categoriaPausadaActivoModal');
             if (modal) modal.classList.add('active');
         }
 
@@ -10658,12 +10754,17 @@ function catalogoEfectivoMultishop(p) {
 
             // 🔧 NUEVO: si el dueño pausó esta categoría desde pedidos.html
             // (Stock global → "Parar Temporalmente"), se avisa acá y no se
-            // continúa con el flujo normal de entrada.
+            // continúa con el flujo normal de entrada — SALVO que el
+            // revendedor ya tenga un pedido en curso en esa categoría.
             if (await _nichoEstaBloqueado(catalogo)) {
-                mostrarCategoriaPausadaModal(catalogo);
-                return;
+                if (await _yaActivoEnCategoria(catalogo)) {
+                    mostrarCategoriaPausadaActivoModal(catalogo);
+                } else {
+                    mostrarCategoriaPausadaModal(catalogo);
+                    return;
+                }
             }
-            
+
             // Establecer catálogo elegido explícitamente
             window.currentCatalog = catalogo || 'perfumes';
             
@@ -11683,6 +11784,21 @@ function catalogoEfectivoMultishop(p) {
             if (e && e.target.id !== 'whatsappConfirmModal') return;
             document.getElementById('whatsappConfirmModal').classList.remove('active');
         }
+        function toggleSexoDrawer() {
+            const drawer = document.getElementById('sexo-drawer');
+            const arrow  = document.getElementById('sexo-toggle-arrow');
+            const abrir  = drawer.style.maxHeight === '0px' || !drawer.style.maxHeight;
+            drawer.style.maxHeight = abrir ? '200px' : '0';
+            arrow.style.transform  = abrir ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        function elegirSexo(valor) {
+            document.getElementById('sexo-input-modal').value = valor;
+            document.getElementById('sexo-toggle-label').textContent = valor;
+            document.getElementById('sexo-toggle-label').style.color = 'var(--text)';
+            toggleSexoDrawer();
+        }
+
         function guardarWhatsappRevendedor() {
             const errEl = document.getElementById('whatsapp-modal-error');
             const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
@@ -11712,13 +11828,30 @@ function catalogoEfectivoMultishop(p) {
             }
             const cuitFormateado = cuitDigits.slice(0,2) + '-' + cuitDigits.slice(2,10) + '-' + cuitDigits.slice(10);
 
+            const sexo      = document.getElementById('sexo-input-modal')?.value || '';
+            const provincia = document.getElementById('provincia-input-modal')?.value.trim() || '';
+            const ciudad    = document.getElementById('ciudad-input-modal')?.value.trim() || '';
+            const codigoPostal = document.getElementById('cp-input-modal')?.value.trim() || '';
+            const direccion = document.getElementById('direccion-input-modal')?.value.trim() || '';
+
+            if (!sexo) { showErr('Elegí una opción en "Sexo" — es obligatorio.'); return; }
+            if (!provincia) { showErr('Ingresá tu Provincia — es obligatorio.'); return; }
+            if (!ciudad) { showErr('Ingresá tu Ciudad — es obligatorio.'); return; }
+            if (!codigoPostal) { showErr('Ingresá tu Código Postal — es obligatorio.'); return; }
+            if (!direccion) { showErr('Ingresá tu Dirección — es obligatorio.'); return; }
+
             _lsSet('whatsappRevendedor', val);
             _lsSet('cuitRevendedor', cuitFormateado);
-            _guardarEnFirestore({ whatsappRevendedor: val, cuitRevendedor: cuitFormateado });
+            _lsSet('sexoRevendedor', sexo);
+            _lsSet('provinciaRevendedor', provincia);
+            _lsSet('ciudadRevendedor', ciudad);
+            _lsSet('codigoPostalRevendedor', codigoPostal);
+            _lsSet('direccionRevendedor', direccion);
+            _guardarEnFirestore({ whatsappRevendedor: val, cuitRevendedor: cuitFormateado, sexo, provincia, ciudad, codigoPostal, direccion });
             // Guardado confiable vía Worker (con cuenta de servicio): no depende
             // de si el vendedor tiene sesión de Firebase Auth activa, así que
             // funciona también para quienes entraron con código de revendedor.
-            _guardarWhatsappCuitEnWorker(val, cuitFormateado);
+            _guardarWhatsappCuitEnWorker(val, cuitFormateado, { sexo, provincia, ciudad, codigoPostal, direccion });
 
             document.getElementById('whatsappConfirmModal').classList.remove('active');
 
@@ -11791,7 +11924,7 @@ function catalogoEfectivoMultishop(p) {
         // ═══════════════════════════════════════════════════════════════
         // GUARDADO INICIAL DE WHATSAPP/CUIT EN EL WORKER (sin contraseña)
         // ═══════════════════════════════════════════════════════════════
-        function _guardarWhatsappCuitEnWorker(whatsappRevendedor, cuit) {
+        function _guardarWhatsappCuitEnWorker(whatsappRevendedor, cuit, extra) {
             const uid = _getUidParaFirestore();
             const codigo = (window.currentUser && window.currentUser.codigoVendedor)
                 || localStorage.getItem('codigoVendedorLocal')
@@ -11803,6 +11936,13 @@ function catalogoEfectivoMultishop(p) {
             if (codigo) body.codigoVendedor = codigo;
             if (whatsappRevendedor) body.whatsappRevendedor = whatsappRevendedor;
             if (cuit) body.cuit = cuit;
+            if (extra) {
+                if (extra.sexo) body.sexo = extra.sexo;
+                if (extra.provincia) body.provincia = extra.provincia;
+                if (extra.ciudad) body.ciudad = extra.ciudad;
+                if (extra.codigoPostal) body.codigoPostal = extra.codigoPostal;
+                if (extra.direccion) body.direccion = extra.direccion;
+            }
             fetch('https://datosderevendedor.tuweb.workers.dev/api/guardar-whatsapp-inicial', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
