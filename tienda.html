@@ -3522,13 +3522,28 @@ async function cargarVendedor() {
     reintentarLegalesPendientes();
     cargarSeccionDescuentosYCombos();
 
-    // ── Bienvenida a los 5 segundos → Aceptar → 5s → Promoción activa ──
+    // ── Bienvenida a los 5 segundos (saludo, no bloquea la cola) ──────
     // Excepción: si el cliente llegó por un enlace directo de promoción,
     // la promo se muestra casi inmediata (sin bienvenida), como ya estaba.
+    //
+    // 🔧 FIX: la cola de promos/combos configurados ahora arranca ACÁ,
+    // apenas carga la tienda (el "inicio de sesión" real), y no cuando el
+    // cliente hace clic en "Aceptar" de la bienvenida. Antes dependía de
+    // ese clic: un cliente que no llegaba a tocar "Aceptar" (se distrae,
+    // ya lo había visto y no le presta atención, cierra la pestaña, etc.)
+    // se quedaba sin ver ningún modal de promo/combo — que es exactamente
+    // el reclamo ("no están apareciendo los modales"). Con este cambio el
+    // primer modal configurado aparece siempre a los 10s del inicio de
+    // sesión, y cada uno siguiente 10s después, sin depender de que el
+    // cliente interactúe con la bienvenida. iniciarColaPromosYCombos()
+    // tiene guard (_colaPromosCombosIniciada) así que si además se llega
+    // a llamar desde cerrarBienvenidaModal() no se duplica la cola.
     if (window._tipoEnlaceLimpio === 'promocion' && window.promoActiva) {
         setTimeout(mostrarPromoFloat, 300);
+        iniciarColaPromosYCombos(false);
     } else {
         setTimeout(mostrarBienvenidaModal, 5000);
+        iniciarColaPromosYCombos(true);
     }
 }
 
@@ -3930,6 +3945,36 @@ let colorSelec = null;
 let modalImagenes = [];
 let modalImagenIndex = 0;
 
+// 🔧 FIX: pedidos.html guarda las variantes activas usando la clave
+// ESPECÍFICA de cada sub-categoría ("belleza_maquillaje", "bazar_melamina",
+// "jugueteria_peluches"), pero el modal de producto acá abajo consultaba
+// _variantesActivasDe con "catalogoActual" tal cual (solo "belleza",
+// "bazar", "jugueteria") — para esas categorías con sub-categorías, la
+// clave nunca coincidía con la guardada, así que quitar o agregar una
+// variante desde pedidos.html no tenía ningún efecto visible acá. Esta
+// función resuelve la MISMA clave específica que ya usa
+// _catalogKeyParaProducto() más abajo (en filtrarProductos), pero de
+// forma reutilizable para el modal de producto.
+function _catalogKeyDeProductoModal(p) {
+    if (catalogoActual === 'belleza') {
+        return p._bellezaCat === 'maquillaje' ? 'belleza_maquillaje' : 'belleza_perfume';
+    }
+    if (catalogoActual === 'bazar') {
+        return p._bazarCat === 'melamina' ? 'bazar_melamina' : 'bazar_bazar';
+    }
+    if (catalogoActual === 'jugueteria') {
+        return p._jugueteriaCat === 'peluches' ? 'jugueteria_peluches' : 'jugueteria_juguetes';
+    }
+    if (catalogoActual === 'multishop') {
+        if (p._multishopCat === 'belleza') return p._bellezaCat === 'maquillaje' ? 'belleza_maquillaje' : 'belleza_perfume';
+        if (p._multishopCat === 'bazar') return p._bazarCat === 'melamina' ? 'bazar_melamina' : 'bazar_bazar';
+        if (p._multishopCat === 'jugueteria') return p._jugueteriaCat === 'peluches' ? 'jugueteria_peluches' : 'jugueteria_juguetes';
+        if (p._multishopCat === 'libreria') return 'libreria';
+        if (p._multishopCat === 'electronicos') return 'electronicos';
+    }
+    return catalogoActual;
+}
+
 function abrirModal(id) {
     productoModal = todosProductos.find(p => p.id === id);
     if (!productoModal) return;
@@ -3962,8 +4007,8 @@ function abrirModal(id) {
 
     // Talles (calzados: campo "talle"; Lencería: campo "talles" plural — comparten la misma sección visual y el mismo talleSelec, ya que ambos se guardan como "talle" en el carrito)
     const talleSection = document.getElementById('talle-selector');
-    const tallesActivosCalzado = _variantesActivasDe(catalogoActual, productoModal.id, 'talle', productoModal.talle);
-    const tallesActivosLenceria = _variantesActivasDe(catalogoActual, productoModal.id, 'talles', productoModal.talles);
+    const tallesActivosCalzado = _variantesActivasDe(_catalogKeyDeProductoModal(productoModal), productoModal.id, 'talle', productoModal.talle);
+    const tallesActivosLenceria = _variantesActivasDe(_catalogKeyDeProductoModal(productoModal), productoModal.id, 'talles', productoModal.talles);
     const tallesActivos = tallesActivosCalzado.length ? tallesActivosCalzado : tallesActivosLenceria;
     if (tallesActivos.length > 0) {
         talleSection.style.display = 'block';
@@ -3976,7 +4021,7 @@ function abrirModal(id) {
 
     // Variantes (perfumería / maquillaje) — selección obligatoria
     const varianteSection = document.getElementById('variante-selector');
-    const variantesActivas = _variantesActivasDe(catalogoActual, productoModal.id, 'variantes', productoModal.variantes);
+    const variantesActivas = _variantesActivasDe(_catalogKeyDeProductoModal(productoModal), productoModal.id, 'variantes', productoModal.variantes);
     if (variantesActivas.length > 0) {
         varianteSection.style.display = 'block';
         document.getElementById('variantes-container').innerHTML = variantesActivas.map(v =>
@@ -3988,7 +4033,7 @@ function abrirModal(id) {
 
     // Colores (Lencería)
     const colorSection = document.getElementById('color-selector');
-    const coloresActivos = _variantesActivasDe(catalogoActual, productoModal.id, 'colores', productoModal.colores);
+    const coloresActivos = _variantesActivasDe(_catalogKeyDeProductoModal(productoModal), productoModal.id, 'colores', productoModal.colores);
     if (coloresActivos.length > 0) {
         colorSection.style.display = 'block';
         document.getElementById('colores-container').innerHTML = coloresActivos.map(c =>
@@ -4040,11 +4085,11 @@ function cerrarModalProducto() {
 
 function agregarDesdeModal() {
     if (!productoModal) return;
-    const tallesActivos = _variantesActivasDe(catalogoActual, productoModal.id, 'talle', productoModal.talle).length
-        ? _variantesActivasDe(catalogoActual, productoModal.id, 'talle', productoModal.talle)
-        : _variantesActivasDe(catalogoActual, productoModal.id, 'talles', productoModal.talles);
-    const variantesActivas = _variantesActivasDe(catalogoActual, productoModal.id, 'variantes', productoModal.variantes);
-    const coloresActivos = _variantesActivasDe(catalogoActual, productoModal.id, 'colores', productoModal.colores);
+    const tallesActivos = _variantesActivasDe(_catalogKeyDeProductoModal(productoModal), productoModal.id, 'talle', productoModal.talle).length
+        ? _variantesActivasDe(_catalogKeyDeProductoModal(productoModal), productoModal.id, 'talle', productoModal.talle)
+        : _variantesActivasDe(_catalogKeyDeProductoModal(productoModal), productoModal.id, 'talles', productoModal.talles);
+    const variantesActivas = _variantesActivasDe(_catalogKeyDeProductoModal(productoModal), productoModal.id, 'variantes', productoModal.variantes);
+    const coloresActivos = _variantesActivasDe(_catalogKeyDeProductoModal(productoModal), productoModal.id, 'colores', productoModal.colores);
     if (tallesActivos.length > 0 && !talleSelec) {
         mostrarToast('Elegí un talle para continuar');
         return;
@@ -4067,16 +4112,16 @@ function agregarDesdeModal() {
 function agregarAlCarrito(id) {
     const p = todosProductos.find(x => x.id === id);
     if (!p) return;
-    const tallesActivos = _variantesActivasDe(catalogoActual, p.id, 'talle', p.talle).length
-        ? _variantesActivasDe(catalogoActual, p.id, 'talle', p.talle)
-        : _variantesActivasDe(catalogoActual, p.id, 'talles', p.talles);
+    const tallesActivos = _variantesActivasDe(_catalogKeyDeProductoModal(p), p.id, 'talle', p.talle).length
+        ? _variantesActivasDe(_catalogKeyDeProductoModal(p), p.id, 'talle', p.talle)
+        : _variantesActivasDe(_catalogKeyDeProductoModal(p), p.id, 'talles', p.talles);
     if (tallesActivos.length > 0) {
         abrirModal(id); return; // necesita talle
     }
-    if (_variantesActivasDe(catalogoActual, p.id, 'variantes', p.variantes).length > 0) {
+    if (_variantesActivasDe(_catalogKeyDeProductoModal(p), p.id, 'variantes', p.variantes).length > 0) {
         abrirModal(id); return; // necesita variante
     }
-    if (_variantesActivasDe(catalogoActual, p.id, 'colores', p.colores).length > 0) {
+    if (_variantesActivasDe(_catalogKeyDeProductoModal(p), p.id, 'colores', p.colores).length > 0) {
         abrirModal(id); return; // necesita color
     }
     agregarAlCarritoObj(p, null, null, null);
@@ -4995,15 +5040,12 @@ function mostrarBienvenidaModal() {
 function cerrarBienvenidaModal() {
     const modal = document.getElementById('bienvenidaModal');
     if (modal) modal.classList.remove('active');
-    if (window.promoActiva) {
-        // 10 segundos después de aceptar la bienvenida, se muestra la promoción activa.
-        setTimeout(mostrarPromoFloat, 10000);
-    } else if (!window._comboTimerDisparado) {
-        // Sin promo activa, el modal de Promoción nunca se abre/cierra, así que
-        // el combo (si el revendedor lo configuró) se dispara 10s después de aceptar.
-        window._comboTimerDisparado = true;
-        setTimeout(dispararComboFloatSiHay, 10000);
-    }
+    // La cola de promo/combos configurados (ver iniciarColaPromosYCombos)
+    // ya arrancó apenas cargó la tienda (inicio de sesión real), no acá.
+    // Se deja esta llamada solo como respaldo — iniciarColaPromosYCombos
+    // tiene guard (_colaPromosCombosIniciada) y no hace nada si ya está
+    // en marcha, así que no duplica ni reinicia la cola.
+    iniciarColaPromosYCombos(true);
 }
 
 function mostrarPromoFloat() {
@@ -5041,11 +5083,8 @@ function mostrarPromoFloat() {
 
 function cerrarPromoFloat() {
     document.getElementById('promoFloatModal').classList.remove('active');
-    // El combo (si hay) se muestra 10s DESPUÉS de cerrar este modal.
-    if (!window._comboTimerDisparado) {
-        window._comboTimerDisparado = true;
-        setTimeout(dispararComboFloatSiHay, 10000);
-    }
+    // El siguiente ítem de la cola (si hay combos configurados) ya está
+    // programado por iniciarColaPromosYCombos — no depende de este cierre.
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -5198,31 +5237,78 @@ function verComboDetalle(index) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Combo flotante — 15s después de cerrar "Promoción Activa"
-// (o a los 10s de cargar si no hay ninguna promo activa)
+// COLA de promo/combos configurados — arranca apenas carga la tienda
+// (inicio de sesión real; o el ingreso directo por enlace de promoción)
+// y muestra cada modal configurado de a uno, cada 10s:
+// ítem 1 a los +10s, ítem 2 a los +20s, ítem 3 a los +30s, etc. Nunca
+// dos modales de la cola superpuestos, y nunca depende de que el
+// cliente cierre el anterior (si sigue abierto cuando toca el
+// siguiente, se cierra solo antes de mostrar el que sigue).
 // ═══════════════════════════════════════════════════════════════
-async function dispararComboFloatSiHay() {
-    if (!vendedor || !codigoParam) return;
-    try {
-        const cat = categoriaEfectivaParaCombos();
-        const res = await fetch(COMBO_WORKER + '/combos?codigo=' + encodeURIComponent(codigoParam) + '&categoria=' + encodeURIComponent(cat) + '&soloActivos=1').then(r => r.ok ? r.json() : null);
-        const combos = (res && res.items) || [];
-        if (combos.length === 0) return;
-        window._combosCache = combos;
-        const c = combos[0];
-        document.getElementById('comboFloatTitle').textContent = (c.productos || []).map(p => p.nombre).join(' + ');
-        document.getElementById('comboFloatSub').textContent = 'Precio del combo: ' + formatPrice(c.precioFinal);
-        const imgs = document.getElementById('comboFloatImgs');
-        imgs.innerHTML = '';
-        (c.productos || []).slice(0, 3).forEach(p => {
-            const img = document.createElement('img');
-            img.src = resolveImgUrl(p.imagen);
-            img.alt = p.nombre;
-            img.onerror = () => { img.style.display = 'none'; };
-            imgs.appendChild(img);
-        });
-        document.getElementById('comboFloatModal').classList.add('active');
-    } catch(e) { /* si falla, simplemente no se muestra */ }
+window._colaPromosCombosIniciada = false;
+
+// Arma la lista de ítems a mostrar, en orden: la promo activa (si
+// corresponde incluirla) y luego cada combo configurado y activo para
+// la categoría actual, tal cual los devuelve COMBO_WORKER.
+async function construirColaPromosYCombos(incluirPromo) {
+    const items = [];
+    if (incluirPromo && window.promoActiva) items.push({ tipo: 'promo' });
+    if (vendedor && codigoParam) {
+        try {
+            const cat = categoriaEfectivaParaCombos();
+            const res = await fetch(COMBO_WORKER + '/combos?codigo=' + encodeURIComponent(codigoParam) + '&categoria=' + encodeURIComponent(cat) + '&soloActivos=1').then(r => r.ok ? r.json() : null);
+            const combos = (res && res.items) || [];
+            window._combosCache = combos;
+            combos.forEach((c, i) => items.push({ tipo: 'combo', index: i }));
+        } catch(e) { /* si falla la carga de combos, se sigue solo con la promo (si había) */ }
+    }
+    return items;
+}
+
+// Renderiza (contenido) + muestra el combo cacheado en la posición "index".
+function mostrarComboFloatDesdeCache(index) {
+    const combos = window._combosCache || [];
+    const c = combos[index];
+    if (!c) return;
+    document.getElementById('comboFloatTitle').textContent = (c.productos || []).map(p => p.nombre).join(' + ');
+    document.getElementById('comboFloatSub').textContent = 'Precio del combo: ' + formatPrice(c.precioFinal);
+    const imgs = document.getElementById('comboFloatImgs');
+    imgs.innerHTML = '';
+    (c.productos || []).slice(0, 3).forEach(p => {
+        const img = document.createElement('img');
+        img.src = resolveImgUrl(p.imagen);
+        img.alt = p.nombre;
+        img.onerror = () => { img.style.display = 'none'; };
+        imgs.appendChild(img);
+    });
+    document.getElementById('comboFloatModal').classList.add('active');
+}
+
+// Muestra un ítem de la cola, cerrando antes cualquier otro modal de la
+// misma cola para que nunca queden dos superpuestos.
+function mostrarItemColaPromosYCombos(item) {
+    const promoModal = document.getElementById('promoFloatModal');
+    const comboModal = document.getElementById('comboFloatModal');
+    if (promoModal) promoModal.classList.remove('active');
+    if (comboModal) comboModal.classList.remove('active');
+    if (item.tipo === 'promo') {
+        mostrarPromoFloat();
+    } else if (item.tipo === 'combo') {
+        mostrarComboFloatDesdeCache(item.index);
+    }
+}
+
+// Punto de entrada: arma la cola una sola vez por visita y programa cada
+// ítem cada 10s desde el momento en que se llama — que es apenas carga la
+// tienda (inicio de sesión real), o el ingreso por enlace directo de
+// promoción.
+async function iniciarColaPromosYCombos(incluirPromo) {
+    if (window._colaPromosCombosIniciada) return;
+    window._colaPromosCombosIniciada = true;
+    const items = await construirColaPromosYCombos(incluirPromo);
+    items.forEach((item, i) => {
+        setTimeout(() => mostrarItemColaPromosYCombos(item), (i + 1) * 10000);
+    });
 }
 
 function abrirPromoDetail() {
