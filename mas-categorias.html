@@ -1976,6 +1976,72 @@
         }
 
         /* RESPONSIVE */
+
+        /* PANTALLAS ANCHAS (notebook/desktop y celular apaisado): el layout
+           vertical se mantiene igual (mismo orden, mismos bloques uno debajo
+           del otro), solo se agrandan tipografías/paddings/anchos máximos
+           para que se vea cómodo y prolijo, sin quedar todo minúsculo. */
+        @media (min-width: 993px) {
+            .header-top-inner,
+            .banner-inner,
+            .search-box-wrapper,
+            .filters,
+            .filters-container,
+            .products-container,
+            .cta-section-inner,
+            .footer-banner-inner,
+            .portada-image-section,
+            .revend-section-inner,
+            .final-footer-inner,
+            .nichos-section-inner {
+                max-width: 1360px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .header-top { padding: 16px 32px; }
+            .logo { font-size: 24px; }
+            .login-btn, .cart-btn { font-size: 14px; padding: 9px 18px; }
+            .header-searchbar { max-width: 460px; }
+            .banner { padding: 64px 32px; }
+            .banner-title { font-size: 42px; }
+            .banner-subtitle { font-size: 16px; white-space: normal; }
+            .banner-badge { font-size: 14px; padding: 10px 22px; max-width: 360px; }
+            .search-input { font-size: 16px; padding: 14px 16px 14px 42px; }
+            .filters { gap: 16px; }
+            .filter-btn { font-size: 15px; padding: 10px 26px; }
+            .sort-control label, .sort-select { font-size: 15px; }
+            .products-grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 24px; }
+            .product-name { font-size: 15px; }
+            .price-current { font-size: 18px; }
+            .btn-more { font-size: 14px; }
+            .nichos-pretitle { font-size: 19px !important; }
+            .nichos-title { font-size: 40px !important; padding: 20px 36px !important; }
+            .nicho-item { padding: 28px; border-radius: 18px; }
+            .nicho-title { font-size: 25px; }
+            .nicho-subtitle { font-size: 16px; }
+            .carrusel-container { height: 340px; margin-bottom: 20px; }
+            .carrusel-nav { font-size: 30px; padding: 6px 10px; }
+            .carrusel-dot { width: 8px; height: 8px; }
+            .carrusel-dot.active { width: 26px; }
+            .nicho-badge, .nicho-button { font-size: 15px; padding: 15px 26px; min-width: 220px; }
+        }
+        @media (min-width: 1600px) {
+            .header-top-inner,
+            .banner-inner,
+            .search-box-wrapper,
+            .filters,
+            .filters-container,
+            .products-container,
+            .cta-section-inner,
+            .footer-banner-inner,
+            .portada-image-section,
+            .revend-section-inner,
+            .final-footer-inner,
+            .nichos-section-inner {
+                max-width: 1520px;
+            }
+        }
+
         @media (max-width: 768px) {
             .header-searchbar { display: flex; }
             .banner {
@@ -2547,22 +2613,66 @@
             background: var(--gray-light);
         }
         .carrusel-wrapper {
-            display: flex;
+            position: relative;
+            width: 100%;
             height: 100%;
-            transition: transform 0.5s ease;
         }
+        /* Efecto "coverflow": la imagen central se ve grande y a cada lado
+           se ven hasta 2 imágenes más, achicándose y perdiendo opacidad a
+           medida que se alejan del centro. Las clases cf-* las asigna el
+           JS (ver carruselAnteriorCat/carruselSiguienteCat) según la
+           distancia de cada slide respecto del índice activo. */
         .carrusel-slide {
-            min-width: 100%;
-            height: 100%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40%;
+            height: 82%;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
+            pointer-events: none;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.3);
+            transition: transform .55s cubic-bezier(.4,0,.2,1), opacity .45s ease;
+            will-change: transform, opacity;
         }
         .carrusel-slide img {
-            max-width: 90%;
-            max-height: 90%;
+            max-width: 100%;
+            max-height: 100%;
             object-fit: contain;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,.18));
+        }
+        .carrusel-slide.cf-center {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+            z-index: 5;
+            pointer-events: auto;
+        }
+        .carrusel-slide.cf-l1 {
+            transform: translate(-50%, -50%) translateX(-75%) scale(0.7);
+            opacity: .6;
+            z-index: 4;
+        }
+        .carrusel-slide.cf-r1 {
+            transform: translate(-50%, -50%) translateX(75%) scale(0.7);
+            opacity: .6;
+            z-index: 4;
+        }
+        .carrusel-slide.cf-l2 {
+            transform: translate(-50%, -50%) translateX(-125%) scale(0.45);
+            opacity: .3;
+            z-index: 3;
+        }
+        .carrusel-slide.cf-r2 {
+            transform: translate(-50%, -50%) translateX(125%) scale(0.45);
+            opacity: .3;
+            z-index: 3;
+        }
+        .carrusel-slide.cf-hidden {
+            transform: translate(-50%, -50%) scale(0.3);
+            opacity: 0;
+            z-index: 1;
         }
         .carrusel-nav {
             position: absolute;
@@ -7881,16 +7991,50 @@ function catalogoEfectivoMultishop(p) {
                 window._carruselesNuevosEstado[cat] = { indice: 0, total: urls.length };
                 actualizarCarruselCat(cat);
             });
+            // Auto-rotación "por turnos de bajada": en vez de mover todos los
+            // carruseles de las categorías a la vez, cada tick del timer
+            // avanza SOLO el siguiente carrusel en el orden en que aparecen
+            // en la página (de arriba hacia abajo), y al llegar al final
+            // vuelve a empezar por el primero.
+            const _ordenTurnos = Object.keys(_carruselesNuevosImgs);
+            if (!window._carruselTurnoActual) window._carruselTurnoActual = 0;
             if (window._carruselesNuevosInterval) clearInterval(window._carruselesNuevosInterval);
             window._carruselesNuevosInterval = setInterval(() => {
-                Object.keys(_carruselesNuevosImgs).forEach(cat => carruselSiguienteCat(cat));
+                if (!_ordenTurnos.length) return;
+                window._carruselTurnoActual = window._carruselTurnoActual % _ordenTurnos.length;
+                const cat = _ordenTurnos[window._carruselTurnoActual];
+                carruselSiguienteCat(cat);
+                window._carruselTurnoActual = (window._carruselTurnoActual + 1) % _ordenTurnos.length;
             }, 3500);
+        }
+        // Aplica el efecto "coverflow" a los slides de un carrusel: la slide
+        // activa queda centrada y grande (cf-center), hasta 2 a cada lado se
+        // ven cada vez más chicas y transparentes (cf-l1/cf-r1/cf-l2/cf-r2),
+        // y el resto queda oculta (cf-hidden). Las transiciones suaves las
+        // define el CSS (transform/opacity) sobre estas mismas clases.
+        function _aplicarCoverflowCat(cat) {
+            const estado = window._carruselesNuevosEstado[cat];
+            const wrapper = document.getElementById('carrusel-wrapper-' + cat);
+            if (!estado || !wrapper) return;
+            const slides = wrapper.children;
+            const total = slides.length;
+            for (let i = 0; i < total; i++) {
+                const slide = slides[i];
+                let diff = (i - estado.indice + total) % total;
+                if (diff > total - diff) diff -= total;
+                slide.classList.remove('cf-center', 'cf-l1', 'cf-r1', 'cf-l2', 'cf-r2', 'cf-hidden');
+                if (diff === 0) slide.classList.add('cf-center');
+                else if (diff === 1) slide.classList.add('cf-r1');
+                else if (diff === -1) slide.classList.add('cf-l1');
+                else if (diff === 2) slide.classList.add('cf-r2');
+                else if (diff === -2) slide.classList.add('cf-l2');
+                else slide.classList.add('cf-hidden');
+            }
         }
         function actualizarCarruselCat(cat) {
             const estado = window._carruselesNuevosEstado[cat];
             if (!estado) return;
-            const wrapper = document.getElementById('carrusel-wrapper-' + cat);
-            if (wrapper) wrapper.style.transform = `translateX(${estado.indice * -100}%)`;
+            _aplicarCoverflowCat(cat);
             document.querySelectorAll('#carrusel-dots-' + cat + ' .carrusel-dot').forEach((dot, i) => dot.classList.toggle('active', i === estado.indice));
         }
         function carruselAnteriorCat(cat) {
