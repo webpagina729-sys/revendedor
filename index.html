@@ -2019,6 +2019,10 @@
             .nicho-badge { min-width: auto; width: 100%; }
             .nicho-button { width: 100%; text-align: center; font-size: 12.5px; }
             .carrusel-container { height: 160px; }
+            .carrusel-slide { width: 66%; }
+            .carrusel-slide.cf-l1 { transform: translate(-50%, -50%) translateX(-68%) scale(.7); }
+            .carrusel-slide.cf-r1 { transform: translate(-50%, -50%) translateX(68%) scale(.7); }
+            .carrusel-slide.cf-l2, .carrusel-slide.cf-r2 { opacity: 0; pointer-events: none; }
             .revend-section-inner { gap: 16px; }
             .final-footer { padding: 30px 8px; }
             .final-footer-inner { margin: 0 8px; }
@@ -2037,6 +2041,36 @@
             .registration-confirmation-content h2 { font-size: 22px; }
             .confirmation-icon { width: 60px; height: 60px; font-size: 24px; }
             .codigo-vendedor-box { padding: 14px 12px; }
+        }
+
+        /* RESPONSIVE — PANTALLAS ANCHAS (notebook/desktop y celular
+           horizontal). No cambia el orden ni la disposición (sigue todo
+           apilado igual que en vertical), solo agranda tipografías,
+           paddings y el ancho útil de las tarjetas/carruseles para que
+           no se vean minúsculas en pantallas grandes. */
+        @media (min-width: 900px) {
+            .header-top-inner { max-width: 1200px; margin: 0 auto; }
+            .banner { padding: 56px 24px; }
+            .banner-inner { max-width: 920px; margin: 0 auto; gap: 28px; }
+            .banner-title { font-size: 40px; }
+            .banner-subtitle { font-size: 16px; white-space: normal; }
+            .banner-badge { font-size: 15px; padding: 12px 26px; max-width: 440px; }
+
+            .nichos-section { padding: 72px 24px; }
+            .nichos-section-inner { max-width: 980px; margin: 0 auto; padding: 0; }
+            .nichos-title { font-size: 30px; margin-bottom: 40px; }
+            .nicho-item { padding: 28px; border-radius: 18px; }
+            .nicho-title { font-size: 24px; }
+            .nicho-subtitle { font-size: 15px; }
+            .carrusel-container { height: 320px; margin-bottom: 20px; }
+            .nicho-badge { font-size: 15px; padding: 14px 22px; min-width: 220px; }
+            .nicho-button { font-size: 15px; padding: 14px 24px; }
+        }
+        @media (min-width: 1400px) {
+            .header-top-inner { max-width: 1320px; }
+            .banner-inner { max-width: 1040px; }
+            .nichos-section-inner { max-width: 1100px; }
+            .carrusel-container { height: 360px; }
         }
 
         /* LOAD MORE SECTION */
@@ -2490,7 +2524,13 @@
             color: white;
             border-color: var(--primary);
         }
-        /* CARRUSEL */
+        /* CARRUSEL — efecto "coverflow": una imagen central grande y hasta
+           2 imágenes a cada lado, cada vez más chicas y transparentes.
+           Los slides ya no se arman con flex+translateX del wrapper: cada
+           .carrusel-slide se posiciona en absoluto y su clase (cf-center,
+           cf-l1/cf-r1, cf-l2/cf-r2, cf-hidden) la asigna el JS según la
+           distancia circular al slide activo. Esto NO cambia cómo se
+           arman los slides/URLs de imagen, solo su ubicación visual. */
         .carrusel-container {
             position: relative;
             width: 100%;
@@ -2501,22 +2541,67 @@
             background: var(--gray-light);
         }
         .carrusel-wrapper {
-            display: flex;
+            position: relative;
+            width: 100%;
             height: 100%;
-            transition: transform 0.5s ease;
         }
         .carrusel-slide {
-            min-width: 100%;
-            height: 100%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 56%;
+            height: 86%;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1;
+            transform: translate(-50%, -50%) translateX(0) scale(.4);
+            transition: transform .6s cubic-bezier(.4,0,.2,1), opacity .6s ease;
+            will-change: transform, opacity;
         }
         .carrusel-slide img {
             max-width: 90%;
             max-height: 90%;
             object-fit: contain;
+            border-radius: 10px;
+        }
+        .carrusel-slide.cf-center {
+            opacity: 1;
+            z-index: 5;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) translateX(0) scale(1);
+        }
+        .carrusel-slide.cf-l1 {
+            opacity: .55;
+            z-index: 4;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) translateX(-82%) scale(.74);
+        }
+        .carrusel-slide.cf-r1 {
+            opacity: .55;
+            z-index: 4;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) translateX(82%) scale(.74);
+        }
+        .carrusel-slide.cf-l2 {
+            opacity: .28;
+            z-index: 3;
+            pointer-events: none;
+            transform: translate(-50%, -50%) translateX(-140%) scale(.52);
+        }
+        .carrusel-slide.cf-r2 {
+            opacity: .28;
+            z-index: 3;
+            pointer-events: none;
+            transform: translate(-50%, -50%) translateX(140%) scale(.52);
+        }
+        .carrusel-slide.cf-hidden {
+            opacity: 0;
+            pointer-events: none;
+            z-index: 0;
         }
         .carrusel-nav {
             position: absolute;
@@ -9147,23 +9232,17 @@
             });
             
             window.carruselIndex = 0;
-            actualizarCarruselShoesPreview();
-            
-            // Autoplay cada 5 segundos
-            if (window.carruselAutoplay) clearInterval(window.carruselAutoplay);
-            window.carruselAutoplay = setInterval(() => {
-                window.carruselIndex = (window.carruselIndex + 1) % productosCarrusel.length;
-                actualizarCarruselShoesPreview();
-            }, 3500);
             window.shoesCarruselLen = productosCarrusel.length;
+            actualizarCarruselShoesPreview();
+            // Nota: el autoplay de este carrusel ya no es independiente:
+            // ahora lo maneja el ciclo unificado de rotación por turnos
+            // (ver iniciarAutoDesliz / avanzarCarruselEnTurno), que avanza
+            // este carrusel junto con el resto en su turno correspondiente.
         }
-        
+
         function actualizarCarruselShoesPreview() {
             const wrapper = document.getElementById('carrusel-wrapper-shoes-preview');
-            if (wrapper) {
-                const offset = window.carruselIndex * -100;
-                wrapper.style.transform = `translateX(${offset}%)`;
-            }
+            aplicarEfectoCoverflow(wrapper, window.carruselIndex);
 
             document.querySelectorAll('#carrusel-dots-shoes-preview .carrusel-dot').forEach((dot, index) => {
                 dot.classList.toggle('active', index === window.carruselIndex);
@@ -10150,12 +10229,35 @@
             actualizarCarrusel();
         }
 
+        // ═══ Efecto "coverflow" para los carruseles de categorías ═══
+        // Ubica cada slide (ya creado por cada inicializarCarrusel*) según
+        // su distancia circular respecto al slide activo: centro (grande),
+        // ±1 (medianos) y ±2 (chicos), el resto queda oculto. No toca cómo
+        // se arman los slides ni de dónde sale la imagen, solo qué clase
+        // visual le corresponde a cada uno.
+        function aplicarEfectoCoverflow(wrapper, activeIndex) {
+            if (!wrapper) return;
+            const slides = wrapper.children;
+            const total = slides.length;
+            if (!total) return;
+            for (let i = 0; i < total; i++) {
+                const slide = slides[i];
+                slide.classList.remove('cf-center', 'cf-l1', 'cf-r1', 'cf-l2', 'cf-r2', 'cf-hidden');
+                let diff = i - activeIndex;
+                if (diff > total / 2) diff -= total;
+                if (diff < -total / 2) diff += total;
+                if (diff === 0) slide.classList.add('cf-center');
+                else if (diff === -1) slide.classList.add('cf-l1');
+                else if (diff === 1) slide.classList.add('cf-r1');
+                else if (diff === -2) slide.classList.add('cf-l2');
+                else if (diff === 2) slide.classList.add('cf-r2');
+                else slide.classList.add('cf-hidden');
+            }
+        }
+
         function actualizarCarrusel() {
             const wrapper = document.getElementById('carrusel-wrapper');
-            if (wrapper) {
-                const offset = carruselActual * -100;
-                wrapper.style.transform = `translateX(${offset}%)`;
-            }
+            aplicarEfectoCoverflow(wrapper, carruselActual);
 
             // Actualizar dots
             document.querySelectorAll('.carrusel-dot').forEach((dot, index) => {
@@ -10231,10 +10333,7 @@
 
         function actualizarCarruselLenceria() {
             const wrapper = document.getElementById('carrusel-wrapper-lenceria');
-            if (wrapper) {
-                const offset = carruselActualLenceria * -100;
-                wrapper.style.transform = `translateX(${offset}%)`;
-            }
+            aplicarEfectoCoverflow(wrapper, carruselActualLenceria);
             document.querySelectorAll('#carrusel-dots-lenceria .carrusel-dot').forEach((dot, index) => {
                 dot.classList.toggle('active', index === carruselActualLenceria);
             });
@@ -10296,10 +10395,7 @@
 
         function actualizarCarruselSuplementos() {
             const wrapper = document.getElementById('carrusel-wrapper-suplementos');
-            if (wrapper) {
-                const offset = carruselActualSuplementos * -100;
-                wrapper.style.transform = `translateX(${offset}%)`;
-            }
+            aplicarEfectoCoverflow(wrapper, carruselActualSuplementos);
             document.querySelectorAll('#carrusel-dots-suplementos .carrusel-dot').forEach((dot, index) => {
                 dot.classList.toggle('active', index === carruselActualSuplementos);
             });
@@ -10363,10 +10459,7 @@
 
         function actualizarCarruselBelleza() {
             const wrapper = document.getElementById('carrusel-wrapper-belleza');
-            if (wrapper) {
-                const offset = carruselActualBelleza * -100;
-                wrapper.style.transform = `translateX(${offset}%)`;
-            }
+            aplicarEfectoCoverflow(wrapper, carruselActualBelleza);
             document.querySelectorAll('#carrusel-dots-belleza .carrusel-dot').forEach((dot, index) => {
                 dot.classList.toggle('active', index === carruselActualBelleza);
             });
@@ -10389,15 +10482,40 @@
             actualizarCarruselBelleza();
         }
 
-        // Auto-deslizar carrusel cada 5 segundos
+        // ═══ Auto-rotación "por turnos" de todos los carruseles ═══
+        // Un único temporizador central va avanzando, en orden de arriba
+        // hacia abajo, un carrusel por vez (Perfumería → Belleza →
+        // Lencería → Suplementos → Calzados) y vuelve a empezar al llegar
+        // al final. Las flechas ‹ › y los dots de cada carrusel siguen
+        // funcionando igual que antes para navegación manual.
+        const CARRUSEL_CICLO_FUNCS = [
+            carruselSiguiente,
+            carruselSiguienteBelleza,
+            carruselSiguienteLenceria,
+            carruselSiguienteSuplementos,
+            carruselSiguienteShoes
+        ];
+        window.carruselCicloTurno = 0;
+        function avanzarCarruselEnTurno() {
+            const total = CARRUSEL_CICLO_FUNCS.length;
+            for (let i = 0; i < total; i++) {
+                const idx = window.carruselCicloTurno % total;
+                window.carruselCicloTurno = (window.carruselCicloTurno + 1) % total;
+                const fn = CARRUSEL_CICLO_FUNCS[idx];
+                try {
+                    fn();
+                    break; // avanzó un carrusel: listo para este tick
+                } catch (e) {
+                    // ese carrusel todavía no está listo (sin productos aún);
+                    // seguimos probando el siguiente en el mismo tick
+                }
+            }
+        }
+
         window.carruselInterval = null;
         function iniciarAutoDesliz() {
             if (window.carruselInterval) clearInterval(window.carruselInterval);
-            window.carruselInterval = setInterval(() => {
-                if (productosCarrusel.length > 1) {
-                    carruselSiguiente();
-                }
-            }, 3500);
+            window.carruselInterval = setInterval(avanzarCarruselEnTurno, 3500);
         }
         function detenerAutoDesliz() {
             if (window.carruselInterval) clearInterval(window.carruselInterval);
@@ -11248,18 +11366,30 @@
                 actualizarVistaNichos();
                 actualizarBotonesRevend();
                 
-                // Agregar listeners para carrusel principal
-                const container = document.getElementById('carrusel-container');
-                if (container) {
+                // Agregar listeners de pausa-en-hover para TODOS los
+                // carruseles de nichos (el ciclo de auto-rotación es uno
+                // solo y compartido, así que pausar sobre cualquiera de
+                // ellos pausa el ciclo completo, y al salir se reanuda).
+                const idsContenedoresCarrusel = [
+                    'carrusel-container',
+                    'carrusel-container-belleza',
+                    'carrusel-container-lenceria',
+                    'carrusel-container-suplementos',
+                    'carrusel-container-shoes-preview'
+                ];
+                let huboContenedorCarrusel = false;
+                idsContenedoresCarrusel.forEach(id => {
+                    const cont = document.getElementById(id);
+                    if (!cont) return;
+                    huboContenedorCarrusel = true;
                     // Remover listeners previos si existen (por si acaso)
-                    container.removeEventListener('mouseenter', detenerAutoDesliz);
-                    container.removeEventListener('mouseleave', iniciarAutoDesliz);
-                    
+                    cont.removeEventListener('mouseenter', detenerAutoDesliz);
+                    cont.removeEventListener('mouseleave', iniciarAutoDesliz);
                     // Agregar nuevos listeners
-                    container.addEventListener('mouseenter', detenerAutoDesliz);
-                    container.addEventListener('mouseleave', iniciarAutoDesliz);
-                    iniciarAutoDesliz();
-                }
+                    cont.addEventListener('mouseenter', detenerAutoDesliz);
+                    cont.addEventListener('mouseleave', iniciarAutoDesliz);
+                });
+                if (huboContenedorCarrusel) iniciarAutoDesliz();
             }, 300);
         }, { once: true });
         
