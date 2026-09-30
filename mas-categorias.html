@@ -14943,8 +14943,8 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         <p id="crearComboCatLabel" style="font-size:12.5px;color:var(--text-light);margin:-6px 0 12px;"></p>
 
         <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">Elegí los productos del combo</label>
-        <div id="crearComboProductos" style="margin-bottom:10px;"></div>
-        <button type="button" onclick="abrirCatalogoCompletoCombo()" style="width:100%;background:var(--gray-light);border:1px dashed var(--border);border-radius:8px;padding:9px;font-size:12.5px;font-weight:600;color:var(--text);cursor:pointer;margin-bottom:14px;">Ver todo el catálogo →</button>
+        <button type="button" onclick="abrirCatalogoCompletoCombo()" style="width:100%;background:var(--gray-light);border:1px dashed var(--border);border-radius:8px;padding:9px;font-size:12.5px;font-weight:600;color:var(--text);cursor:pointer;margin-bottom:12px;">Ver todo el catálogo →</button>
+        <div id="crearComboProductos" style="margin-bottom:14px;"></div>
 
         <div style="background:var(--gray-light);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;line-height:1.9;">
             <div>Inversión total: <strong id="combo-inversion">$0</strong></div>
@@ -14961,6 +14961,18 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
     </div>
 </div>
 
+<!-- MODAL: VER COMBO ARMADO (productos ya seleccionados, con opción de quitar) -->
+<div class="modal-overlay" id="verComboModal" onclick="if(event.target.id==='verComboModal')this.classList.remove('active')">
+    <div class="modal-content" style="max-width:420px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2 class="modal-title">Combo armado</h2>
+            <button type="button" class="modal-close" onclick="document.getElementById('verComboModal').classList.remove('active')" aria-label="Cerrar">×</button>
+        </div>
+        <div id="verComboGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-height:55vh;overflow-y:auto;padding-bottom:4px;"></div>
+        <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-top:14px;" onclick="document.getElementById('verComboModal').classList.remove('active')">Listo</button>
+    </div>
+</div>
+
 <!-- MODAL: CATÁLOGO COMPLETO PARA ELEGIR PRODUCTOS DEL COMBO -->
 <div class="modal-overlay" id="comboCatalogoModal" onclick="if(event.target.id==='comboCatalogoModal')this.classList.remove('active')">
     <div class="modal-content" style="max-width:420px;" onclick="event.stopPropagation()">
@@ -14969,6 +14981,10 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             <button type="button" class="modal-close" onclick="document.getElementById('comboCatalogoModal').classList.remove('active')" aria-label="Cerrar">×</button>
         </div>
         <div id="comboCatalogoBox" style="background:var(--gray-light);border:1px solid var(--border);border-radius:12px;padding:10px;">
+            <div style="position:relative;margin-bottom:10px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-light);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="comboCatalogoBuscador" placeholder="Buscar producto..." autocomplete="off" oninput="filtrarComboCatalogo(this.value)" style="width:100%;padding:8px 10px 8px 32px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font-body);background:#fff;box-sizing:border-box;">
+            </div>
             <div id="comboCatalogoGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-height:52vh;overflow-y:auto;padding-bottom:4px;scroll-behavior:smooth;"></div>
         </div>
         <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-top:10px;" onclick="guardarSeleccionCombo()">Guardar</button>
@@ -15348,24 +15364,43 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             }
         }
 
-        // Dibuja la mini-vista previa dentro del modal de "Crear combo":
-        // los primeros 2 productos con imagen (igual que en el catálogo
-        // principal) + casillero. El resto se elige desde "Ver todo".
+        // Ícono de tacho de basura reutilizado por el modal "Ver combo" y por
+        // el botón "Eliminar" de la promoción (este archivo no tenía, como
+        // index.html, una constante _CPL_ICO_ELIMINAR ya definida en scope).
+        const _COMBO_ICO_ELIMINAR = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+
+        // Dibuja el carrusel horizontal con los productos REALMENTE
+        // seleccionados en window._comboSeleccion (antes acá se mostraban
+        // siempre los primeros 2 productos del catálogo con checkbox, sin
+        // importar cuáles estaban elegidos — por eso un producto marcado
+        // desde "Ver todo el catálogo" nunca se veía reflejado acá).
         function renderMiniPreviewCombo() {
             const cat = window._comboCat;
             const productos = getProductosPorCatalogo(cat);
             const cont = document.getElementById('crearComboProductos');
-            if (productos.length === 0) {
-                cont.innerHTML = '<p style="font-size:12.5px;color:var(--text-light);padding:8px;">No hay productos disponibles en esta categoría.</p>';
+            const seleccionados = productos.filter(p => window._comboSeleccion[p.id]);
+
+            if (seleccionados.length === 0) {
+                cont.innerHTML = `
+                    <div style="text-align:center;background:var(--gray-light);border:1px dashed var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--text-light);margin-bottom:6px;">Todavía no elegiste productos</div>
+                    <button type="button" onclick="abrirVerCombo()" style="width:100%;background:none;border:none;color:var(--primary);font-size:12px;font-weight:700;cursor:pointer;padding:4px;text-align:center;">Ver combo</button>`;
                 return;
             }
-            const primeros2 = productos.slice(0, 2);
-            cont.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">` +
-                primeros2.map(p => comboProductCardHtml(p)).join('') + `</div>`;
+
+            cont.innerHTML = `
+                <div style="display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scroll-behavior:smooth;">
+                    ${seleccionados.map(p => `
+                        <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" title="${p.nombre}" onerror="fallbackProductImage(this, '${(p.imagen||'').replace(/'/g,"\\'")}')" style="width:48px;height:48px;flex:0 0 auto;object-fit:cover;border-radius:8px;border:1px solid var(--border);background:#f5f5f5;">
+                    `).join('')}
+                </div>
+                <button type="button" onclick="abrirVerCombo()" style="width:100%;background:none;border:none;color:var(--primary);font-size:12px;font-weight:700;cursor:pointer;padding:4px;text-align:center;">Ver combo (${seleccionados.length})</button>`;
         }
 
-        // Tarjeta estilo catálogo: imagen + nombre + casillero (sin precio,
-        // el precio ya se ve en el resumen de totales del combo).
+        // Tarjeta estilo catálogo: imagen + nombre completo + casillero (sin
+        // precio, el precio ya se ve en el resumen de totales del combo).
+        // 🔧 FIX: el nombre ya no se corta con "..." (antes usaba
+        // -webkit-line-clamp:2 + overflow:hidden); ahora se permite que
+        // ocupe las líneas que necesite, con una letra más chica.
         function comboProductCardHtml(p) {
             const marcado = !!window._comboSeleccion[p.id];
             return `
@@ -15375,24 +15410,52 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                     </div>
                     <input type="checkbox" ${marcado ? 'checked' : ''} onchange="toggleComboProducto(${p.id}, this.checked)" style="position:absolute;inset:0;opacity:0;cursor:pointer;z-index:3;">
                     <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${(p.imagen||'').replace(/'/g,"\\'")}')" style="width:100%;aspect-ratio:1;object-fit:cover;background:#f5f5f5;">
-                    <div style="padding:6px 8px;font-size:11.5px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${p.nombre}</div>
+                    <div style="padding:6px 8px;font-size:10.5px;line-height:1.3;word-wrap:break-word;overflow-wrap:break-word;">${p.nombre}</div>
                 </label>`;
         }
 
         // Estado de paginación del catálogo completo (modal "Ver todo").
         window._comboCatalogoMostrados = 0;
         const COMBO_CATALOGO_PASO = 10;
+        // Término de búsqueda activo en el catálogo completo (vacío = sin filtro).
+        window._comboCatalogoBusqueda = '';
 
         window.abrirCatalogoCompletoCombo = function() {
             window._comboCatalogoMostrados = COMBO_CATALOGO_PASO;
+            window._comboCatalogoBusqueda = '';
+            const buscador = document.getElementById('comboCatalogoBuscador');
+            if (buscador) buscador.value = '';
             renderComboCatalogoGrid();
             document.getElementById('comboCatalogoModal').classList.add('active');
+        };
+
+        // Quita acentos para que la búsqueda no distinga "café" de "cafe".
+        function _comboNormalizarTexto(s) {
+            return (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        }
+
+        window.filtrarComboCatalogo = function(valor) {
+            window._comboCatalogoBusqueda = (valor || '').trim();
+            renderComboCatalogoGrid();
         };
 
         function renderComboCatalogoGrid() {
             const cat = window._comboCat;
             const productos = getProductosPorCatalogo(cat);
             const grid = document.getElementById('comboCatalogoGrid');
+            const busqueda = _comboNormalizarTexto(window._comboCatalogoBusqueda);
+
+            // Con búsqueda activa: se filtra sobre TODOS los productos de la
+            // categoría (no solo los ya paginados) y no se muestra "Ver más"
+            // (no tiene sentido paginar un resultado ya filtrado).
+            if (busqueda) {
+                const filtrados = productos.filter(p => _comboNormalizarTexto(p.nombre).includes(busqueda));
+                grid.innerHTML = filtrados.length
+                    ? filtrados.map(p => comboProductCardHtml(p)).join('')
+                    : '<p style="grid-column:1 / -1;font-size:12.5px;color:var(--text-light);padding:10px;text-align:center;">No se encontraron productos.</p>';
+                return;
+            }
+
             const hastaAhora = productos.slice(0, window._comboCatalogoMostrados);
             const hayMas = window._comboCatalogoMostrados < productos.length;
             grid.innerHTML = hastaAhora.map(p => comboProductCardHtml(p)).join('') +
@@ -15452,7 +15515,43 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             if (document.getElementById('comboCatalogoModal').classList.contains('active')) {
                 renderComboCatalogoGrid();
             }
+            // Igual si está abierto el modal "Ver combo".
+            if (document.getElementById('verComboModal').classList.contains('active')) {
+                renderVerComboGrid();
+            }
             calcularTotalesCombo();
+        };
+
+        // Modal "Ver combo": muestra todo lo seleccionado hasta el momento,
+        // con un tachito para sacar productos sin tener que ir al catálogo.
+        window.abrirVerCombo = function() {
+            renderVerComboGrid();
+            document.getElementById('verComboModal').classList.add('active');
+        };
+
+        function renderVerComboGrid() {
+            const cat = window._comboCat;
+            const productos = getProductosPorCatalogo(cat);
+            const seleccionados = productos.filter(p => window._comboSeleccion[p.id]);
+            const grid = document.getElementById('verComboGrid');
+            if (seleccionados.length === 0) {
+                grid.innerHTML = '<p style="grid-column:1 / -1;font-size:12.5px;color:var(--text-light);padding:8px;">Todavía no elegiste productos.</p>';
+                return;
+            }
+            grid.innerHTML = seleccionados.map(p => `
+                <div style="position:relative;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff;">
+                    <button type="button" onclick="quitarProductoDelCombo(${p.id})" aria-label="Quitar del combo" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:#fef2f2;color:#b91c1c;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;">${_COMBO_ICO_ELIMINAR}</button>
+                    <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${(p.imagen||'').replace(/'/g,"\\'")}')" style="width:100%;aspect-ratio:1;object-fit:cover;background:#f5f5f5;">
+                    <div style="padding:6px 8px;font-size:11px;line-height:1.3;word-wrap:break-word;overflow-wrap:break-word;">${p.nombre}</div>
+                </div>`).join('');
+        }
+
+        // Saca un producto del combo desde el modal "Ver combo". Reusa el
+        // mismo mecanismo que el checkbox del catálogo (toggleComboProducto),
+        // que ya se encarga de refrescar el carrusel, el propio modal "Ver
+        // combo" (si está abierto) y los totales.
+        window.quitarProductoDelCombo = function(id) {
+            toggleComboProducto(id, false);
         };
 
         window.calcularTotalesCombo = function() {
@@ -15582,9 +15681,10 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                                 <button type="button" onclick="togglePromoLocal('${cat}', false)" style="padding:3px 8px;border-radius:5px;border:1px solid ${!promoActiva ? '#ef4444' : 'var(--border)'};background:${!promoActiva ? '#ef4444' : '#fff'};color:${!promoActiva ? '#fff' : 'var(--text-light)'};font-size:10.5px;font-weight:700;cursor:pointer;">OFF</button>
                             </div>
                         </div>
-                        <div style="display:flex;gap:6px;">
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
                             <button type="button" onclick="document.getElementById('combosPromosListaModal').classList.remove('active');abrirCrearPromocion('${cat}')" style="flex:1;background:#f5f5f5;border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">✏️ Editar</button>
                             <button type="button" onclick="compartirEnlaceCategoriaConPromo('${cat}')" style="flex:1;background:#eff5ff;color:var(--primary);border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">🔗 Compartir tienda con la promo</button>
+                            <button type="button" onclick="eliminarComboOPromo('promocion', '${promo.id}', '${cat}')" style="flex:1;background:#fef2f2;color:#b91c1c;border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">${_COMBO_ICO_ELIMINAR}Eliminar</button>
                         </div>
                     </div>`;
             }
