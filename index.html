@@ -2019,10 +2019,11 @@
             .nicho-badge { min-width: auto; width: 100%; }
             .nicho-button { width: 100%; text-align: center; font-size: 12.5px; }
             .carrusel-container { height: 160px; }
-            .carrusel-slide { width: 66%; }
-            .carrusel-slide.cf-l1 { transform: translate(-50%, -50%) translateX(-68%) scale(.7); }
-            .carrusel-slide.cf-r1 { transform: translate(-50%, -50%) translateX(68%) scale(.7); }
-            .carrusel-slide.cf-l2, .carrusel-slide.cf-r2 { opacity: 0; pointer-events: none; }
+            .carrusel-slide { width: 46%; }
+            .carrusel-slide.cf-l1 { transform: translate(-50%, -50%) translateX(-75%) scale(.7); }
+            .carrusel-slide.cf-r1 { transform: translate(-50%, -50%) translateX(75%) scale(.7); }
+            .carrusel-slide.cf-l2 { transform: translate(-50%, -50%) translateX(-125%) scale(.45); }
+            .carrusel-slide.cf-r2 { transform: translate(-50%, -50%) translateX(125%) scale(.45); }
             .revend-section-inner { gap: 16px; }
             .final-footer { padding: 30px 8px; }
             .final-footer-inner { margin: 0 8px; }
@@ -2549,8 +2550,8 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 56%;
-            height: 86%;
+            width: 40%;
+            height: 82%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -2558,8 +2559,8 @@
             opacity: 0;
             pointer-events: none;
             z-index: 1;
-            transform: translate(-50%, -50%) translateX(0) scale(.4);
-            transition: transform .6s cubic-bezier(.4,0,.2,1), opacity .6s ease;
+            transform: translate(-50%, -50%) translateX(0) scale(.3);
+            transition: transform .55s cubic-bezier(.4,0,.2,1), opacity .45s ease;
             will-change: transform, opacity;
         }
         .carrusel-slide img {
@@ -2575,28 +2576,28 @@
             transform: translate(-50%, -50%) translateX(0) scale(1);
         }
         .carrusel-slide.cf-l1 {
-            opacity: .55;
+            opacity: .6;
             z-index: 4;
             pointer-events: auto;
-            transform: translate(-50%, -50%) translateX(-82%) scale(.74);
+            transform: translate(-50%, -50%) translateX(-75%) scale(.7);
         }
         .carrusel-slide.cf-r1 {
-            opacity: .55;
+            opacity: .6;
             z-index: 4;
             pointer-events: auto;
-            transform: translate(-50%, -50%) translateX(82%) scale(.74);
+            transform: translate(-50%, -50%) translateX(75%) scale(.7);
         }
         .carrusel-slide.cf-l2 {
-            opacity: .28;
+            opacity: .3;
             z-index: 3;
             pointer-events: none;
-            transform: translate(-50%, -50%) translateX(-140%) scale(.52);
+            transform: translate(-50%, -50%) translateX(-125%) scale(.45);
         }
         .carrusel-slide.cf-r2 {
-            opacity: .28;
+            opacity: .3;
             z-index: 3;
             pointer-events: none;
-            transform: translate(-50%, -50%) translateX(140%) scale(.52);
+            transform: translate(-50%, -50%) translateX(125%) scale(.45);
         }
         .carrusel-slide.cf-hidden {
             opacity: 0;
@@ -10515,7 +10516,7 @@
         window.carruselInterval = null;
         function iniciarAutoDesliz() {
             if (window.carruselInterval) clearInterval(window.carruselInterval);
-            window.carruselInterval = setInterval(avanzarCarruselEnTurno, 3500);
+            window.carruselInterval = setInterval(avanzarCarruselEnTurno, 2500);
         }
         function detenerAutoDesliz() {
             if (window.carruselInterval) clearInterval(window.carruselInterval);
@@ -15556,12 +15557,36 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
 
         window.eliminarComboOPromo = async function(tipo, id, cat) {
             const codigoVendedor = window.getCodigoVendedor();
-            const path = tipo === 'combo' ? '/combo/eliminar' : '/promocion/eliminar';
-            await comboFetch(path, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codigoVendedor, id })
-            });
+            if (tipo === 'promocion') {
+                // 🔧 FIX: la promoción no vive en este Worker (ver nota en
+                // abrirCombosPromosLista) sino en localStorage + Firestore bajo
+                // "promocionesTienda.<cat>". Antes acá solo se llamaba a
+                // /promocion/eliminar, que borra un documento que nunca
+                // existió ahí — la promoción seguía intacta en localStorage y
+                // por eso volvía a aparecer en la lista. Ahora también se
+                // borra de donde realmente está guardada.
+                try {
+                    const promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}');
+                    delete promos[cat];
+                    localStorage.setItem('promocionesTienda', JSON.stringify(promos));
+                    _guardarEnFirestore({ [`promocionesTienda.${cat}`]: null });
+                } catch(e) {}
+                await comboFetch('/promocion/eliminar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigoVendedor, id })
+                });
+            } else {
+                const resultado = await comboFetch('/combo/eliminar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigoVendedor, id })
+                });
+                if (!resultado || !resultado.ok) {
+                    alert((resultado && resultado.error) || 'No se pudo eliminar. Intentá de nuevo.');
+                    return;
+                }
+            }
             abrirCombosPromosLista(cat);
         };
 
