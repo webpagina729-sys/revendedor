@@ -8005,7 +8005,7 @@ function catalogoEfectivoMultishop(p) {
                 const cat = _ordenTurnos[window._carruselTurnoActual];
                 carruselSiguienteCat(cat);
                 window._carruselTurnoActual = (window._carruselTurnoActual + 1) % _ordenTurnos.length;
-            }, 3500);
+            }, 2500);
         }
         // Aplica el efecto "coverflow" a los slides de un carrusel: la slide
         // activa queda centrada y grande (cf-center), hasta 2 a cada lado se
@@ -15879,12 +15879,36 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
 
         window.eliminarComboOPromo = async function(tipo, id, cat) {
             const codigoVendedor = window.getCodigoVendedor();
-            const path = tipo === 'combo' ? '/combo/eliminar' : '/promocion/eliminar';
-            await comboFetch(path, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codigoVendedor, id })
-            });
+            if (tipo === 'promocion') {
+                // 🔧 FIX: la promoción no vive en este Worker (ver nota en
+                // abrirCombosPromosLista) sino en localStorage + Firestore bajo
+                // "promocionesTienda.<cat>". Antes acá solo se llamaba a
+                // /promocion/eliminar, que borra un documento que nunca
+                // existió ahí — la promoción seguía intacta en localStorage y
+                // por eso volvía a aparecer en la lista. Ahora también se
+                // borra de donde realmente está guardada.
+                try {
+                    const promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}');
+                    delete promos[cat];
+                    localStorage.setItem('promocionesTienda', JSON.stringify(promos));
+                    _guardarEnFirestore({ [`promocionesTienda.${cat}`]: null });
+                } catch(e) {}
+                await comboFetch('/promocion/eliminar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigoVendedor, id })
+                });
+            } else {
+                const resultado = await comboFetch('/combo/eliminar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigoVendedor, id })
+                });
+                if (!resultado || !resultado.ok) {
+                    alert((resultado && resultado.error) || 'No se pudo eliminar. Intentá de nuevo.');
+                    return;
+                }
+            }
             abrirCombosPromosLista(cat);
         };
 
