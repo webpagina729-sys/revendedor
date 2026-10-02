@@ -104,12 +104,20 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         #error-screen {
-            display: none; min-height: 60vh;
+            display: none; min-height: 85vh;
             flex-direction: column; align-items: center;
-            justify-content: center; gap: 16px;
-            padding: 40px 16px; text-align: center;
+            justify-content: flex-end; gap: 16px;
+            padding: 40px 16px 64px; text-align: center;
         }
-        #error-screen .icon { font-size: 56px; }
+        /* 🔧 Imagen "llamame" en vez del círculo con el signo de
+           pregunta — ocupa al menos 1/4 del alto disponible (sin contar
+           el header con el botón de carrito, que es un elemento aparte). */
+        #error-screen .error-img {
+            width: min(65vw, 260px);
+            height: 26vh;
+            max-height: 220px;
+            object-fit: contain;
+        }
         #error-screen h2 { font-size: 22px; font-weight: 700; }
         #error-screen p { color: var(--text-light); max-width: 360px; }
 
@@ -648,6 +656,30 @@
         .promo-detail-list li::before {
             content: '✓'; color: var(--success); font-weight: 800; flex-shrink: 0;
         }
+        /* 🔧 FIX: ítems "de bloque" (regalo, carrusel) — antes heredaban el
+           display:flex en fila de .promo-detail-list li, lo que amontonaba
+           título + subtítulo + carrusel uno al lado del otro. Ahora cada
+           uno ocupa su propio renglón, alineado a la izquierda. */
+        .promo-detail-list li.pdl-block {
+            display: block; padding: 4px 0; text-align: left;
+        }
+        .promo-detail-list li.pdl-block::before { content: none; }
+        .promo-detail-benefit-title {
+            font-size: 13.5px; font-weight: 700; color: var(--text);
+            margin-bottom: 4px; text-align: left;
+        }
+        .promo-detail-benefit-sub {
+            font-size: 13px; color: var(--text-light); margin-bottom: 2px; text-align: left;
+        }
+        /* Carrusel de imágenes: centrado cuando entra completo en el
+           ancho del modal, con scroll horizontal (sin recorte) cuando hay
+           más productos de los que entran. */
+        .promo-detail-carrusel {
+            display: flex; gap: 12px; overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            width: fit-content; max-width: 100%;
+            margin: 6px auto 4px; padding: 4px 2px 10px;
+        }
 
         /* GIFT MODAL — Elegí tu regalo (con confeti) */
         .gift-overlay {
@@ -749,13 +781,9 @@
 
 <!-- ERROR -->
 <div id="error-screen">
-    <div class="icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+    <img class="error-img" src="llamame.png" alt="" onerror="this.style.display='none'">
     <h2 id="error-titulo">Tienda Actualizada</h2>
     <p id="error-msg">El enlace que usaste no es válido o la tienda no existe. Pedile al vendedor que te comparta el enlace correcto.</p>
-    <!-- 🔧 Diagnóstico visible: para poder ver EXACTAMENTE en qué paso
-         falló sin tener que abrir la consola del navegador — alcanza con
-         una captura de esta pantalla. -->
-    <pre id="error-diag" style="margin-top:18px;padding:10px 12px;background:#f4f4f6;border-radius:8px;font-size:10.5px;line-height:1.5;color:#666;text-align:left;max-width:340px;white-space:pre-wrap;word-break:break-all;"></pre>
 </div>
 
 <!-- HERO -->
@@ -4252,8 +4280,6 @@ function mostrarError(msg) {
     const err = document.getElementById('error-screen');
     err.style.display = 'flex';
     if (msg) document.getElementById('error-msg').textContent = msg;
-    const diag = document.getElementById('error-diag');
-    if (diag) diag.textContent = (window._diagLog || []).join('\n');
 }
 
 function mostrarBotonReintentar() {
@@ -5128,7 +5154,20 @@ function abrirCatalogoEnPromocion() {
     }
     const enPromo = (todosProductos || []).filter(p => getDescuentoPorcentaje(p.precioFinal) > 0);
     if (enPromo.length === 0) {
-        grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-light);padding:20px;">No hay productos en promoción por ahora.</p>';
+        // 🔧 FIX: si el "de" configurado es más alto que el producto más
+        // caro, la promo no es "por producto" sino "superando tal monto
+        // de compra" — no tiene sentido decir "no hay productos en
+        // promoción", hay que explicar la condición real.
+        if (_promoEsUmbralCompra(promo)) {
+            const minDe = Math.min(...promo.rangos.map(r => Number(r.de) || 0));
+            const maxPct = Math.max(...promo.rangos.map(r => Number(r.porcentaje) || 0));
+            grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:30px 16px;">
+                <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">🛒 Promoción por monto de compra</div>
+                <div style="font-size:13.5px;color:var(--text-light);line-height:1.5;max-width:320px;margin:0 auto;">Con una compra mayor a <strong style="color:var(--primary);">$${minDe.toLocaleString('es-AR')}</strong> tenés un <strong style="color:var(--primary);">${maxPct}%</strong> aplicado en el total de tu carrito.</div>
+            </div>`;
+        } else {
+            grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-light);padding:20px;">No hay productos en promoción por ahora.</p>';
+        }
     } else {
         grid.innerHTML = enPromo.map(p => {
             const pct = getDescuentoPorcentaje(p.precioFinal);
@@ -5311,6 +5350,20 @@ async function iniciarColaPromosYCombos(incluirPromo) {
     });
 }
 
+// Una promoción se configura con rangos de precio ("de"/"hasta") que
+// normalmente recortan el precio de CADA producto. Pero si el vendedor
+// configuró un "de" más alto que el producto más caro de su catálogo,
+// en realidad quiso decir "superando tal monto de compra" (el total del
+// carrito), no el precio de un producto puntual — en ese caso no hay
+// (ni va a haber nunca) un producto individual que entre en el rango.
+function _promoEsUmbralCompra(promo) {
+    if (!promo || !Array.isArray(promo.rangos) || !promo.rangos.length) return false;
+    const minDe = Math.min(...promo.rangos.map(r => Number(r.de) || 0));
+    if (minDe <= 0) return false;
+    const maxPrecioProducto = Math.max(0, ...(todosProductos || []).map(p => Number(p.precioFinal) || Number(p.precio) || 0));
+    return minDe > maxPrecioProducto;
+}
+
 function abrirPromoDetail() {
     cerrarPromoFloat();
     if (!window.promoActiva) return;
@@ -5324,7 +5377,12 @@ function abrirPromoDetail() {
     if (Array.isArray(promo.rangos) && promo.rangos.length) {
         const maxPct = Math.max(...promo.rangos.map(r => Number(r.porcentaje)||0));
         if (maxPct > 0) {
-            html += `<li><strong>Hasta ${maxPct}% de descuento</strong> en productos seleccionados.</li>`;
+            if (_promoEsUmbralCompra(promo)) {
+                const minDe = Math.min(...promo.rangos.map(r => Number(r.de) || 0));
+                html += `<li><strong>Con una compra mayor a $${minDe.toLocaleString('es-AR')}</strong> tenés un <strong>${maxPct}%</strong> aplicado en el total de tu carrito.</li>`;
+            } else {
+                html += `<li><strong>Hasta ${maxPct}% de descuento</strong> en productos seleccionados.</li>`;
+            }
         }
     }
 
@@ -5332,13 +5390,17 @@ function abrirPromoDetail() {
     if (promo.gift && promo.gift.condicionDe) {
         const g = promo.gift;
         const minC = Number(g.condicionDe) || 0;
-        const umbral = Number(g.condicionDe) || 0;
         const rMin = Number(g.regaloDe) || 0;
         const rMax = Number(g.regaloHasta) || Infinity;
 
-        html += `<li style="margin-bottom:10px;"><strong>🎁 Regalo por compra mínima de $${minC.toLocaleString('es-AR')}</strong></li>`;
-        html += `<li style="list-style:none;padding:0;">`;
-        html += `<div style="font-weight:600;margin-bottom:8px;color:#555;">Superando $${umbral.toLocaleString('es-AR')} te llevas:</div>`;
+        // 🔧 FIX: título y subtítulo ahora van en su propio renglón
+        // (li.pdl-block), uno abajo del otro y alineados a la izquierda —
+        // antes, al compartir el <li> en fila con el carrusel, quedaban
+        // todos amontonados en una sola línea.
+        html += `<li class="pdl-block">
+            <div class="promo-detail-benefit-title">🎁 Regalo por compra mínima de $${minC.toLocaleString('es-AR')}</div>
+            <div class="promo-detail-benefit-sub">Superando $${minC.toLocaleString('es-AR')} te llevás:</div>
+        </li>`;
 
         // Productos regalo elegibles
         const elegibles = (todosProductos || []).filter(p => {
@@ -5347,24 +5409,23 @@ function abrirPromoDetail() {
         });
 
         if (elegibles.length > 0) {
-            html += `<div style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:8px;-webkit-overflow-scrolling:touch;">`;
-            elegibles.forEach(p => {
-                const pf = p.precioFinal || p.precio || 0;
-                const imgSrc = (p.imagen && /^https?:\/\//i.test(p.imagen)) ? p.imagen : (typeof BASE_IMAGE_URL !== 'undefined' ? BASE_IMAGE_URL : '') + (p.imagen || '');
-                html += `<div style="min-width:160px;flex-shrink:0;scroll-snap-align:center;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:10px;text-align:center;">
-                    <img src="${imgSrc}" alt="${p.nombre}" style="width:120px;height:120px;object-fit:contain;border-radius:8px;" onerror="this.style.display='none'">
-                    <div style="font-weight:600;font-size:13px;margin-top:6px;color:#222;">${p.nombre}</div>
-                    <div style="color:#0066ff;font-weight:700;font-size:14px;margin-top:4px;">$${Number(pf).toLocaleString('es-AR')}</div>
-                </div>`;
-            });
-            html += `</div>`;
+            html += `<li class="pdl-block"><div class="promo-detail-carrusel">` +
+                elegibles.map(p => {
+                    const pf = p.precioFinal || p.precio || 0;
+                    const imgSrc = (p.imagen && /^https?:\/\//i.test(p.imagen)) ? p.imagen : (typeof BASE_IMAGE_URL !== 'undefined' ? BASE_IMAGE_URL : '') + (p.imagen || '');
+                    return `<div style="min-width:140px;flex-shrink:0;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:10px;text-align:center;">
+                        <img src="${imgSrc}" alt="${p.nombre}" style="width:110px;height:110px;object-fit:contain;border-radius:8px;" onerror="this.style.display='none'">
+                        <div style="font-weight:600;font-size:13px;margin-top:6px;color:#222;">${p.nombre}</div>
+                        <div style="color:#0066ff;font-weight:700;font-size:14px;margin-top:4px;">$${Number(pf).toLocaleString('es-AR')}</div>
+                    </div>`;
+                }).join('') +
+                `</div></li>`;
         } else {
-            html += `<div style="color:#888;font-size:13px;">Consultá con el vendedor los productos de regalo.</div>`;
+            html += `<li class="pdl-block"><div style="color:#888;font-size:13px;">Consultá con el vendedor los productos de regalo.</div></li>`;
         }
-        html += `</li>`;
     }
 
-    html += `<li style="color:#888;font-size:13px;">Aplicable mientras dure la promoción. Sin códigos: se aplica automáticamente.</li>`;
+    html += `<li><span style="color:#888;font-size:12.5px;">Aplicable mientras dure la promoción. Sin códigos: se aplica automáticamente.</span></li>`;
     list.innerHTML = html;
 
     const sub = document.getElementById('promoDetailSub');
