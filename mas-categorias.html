@@ -15013,7 +15013,8 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         };
 
         window.eliminarTiendaGuardada = async function(cat) {
-            if (!confirm('¿Eliminar definitivamente la tienda "' + cat + '"? Esta acción no se puede deshacer.')) return;
+            const confirmado = await window.pedirConfirmacionEliminarTienda('¿Eliminar definitivamente la tienda "' + cat + '"? Esta acción no se puede deshacer.');
+            if (!confirmado) return;
             try {
                 const tiendas = getTiendasGuardadas();
                 delete tiendas[cat];
@@ -15120,14 +15121,31 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
 
 <!-- Modal: Confirmar reinicio de configuración de tienda -->
 <div class="modal-overlay" id="reiniciarConfigModal" onclick="if(event.target.id==='reiniciarConfigModal'){window._resolverReiniciarConfig(false);}">
-    <div class="modal-content" style="max-width:420px;" onclick="event.stopPropagation()">
-        <div class="modal-header">
-            <h2 class="modal-title">♻️ Reiniciar configuración</h2>
-            <button type="button" class="modal-close" onclick="window._resolverReiniciarConfig(false)" aria-label="Cerrar">×</button>
+    <div class="modal-content" style="max-width:340px;text-align:center;" onclick="event.stopPropagation()">
+        <div style="width:48px;height:48px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:2px auto 14px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.64-6.36L2 9"/><path d="M2 3v6h6"/></svg>
         </div>
-        <p class="nt-hint" id="reiniciarConfigTexto" style="margin-bottom:18px;">Esto borra los márgenes, el color y el nombre configurados para esta categoría. Vas a tener que volver a configurarla desde cero.</p>
-        <button type="button" class="nt-save" style="background:#b91c1c;" onclick="window._resolverReiniciarConfig(true)">Sí, reiniciar</button>
-        <button type="button" class="nt-cancel" onclick="window._resolverReiniciarConfig(false)">Cancelar</button>
+        <h2 class="modal-title" style="text-align:center;font-size:15.5px;margin-bottom:6px;">Reiniciar configuración</h2>
+        <p id="reiniciarConfigTexto" style="font-size:12.5px;color:var(--text-light,#666);line-height:1.5;margin:0 0 18px;text-wrap:balance;"></p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;">
+            <button type="button" class="confirmation-button" style="padding:10px 6px;font-size:12.5px;" onclick="window._resolverReiniciarConfig(false)">Cancelar</button>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="background:#b91c1c;padding:10px 6px;font-size:12.5px;" onclick="window._resolverReiniciarConfig(true)">Sí, reiniciar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirmar eliminación de una tienda guardada (reemplaza el confirm() nativo) -->
+<div class="modal-overlay" id="eliminarTiendaModal" onclick="if(event.target.id==='eliminarTiendaModal'){window._resolverEliminarTienda(false);}">
+    <div class="modal-content" style="max-width:340px;text-align:center;" onclick="event.stopPropagation()">
+        <div style="width:48px;height:48px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:2px auto 14px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </div>
+        <h2 class="modal-title" style="text-align:center;font-size:15.5px;margin-bottom:6px;">Eliminar tienda guardada</h2>
+        <p id="eliminarTiendaTexto" style="font-size:12.5px;color:var(--text-light,#666);line-height:1.5;margin:0 0 18px;text-wrap:balance;"></p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;">
+            <button type="button" class="confirmation-button" style="padding:10px 6px;font-size:12.5px;" onclick="window._resolverEliminarTienda(false)">Cancelar</button>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="background:#b91c1c;padding:10px 6px;font-size:12.5px;" onclick="window._resolverEliminarTienda(true)">Sí, eliminar</button>
+        </div>
     </div>
 </div>
 
@@ -15393,6 +15411,22 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         window._resolverReiniciarConfig = function(val) {
             document.getElementById('reiniciarConfigModal').classList.remove('active');
             if (_resolverRC) { const r = _resolverRC; _resolverRC = null; r(val); }
+        };
+
+        // Modal de confirmación profesional para "Eliminar tienda guardada"
+        // (reemplaza el confirm() nativo del navegador).
+        let _resolverET = null;
+        window.pedirConfirmacionEliminarTienda = function(texto) {
+            return new Promise((resolve) => {
+                _resolverET = resolve;
+                const p = document.getElementById('eliminarTiendaTexto');
+                if (p && texto) p.textContent = texto;
+                document.getElementById('eliminarTiendaModal').classList.add('active');
+            });
+        };
+        window._resolverEliminarTienda = function(val) {
+            document.getElementById('eliminarTiendaModal').classList.remove('active');
+            if (_resolverET) { const r = _resolverET; _resolverET = null; r(val); }
         };
 
         // ---- Promociones ----
