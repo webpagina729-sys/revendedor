@@ -4194,8 +4194,21 @@
                 <h2 class="modal-title" id="avisoStockGlobalTitulo" style="text-align:center;"></h2>
             </div>
             <div id="avisoStockGlobalCarrusel" style="display:flex;align-items:center;justify-content:center;gap:6px;margin:14px 0 18px;overflow-x:auto;padding:10px 0;"></div>
-            <p id="avisoStockGlobalTexto" style="font-size:13px;color:var(--text-light);line-height:1.5;margin-bottom:18px;"></p>
+            <p id="avisoStockGlobalTexto" style="font-size:13px;color:var(--text-light);line-height:1.5;margin-bottom:10px;"></p>
+            <p id="avisoStockGlobalVerTodos" onclick="abrirVerTodosStockGlobal()" style="display:none;text-align:center;font-size:12.5px;font-weight:600;color:var(--primary,#d4446a);cursor:pointer;margin:0 0 16px;text-decoration:underline;">Ver todos los productos</p>
             <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="cerrarAvisoStockGlobal()">Ok, continuar</button>
+        </div>
+    </div>
+
+    <!-- 🔧 NUEVO: listado compacto de TODOS los productos de un mismo
+         aviso de stock global, cuando son más de 3. -->
+    <div class="modal-overlay" id="verTodosStockGlobalModal" onclick="if(event.target.id==='verTodosStockGlobalModal')cerrarVerTodosStockGlobal()">
+        <div class="modal-content" style="max-width:360px;">
+            <div class="modal-header" style="justify-content:center;">
+                <h2 class="modal-title" id="verTodosStockGlobalTitulo" style="text-align:center;font-size:15px;"></h2>
+            </div>
+            <div id="verTodosStockGlobalLista" style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;margin-bottom:14px;"></div>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;" onclick="cerrarVerTodosStockGlobal()">Cerrar</button>
         </div>
     </div>
 
@@ -4254,11 +4267,24 @@
          entrar a la categoría afectada, uno por cada cambio que el
          revendedor todavía no vio (se recuerda en su localStorage). -->
     <div class="modal-overlay" id="avisoCambioStockModal" onclick="if(event.target.id==='avisoCambioStockModal')cerrarAvisoCambioStock()">
-        <div class="modal-content" style="max-width:320px;text-align:center;">
-            <img id="avisoCambioStockImg" src="" alt="" style="width:100%;max-height:150px;object-fit:cover;border-radius:10px;margin-bottom:12px;display:none;" onerror="this.style.display='none'">
+        <div class="modal-content" style="max-width:360px;text-align:center;">
             <h2 class="modal-title" id="avisoCambioStockTitulo" style="text-align:center;font-size:15px;margin-bottom:6px;text-wrap:balance;"></h2>
-            <p id="avisoCambioStockTexto" style="font-size:12.5px;color:var(--text-light);margin:0 0 14px;text-wrap:balance;"></p>
+            <div id="avisoCambioStockCarrusel" style="display:flex;align-items:center;justify-content:center;gap:6px;margin:10px 0 12px;overflow-x:auto;padding:10px 0;"></div>
+            <p id="avisoCambioStockTexto" style="font-size:12.5px;color:var(--text-light);margin:0 0 10px;text-wrap:balance;"></p>
+            <p id="avisoCambioStockVerTodos" onclick="abrirVerTodosCambioStock()" style="display:none;text-align:center;font-size:12.5px;font-weight:600;color:var(--primary,#d4446a);cursor:pointer;margin:0 0 14px;text-decoration:underline;">Ver todas las variantes</p>
             <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;" onclick="cerrarAvisoCambioStock()">Entendido</button>
+        </div>
+    </div>
+
+    <!-- 🔧 NUEVO: listado compacto de TODAS las variantes de un mismo
+         aviso de cambio de stock, cuando son más de 3. -->
+    <div class="modal-overlay" id="verTodosCambioStockModal" onclick="if(event.target.id==='verTodosCambioStockModal')cerrarVerTodosCambioStock()">
+        <div class="modal-content" style="max-width:360px;">
+            <div class="modal-header" style="justify-content:center;">
+                <h2 class="modal-title" id="verTodosCambioStockTitulo" style="text-align:center;font-size:15px;"></h2>
+            </div>
+            <div id="verTodosCambioStockLista" style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;margin-bottom:14px;"></div>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;padding:9px 6px;font-size:12.5px;" onclick="cerrarVerTodosCambioStock()">Cerrar</button>
         </div>
     </div>
 
@@ -5998,11 +6024,14 @@
             }).join('');
         }
 
+        let _grupoActualAvisoStockGlobal = [];
+
         function mostrarAvisoStockGlobal(productos, seAgregaron) {
             const modal = document.getElementById('avisoStockGlobalModal');
             const titulo = document.getElementById('avisoStockGlobalTitulo');
             const carrusel = document.getElementById('avisoStockGlobalCarrusel');
             const texto = document.getElementById('avisoStockGlobalTexto');
+            const verTodos = document.getElementById('avisoStockGlobalVerTodos');
             if (!modal || !titulo || !carrusel || !texto) return;
 
             const esPlural = productos.length > 1;
@@ -6014,7 +6043,29 @@
                 texto.textContent = 'Tu tienda seguirá funcionando normalmente sin ' + (esPlural ? 'estos productos' : 'este producto') + ' y reaparecerá' + (esPlural ? 'n' : '') + ' automáticamente cuando esté' + (esPlural ? 'n' : '') + ' disponible' + (esPlural ? 's' : '') + '.';
             }
             carrusel.innerHTML = _carruselAvisoStockHtml(productos);
+            _grupoActualAvisoStockGlobal = { productos, seAgregaron };
+            if (verTodos) verTodos.style.display = productos.length > 3 ? 'block' : 'none';
             modal.classList.add('active');
+        }
+
+        function abrirVerTodosStockGlobal() {
+            const { productos, seAgregaron } = _grupoActualAvisoStockGlobal || {};
+            if (!productos || !productos.length) return;
+            const modal = document.getElementById('verTodosStockGlobalModal');
+            const titulo = document.getElementById('verTodosStockGlobalTitulo');
+            const lista = document.getElementById('verTodosStockGlobalLista');
+            if (!modal || !titulo || !lista) return;
+            titulo.textContent = seAgregaron ? 'Productos disponibles de nuevo' : 'Productos quitados del stock';
+            lista.innerHTML = productos.map(p => `
+                <div style="display:flex;align-items:center;gap:10px;padding:6px 4px;border-bottom:1px solid var(--gray-light);">
+                    <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" onerror="fallbackProductImage(this, '${p.imagen}')" style="width:40px;height:40px;object-fit:cover;border-radius:8px;flex-shrink:0;">
+                    <span style="font-size:12.5px;color:var(--text);line-height:1.3;">${p.nombre}</span>
+                </div>`).join('');
+            modal.classList.add('active');
+        }
+
+        function cerrarVerTodosStockGlobal() {
+            document.getElementById('verTodosStockGlobalModal')?.classList.remove('active');
         }
 
         function cerrarAvisoStockGlobal() {
@@ -6184,7 +6235,14 @@
             return p ? resolveImgUrl(p.imagen) : '';
         }
 
-        let _colaAvisosCambioStock = [];
+        // Cola de GRUPOS (no de items individuales): cada grupo junta todas
+        // las variantes quitadas o agregadas detectadas en una misma
+        // pasada, para mostrarse en un solo modal con carrusel. Los ids se
+        // marcan como "vistos" apenas se detectan (no al cerrar el modal),
+        // así nunca vuelven a reaparecer aunque el revendedor no llegue a
+        // cerrar cada aviso.
+        let _colaGruposAvisoCambioStock = [];
+        let _grupoActualAvisoCambioStock = null;
 
         async function _verificarCambiosStockCategoria(catalogos) {
             try {
@@ -6196,53 +6254,113 @@
                     const data = await res.json().catch(() => null);
                     if (data && data.ok && Array.isArray(data.cambios)) {
                         data.cambios.forEach(c => {
-                            if (!vistosSet.has(c.id)) nuevos.push(Object.assign({}, c, { catalogo: cat }));
+                            // Los cambios de producto completo ya los avisa
+                            // chequearCambiosStockGlobal (con su propio
+                            // carrusel) — acá solo procesamos variantes
+                            // puntuales (talle/color) para no duplicar el
+                            // mismo aviso dos veces.
+                            if (c.tipo === 'variante' && !vistosSet.has(c.id)) nuevos.push(Object.assign({}, c, { catalogo: cat }));
                         });
                     }
                 }
                 if (nuevos.length === 0) return;
-                _colaAvisosCambioStock = nuevos;
-                _mostrarSiguienteAvisoCambioStock();
+
+                // Se marcan como vistos de inmediato, antes de mostrar nada:
+                // así el aviso se muestra una sola vez y nunca vuelve a
+                // aparecer en próximas visitas a la categoría, se cierre o
+                // no el modal.
+                const idsNuevos = nuevos.map(c => c.id);
+                const vistosActualizados = vistos.concat(idsNuevos);
+                localStorage.setItem('cambiosStockVistos', JSON.stringify(vistosActualizados.slice(-200)));
+
+                const quitados = nuevos.filter(c => c.accion === 'quitado');
+                const agregados = nuevos.filter(c => c.accion !== 'quitado');
+                _colaGruposAvisoCambioStock = [];
+                if (quitados.length) _colaGruposAvisoCambioStock.push({ items: quitados, seAgregaron: false });
+                if (agregados.length) _colaGruposAvisoCambioStock.push({ items: agregados, seAgregaron: true });
+                _mostrarSiguienteGrupoAvisoCambioStock();
             } catch (e) { /* silencioso: esto es un aviso informativo, no algo crítico */ }
         }
 
-        function _mostrarSiguienteAvisoCambioStock() {
-            if (_colaAvisosCambioStock.length === 0) return;
-            const cambio = _colaAvisosCambioStock[0];
+        function _etiquetaVariante(c) {
+            const nombreProducto = c.productNombre || 'este producto';
+            return `${c.valor || ''} de "${nombreProducto}"`.trim();
+        }
+
+        function _carruselAvisoCambioStockHtml(items) {
+            const medio = Math.floor(items.length / 2);
+            return items.slice(0, 8).map((c, i) => {
+                const esMedio = i === medio;
+                const tam = esMedio ? '76px' : '54px';
+                const imgUrl = _resolverImagenProductoPorCatalogo(c.catalogo, c.productId);
+                if (!imgUrl) return '';
+                return `<img src="${imgUrl}" alt="${c.productNombre || ''}" onerror="this.style.display='none'"
+                    style="width:${tam};height:${tam};object-fit:cover;border-radius:10px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.18);transition:all .2s;${esMedio ? 'z-index:2;transform:translateY(-4px);' : 'opacity:.85;'}">`;
+            }).join('');
+        }
+
+        function _mostrarSiguienteGrupoAvisoCambioStock() {
+            if (_colaGruposAvisoCambioStock.length === 0) return;
+            const grupo = _colaGruposAvisoCambioStock[0];
+            _grupoActualAvisoCambioStock = grupo;
+            const { items, seAgregaron } = grupo;
             const modal = document.getElementById('avisoCambioStockModal');
-            const img = document.getElementById('avisoCambioStockImg');
+            const carrusel = document.getElementById('avisoCambioStockCarrusel');
             const titulo = document.getElementById('avisoCambioStockTitulo');
             const texto = document.getElementById('avisoCambioStockTexto');
+            const verTodos = document.getElementById('avisoCambioStockVerTodos');
             if (!modal || !titulo || !texto) return;
-            const imgUrl = _resolverImagenProductoPorCatalogo(cambio.catalogo, cambio.productId);
-            if (imgUrl) { img.src = imgUrl; img.style.display = 'block'; } else { img.style.display = 'none'; }
-            const nombreProducto = cambio.productNombre || 'Este producto';
-            if (cambio.tipo === 'producto') {
-                titulo.textContent = cambio.accion === 'quitado' ? 'Producto quitado del stock' : 'Producto disponible de nuevo';
-                texto.textContent = cambio.accion === 'quitado'
-                    ? `"${nombreProducto}" ya no está disponible por el momento.`
-                    : `"${nombreProducto}" volvió a estar disponible.`;
+            const esPlural = items.length > 1;
+
+            if (carrusel) carrusel.innerHTML = _carruselAvisoCambioStockHtml(items);
+
+            if (esPlural) {
+                titulo.textContent = seAgregaron ? 'Nuevas variantes disponibles' : 'Variantes quitadas del stock';
+                texto.textContent = seAgregaron
+                    ? 'Estas variantes ya están disponibles de nuevo.'
+                    : 'Estas variantes no están disponibles por el momento.';
             } else {
-                titulo.textContent = cambio.accion === 'quitado' ? 'Variante quitada del stock' : 'Nueva variante disponible';
-                texto.textContent = cambio.accion === 'quitado'
-                    ? `"${cambio.valor}" de "${nombreProducto}" ya no está disponible.`
-                    : `"${cambio.valor}" de "${nombreProducto}" ya está disponible.`;
+                const etiqueta = _etiquetaVariante(items[0]);
+                titulo.textContent = seAgregaron ? 'Nueva variante disponible' : 'Variante quitada del stock';
+                texto.textContent = seAgregaron
+                    ? `"${etiqueta}" ya está disponible.`
+                    : `"${etiqueta}" ya no está disponible.`;
             }
+            if (verTodos) verTodos.style.display = items.length > 3 ? 'block' : 'none';
             modal.classList.add('active');
         }
 
         function cerrarAvisoCambioStock() {
-            const modal = document.getElementById('avisoCambioStockModal');
-            if (modal) modal.classList.remove('active');
-            if (_colaAvisosCambioStock.length > 0) {
-                const cambio = _colaAvisosCambioStock.shift();
-                const vistos = JSON.parse(localStorage.getItem('cambiosStockVistos') || '[]');
-                vistos.push(cambio.id);
-                localStorage.setItem('cambiosStockVistos', JSON.stringify(vistos.slice(-200)));
+            document.getElementById('avisoCambioStockModal')?.classList.remove('active');
+            if (_colaGruposAvisoCambioStock.length > 0) _colaGruposAvisoCambioStock.shift();
+            if (_colaGruposAvisoCambioStock.length > 0) {
+                setTimeout(_mostrarSiguienteGrupoAvisoCambioStock, 350);
             }
-            if (_colaAvisosCambioStock.length > 0) {
-                setTimeout(_mostrarSiguienteAvisoCambioStock, 350);
-            }
+        }
+
+        function abrirVerTodosCambioStock() {
+            const grupo = _grupoActualAvisoCambioStock;
+            if (!grupo || !grupo.items || !grupo.items.length) return;
+            const modal = document.getElementById('verTodosCambioStockModal');
+            const titulo = document.getElementById('verTodosCambioStockTitulo');
+            const lista = document.getElementById('verTodosCambioStockLista');
+            if (!modal || !titulo || !lista) return;
+            titulo.textContent = grupo.seAgregaron ? 'Variantes disponibles de nuevo' : 'Variantes quitadas del stock';
+            lista.innerHTML = grupo.items.map(c => {
+                const imgUrl = _resolverImagenProductoPorCatalogo(c.catalogo, c.productId);
+                const imgHtml = imgUrl
+                    ? `<img src="${imgUrl}" alt="" onerror="this.style.display='none'" style="width:40px;height:40px;object-fit:cover;border-radius:8px;flex-shrink:0;">`
+                    : `<div style="width:40px;height:40px;border-radius:8px;flex-shrink:0;background:var(--gray-light);"></div>`;
+                return `<div style="display:flex;align-items:center;gap:10px;padding:6px 4px;border-bottom:1px solid var(--gray-light);">
+                    ${imgHtml}
+                    <span style="font-size:12.5px;color:var(--text);line-height:1.3;">${_etiquetaVariante(c)}</span>
+                </div>`;
+            }).join('');
+            modal.classList.add('active');
+        }
+
+        function cerrarVerTodosCambioStock() {
+            document.getElementById('verTodosCambioStockModal')?.classList.remove('active');
         }
 
         // 🔧 NUEVO: categorías frenadas temporalmente desde pedidos.html —
