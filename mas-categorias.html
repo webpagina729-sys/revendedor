@@ -15041,7 +15041,8 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                             campos: {
                                 [`configTiendaAll.${cat}`]: '__DELETE_FIELD__',
                                 [`preciosManualCat.${cat}`]: '__DELETE_FIELD__',
-                                [`coloresTiendaPorCat.${cat}`]: '__DELETE_FIELD__'
+                                [`coloresTiendaPorCat.${cat}`]: '__DELETE_FIELD__',
+                                [`tiendasInhabilitadas.${cat}`]: Date.now()
                             }
                         })
                     }).catch(() => {});
@@ -15650,7 +15651,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                     let detalle = null;
                     try { detalle = await res.json(); } catch(_) {}
                     console.warn('comboFetch error', res.status, path, detalle);
-                    return { ok: false, error: (detalle && detalle.error) || `Error del servidor (código ${res.status})` };
+                    return { ok: false, error: ((detalle && detalle.error) || `Error del servidor (código ${res.status})`) + ((detalle && detalle.detalle) ? ' — ' + String(detalle.detalle).slice(0, 180) : '') };
                 }
                 return await res.json();
             } catch(e) {
