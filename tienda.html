@@ -594,6 +594,19 @@
             z-index: 5;
         }
         .promo-float-box { position: relative; }
+        /* Modal "Combo disponible": compacto, un producto por renglón */
+        #comboFloatModal .promo-float-box { padding: 16px 14px; max-width: 360px; }
+        #comboFloatModal .promo-float-tag { margin-bottom: 8px; }
+        #comboFloatModal .promo-float-title { font-size: 14px; margin-bottom: 4px; }
+        #comboFloatModal .combo-float-name {
+            display: block; width: 100%; white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis; font-size: 14px; font-weight: 700;
+            line-height: 1.35; text-align: center;
+        }
+        #comboFloatModal .combo-float-name + .combo-float-name { margin-top: 2px; }
+        #comboFloatModal .promo-float-sub { margin-bottom: 8px; font-size: 13px; }
+        #comboFloatModal .promo-float-imgs { margin-bottom: 10px; }
+        #comboFloatModal .promo-float-imgs img { width: 52px; height: 52px; }
 
         /* Carrusel "coverflow": 5 imágenes en fila, la central más grande */
         .coverflow-title {
@@ -5433,8 +5446,16 @@ function mostrarComboFloatDesdeCache(index) {
     const combos = window._combosCache || [];
     const c = combos[index];
     if (!c) return;
-    document.getElementById('comboFloatTitle').textContent = (c.productos || []).map(p => p.nombre).join(' + ');
-    document.getElementById('comboFloatSub').textContent = 'Precio del combo: ' + formatPrice(c.precioFinal);
+    const tituloEl = document.getElementById('comboFloatTitle');
+    tituloEl.innerHTML = '';
+    (c.productos || []).forEach(p => {
+        const d = document.createElement('span');
+        d.className = 'combo-float-name';
+        d.textContent = p.nombre;
+        d.title = p.nombre;
+        tituloEl.appendChild(d);
+    });
+    document.getElementById('comboFloatSub').innerHTML = 'Precio del combo: <strong>' + _precioComboHtml(c) + '</strong>';
     const imgs = document.getElementById('comboFloatImgs');
     imgs.innerHTML = '';
     (c.productos || []).slice(0, 3).forEach(p => {
@@ -5445,6 +5466,11 @@ function mostrarComboFloatDesdeCache(index) {
         imgs.appendChild(img);
     });
     document.getElementById('comboFloatModal').classList.add('active');
+    // Cada nombre se achica solo hasta entrar en el ancho del modal.
+    tituloEl.querySelectorAll('.combo-float-name').forEach(el => {
+        let size = 14;
+        while (el.scrollWidth > el.clientWidth && size > 8) { size -= 0.5; el.style.fontSize = size + 'px'; }
+    });
 }
 
 // Muestra un ítem de la cola, cerrando antes cualquier otro modal de la
