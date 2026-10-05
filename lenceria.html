@@ -13129,6 +13129,26 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             abrirCombosPromosLista(cat);
         };
 
+        // Copia el enlace con varios respaldos (el portapapeles directo falla si la
+// página no tiene el foco, p. ej. con DevTools abierto): clipboard → copia
+// clásica → mostrar el enlace para copiarlo a mano. Nunca dice "no se pudo".
+async function _copiarEnlaceItem(url) {
+            let ok = false;
+            try { await navigator.clipboard.writeText(url); ok = true; } catch(_) {}
+            if (!ok) {
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = url; ta.setAttribute('readonly', '');
+                    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+                    document.body.appendChild(ta); ta.focus(); ta.select();
+                    ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                } catch(_) {}
+            }
+            if (ok) alert('Enlace copiado ✓');
+            else window.prompt('Copiá el enlace:', url);
+        }
+
         window.compartirEnlaceCategoriaConPromo = async function(cat) {
             const btn = event && event.target ? event.target.closest('button') : null;
             const original = btn ? btn.innerHTML : null;
@@ -13142,8 +13162,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                 if (navigator.share) {
                     try { await navigator.share({ title: 'Mi tienda', url }); return; } catch(_) {}
                 }
-                await navigator.clipboard.writeText(url);
-                alert('Enlace copiado ✓');
+                await _copiarEnlaceItem(url);
             } catch(e) {
                 alert('No se pudo generar el enlace. Intentá de nuevo.');
             } finally {
@@ -13197,9 +13216,9 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                 html += '<p style="font-size:12.5px;color:var(--text-light);">Todavía no creaste ningún combo en esta categoría.</p>';
             } else {
                 html += combos.map(c => `
-                    <div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12.5px;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-                            <span style="font-weight:600;">${c.productos.map(p => p.nombre).join(' + ')}</span>
+                    <div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px;">
+                        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;">
+                            <div style="flex:1;min-width:0;">${c.productos.map(p => `<div style="font-size:10.5px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${p.nombre}">${p.nombre}</div>`).join('')}</div>
                             ${itemOnOffToggleHtml('combo', c.id, c.activo, cat)}
                         </div>
                         <div style="color:var(--text-light);margin-bottom:6px;">Precio final: <strong style="color:var(--primary);">$${c.precioFinal.toLocaleString()}</strong> · Ganancia: $${c.ganancia.toLocaleString()}</div>
@@ -13262,7 +13281,8 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ slugId, codigoVendedor, tipo, itemId, categoria: cat })
                 });
-                const slugFinal = (guardado && guardado.slugId) || slugId;
+                if (!guardado || !guardado.ok) throw new Error((guardado && guardado.error) || 'slug');
+                const slugFinal = guardado.slugId || slugId;
                 // 🔧 Mismo motivo que en acortarEnlace/construirEnlaceTienda:
                 // apuntar al archivo real + query param, no a una ruta
                 // "linda" que depende de una reescritura de hosting que acá
@@ -13274,8 +13294,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                 if (navigator.share) {
                     try { await navigator.share({ title: 'Mi tienda', url }); return; } catch(_) {}
                 }
-                await navigator.clipboard.writeText(url);
-                alert('Enlace copiado ✓');
+                await _copiarEnlaceItem(url);
             } catch(e) {
                 alert('No se pudo generar el enlace. Intentá de nuevo.');
             } finally {
