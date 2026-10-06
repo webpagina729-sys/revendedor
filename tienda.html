@@ -3206,6 +3206,32 @@ function formatPrice(n) {
 // ═══════════════════════════════════════════════════════════════
 // CARGA DE DATOS DEL VENDEDOR
 // ═══════════════════════════════════════════════════════════════
+// ¿El revendedor eliminó esta tienda? (consulta en vivo, sin caché).
+// Si el servidor no responde, no se bloquea la tienda.
+async function tiendaInhabilitada() {
+    try {
+        const claves = [];
+        const sub = subParam;
+        const principal = (catParam === 'belleza' && sub === 'maquillaje') ? 'belleza_maquillaje'
+            : (catParam === 'belleza' && sub === 'perfume') ? 'belleza_perfume'
+            : (catParam === 'bazar' && sub === 'melamina') ? 'bazar_melamina'
+            : (catParam === 'bazar') ? 'bazar_bazar'
+            : (catParam === 'jugueteria' && sub === 'peluches') ? 'jugueteria_peluches'
+            : (catParam === 'jugueteria') ? 'jugueteria_juguetes'
+            : (catParam === 'multishop' && sub) ? sub
+            : catParam;
+        [principal, catParam].forEach(c => { if (c && claves.indexOf(c) < 0) claves.push(c); });
+        const uid = uidParam || (vendedor && vendedor.uid) || '';
+        const url = 'https://datosderevendedor.tuweb.workers.dev/api/tienda-habilitada?uid=' + encodeURIComponent(uid)
+            + '&codigo=' + encodeURIComponent(codigoParam || '') + '&cats=' + encodeURIComponent(claves.join(','))
+            + '&t=' + Date.now();
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) return false;
+        const d = await r.json();
+        return !!(d && d.habilitada === false);
+    } catch (_) { return false; }
+}
+
 async function cargarVendedor() {
     _diag('cargarVendedor() — codigoParam=' + (codigoParam || '(vacío)') + ' | uidParam=' + (uidParam || '(vacío)'));
     if (!codigoParam && !uidParam) {
@@ -3375,27 +3401,20 @@ async function cargarVendedor() {
         if (fsStock && fsStock.stockProductosCat && typeof fsStock.stockProductosCat === 'object') {
             vendedor.stockProductosCat = fsStock.stockProductosCat;
         }
-        // Tienda eliminada por el revendedor desde "Mis tiendas guardadas":
-        // queda inhabilitada (el worker la marca en tiendasInhabilitadas y
-        // la quita al volver a guardar esa configuración).
-        if (fsStock && fsStock.tiendasInhabilitadas && typeof fsStock.tiendasInhabilitadas === 'object') {
-            const _claveInhab = (catParam === 'belleza' && subParam === 'maquillaje') ? 'belleza_maquillaje'
-                : (catParam === 'belleza' && subParam === 'perfume') ? 'belleza_perfume'
-                : (catParam === 'bazar' && subParam === 'melamina') ? 'bazar_melamina'
-                : (catParam === 'bazar') ? 'bazar_bazar'
-                : (catParam === 'jugueteria' && subParam === 'peluches') ? 'jugueteria_peluches'
-                : (catParam === 'jugueteria') ? 'jugueteria_juguetes'
-                : (catParam === 'multishop' && subParam) ? subParam
-                : catParam;
-            if (fsStock.tiendasInhabilitadas[_claveInhab] || fsStock.tiendasInhabilitadas[catParam]) {
-                window._tiendaInhabilitada = true;
-            }
-        }
     } catch(_) {}
-    if (window._tiendaInhabilitada) {
+    // Tienda eliminada por el revendedor desde "Mis tiendas guardadas":
+    // queda inhabilitada y el enlace compartido deja de mostrarla.
+    if (await tiendaInhabilitada()) {
         mostrarError('El vendedor actualizó su tienda. Comunícate con él y podrás pedirle su nuevo stock.');
         return;
     }
+    // En vivo: si la elimina mientras un cliente la está viendo, se cierra sola.
+    setInterval(async function() {
+        if (await tiendaInhabilitada()) window.location.reload();
+    }, 30000);
+    document.addEventListener('visibilitychange', async function() {
+        if (!document.hidden && await tiendaInhabilitada()) window.location.reload();
+    });
     // ─────────────────────────────────────────────────────────────────────────────────────
     let cfgAll = null;
 
