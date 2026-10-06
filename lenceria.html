@@ -12256,9 +12256,19 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                             campos: {
                                 [`configTiendaAll.${cat}`]: '__DELETE_FIELD__',
                                 [`preciosManualCat.${cat}`]: '__DELETE_FIELD__',
-                                [`coloresTiendaPorCat.${cat}`]: '__DELETE_FIELD__',
-                                [`tiendasInhabilitadas.${cat}`]: Date.now()
+                                [`coloresTiendaPorCat.${cat}`]: '__DELETE_FIELD__'
                             }
+                        })
+                    }).catch(() => {});
+                    // La tienda queda inhabilitada: los enlaces compartidos a
+                    // los clientes dejan de mostrarla (la consulta tienda.html).
+                    fetch('https://datosderevendedor.tuweb.workers.dev/api/inhabilitar-tienda', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            uid: fbUser ? fbUser.uid : undefined,
+                            codigoVendedor: codigo || undefined,
+                            categoria: cat
                         })
                     }).catch(() => {});
                 }
