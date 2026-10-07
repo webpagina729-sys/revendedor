@@ -8131,7 +8131,7 @@ function catalogoEfectivoMultishop(p) {
                 const quitar = (arr, cat) => {
                     if (!arr) return;
                     for (let i = arr.length - 1; i >= 0; i--) {
-                        const c = cat || catDeId(arr[i].id);
+                        const c = arr[i]._catCentral || cat || catDeId(arr[i].id);
                         if (vivos[c] && !vivos[c].has(arr[i].id)) arr.splice(i, 1);
                     }
                 };
@@ -11869,6 +11869,25 @@ function catalogoEfectivoMultishop(p) {
             actualizarVistaNichos();
             actualizarBotonesRevend();
         };
+        const talleCalzado = ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44'];
+        const nuevo = (cat, a) => {
+            const base = { id: a.id, nombre: a.nombre, imagen: a.imagen, precio: a.precio, precioOriginal: a.precio, caracteristicas: [], info: '', _catCentral: cat };
+            if (cat === 'perfumes') return { ...base, categoria: 'unisex' };
+            if (cat === 'calzados') return { ...base, categoria: 'adultos', talle: talleCalzado };
+            if (cat === 'belleza_maquillaje') return { ...base, categoria: 'maquillaje', _origin: 'maquillaje', imagenes: [a.imagen] };
+            if (cat === 'bazar_bazar') return { ...base, categoria: 'bazar' };
+            if (cat === 'bazar_melamina') return { ...base, categoria: 'melamina' };
+            if (cat === 'jugueteria_juguetes') return { ...base, categoria: 'juguetes' };
+            if (cat === 'jugueteria_peluches') return { ...base, categoria: 'peluches' };
+            if (cat === 'libreria') return { ...base, categoria: 'libreria' };
+            if (cat === 'electronicos') return { ...base, categoria: 'electronicos' };
+            if (cat === 'lenceria') return { ...base, categoria: 'lenceria', grupo: 'lenceria', subcategoria: 'conjuntos', precioCosto: a.precio };
+            return base;
+        };
+        const agregar = (arr, cat, extra) => {
+            if (!arr) return;
+            (data.agregados && data.agregados[cat] || []).forEach(a => { if (!arr.some(x => x.id === a.id)) arr.push({ ...nuevo(cat, a), ...extra }); });
+        };
 
         // Interceptar logoutUser
         const originalLogoutUser = window.logoutUser || function() {};
@@ -13617,7 +13636,31 @@ function catalogoEfectivoMultishop(p) {
                     } catch(err) { console.error("ERROR setBannerYFooterVendedor", err); }
                 }
                 if (typeof initializeUserSession === 'function' && fbUser) {
-                    try { initializeUserSession(userData, fbUser); } catch(err) { console.error("ERROR initializeUserSession", err); }
+                    agregar(window.products, 'perfumes');
+        agregar(window.productsMaquillaje, 'belleza_maquillaje');
+        agregar(window.productsBelleza, 'belleza_maquillaje');
+        agregar(window.productsBelleza, 'perfumes', { _origin: 'perfume' });
+        agregar(BAZAR_DATA, 'bazar_bazar');
+        agregar(MELAMINA_DATA, 'bazar_melamina');
+        agregar(JUGUETES_DATA, 'jugueteria_juguetes');
+        agregar(PELUCHES_DATA, 'jugueteria_peluches');
+        agregar(LIBRERIA_DATA, 'libreria');
+        agregar(ELECTRONICOS_DATA, 'electronicos');
+        agregar(window.productsBazar, 'bazar_bazar', { _bazarSub: 'bazar' });
+        agregar(window.productsBazar, 'bazar_melamina', { _bazarSub: 'melamina' });
+        agregar(window.productsJugueteria, 'jugueteria_juguetes', { _jugSub: 'juguetes' });
+        agregar(window.productsJugueteria, 'jugueteria_peluches', { _jugSub: 'peluches' });
+        agregar(window.productsLibreria, 'libreria');
+        agregar(window.productsElectronicos, 'electronicos');
+        agregar(window.productsMultishop, 'belleza_maquillaje', { _multiSub: 'belleza' });
+        agregar(window.productsMultishop, 'perfumes', { _multiSub: 'belleza', _origin: 'perfume' });
+        agregar(window.productsMultishop, 'bazar_bazar', { _multiSub: 'bazar', _bazarSub: 'bazar' });
+        agregar(window.productsMultishop, 'bazar_melamina', { _multiSub: 'bazar', _bazarSub: 'melamina' });
+        agregar(window.productsMultishop, 'jugueteria_juguetes', { _multiSub: 'jugueteria', _jugSub: 'juguetes' });
+        agregar(window.productsMultishop, 'jugueteria_peluches', { _multiSub: 'jugueteria', _jugSub: 'peluches' });
+        agregar(window.productsMultishop, 'libreria', { _multiSub: 'libreria' });
+        agregar(window.productsMultishop, 'electronicos', { _multiSub: 'electronicos' });
+        try { initializeUserSession(userData, fbUser); } catch(err) { console.error("ERROR initializeUserSession", err); }
                 }
                 if (typeof actualizarVistaNichos   === 'function') {
                     try { actualizarVistaNichos(); }   catch(err) { console.error("ERROR actualizarVistaNichos", err); }
