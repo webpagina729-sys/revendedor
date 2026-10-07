@@ -5833,7 +5833,7 @@
                 const quitar = (arr, cat) => {
                     if (!arr) return;
                     for (let i = arr.length - 1; i >= 0; i--) {
-                        const c = cat || catDeId(arr[i].id);
+                        const c = arr[i]._catCentral || cat || catDeId(arr[i].id);
                         if (vivos[c] && !vivos[c].has(arr[i].id)) arr.splice(i, 1);
                     }
                 };
@@ -6337,6 +6337,25 @@
             perfumes: 'Perfumería', belleza: 'Belleza', calzados: 'Calzados',
             lenceria: 'Lencería', suplementos: 'Suplementos',
         };
+        const talleCalzado = ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44'];
+        const nuevo = (cat, a) => {
+            const base = { id: a.id, nombre: a.nombre, imagen: a.imagen, precio: a.precio, precioOriginal: a.precio, caracteristicas: [], info: '', _catCentral: cat };
+            if (cat === 'perfumes') return { ...base, categoria: 'unisex' };
+            if (cat === 'calzados') return { ...base, categoria: 'adultos', talle: talleCalzado };
+            if (cat === 'belleza_maquillaje') return { ...base, categoria: 'maquillaje', _origin: 'maquillaje', imagenes: [a.imagen] };
+            if (cat === 'bazar_bazar') return { ...base, categoria: 'bazar' };
+            if (cat === 'bazar_melamina') return { ...base, categoria: 'melamina' };
+            if (cat === 'jugueteria_juguetes') return { ...base, categoria: 'juguetes' };
+            if (cat === 'jugueteria_peluches') return { ...base, categoria: 'peluches' };
+            if (cat === 'libreria') return { ...base, categoria: 'libreria' };
+            if (cat === 'electronicos') return { ...base, categoria: 'electronicos' };
+            if (cat === 'lenceria') return { ...base, categoria: 'lenceria', grupo: 'lenceria', subcategoria: 'conjuntos', precioCosto: a.precio };
+            return base;
+        };
+        const agregar = (arr, cat, extra) => {
+            if (!arr) return;
+            (data.agregados && data.agregados[cat] || []).forEach(a => { if (!arr.some(x => x.id === a.id)) arr.push({ ...nuevo(cat, a), ...extra }); });
+        };
         const NICHO_CATALOGOS_PAUSA = {
             perfumes: ['perfumes'], belleza: ['belleza_maquillaje', 'belleza_perfume'],
             calzados: ['calzados'], lenceria: ['lenceria'], suplementos: ['suplementos'],
@@ -6695,7 +6714,12 @@
                 const catConfig = 'belleza_' + sub;
                 const url = await generarEnlaceCorto(catConfig);
                 if (navigator.share) {
-                    try { await navigator.share({ title: 'Mi tienda', url }); return; } catch(_) {}
+                    agregar(window.products, 'perfumes');
+        agregar(window.shoes, 'calzados');
+        agregar(window.productsMaquillaje, 'belleza_maquillaje');
+        agregar(window.productsBelleza, 'belleza_maquillaje');
+        agregar(window.productsBelleza, 'perfumes', { _origin: 'perfume' });
+        try { await navigator.share({ title: 'Mi tienda', url }); return; } catch(_) {}
                 }
                 await navigator.clipboard.writeText(url);
                 alert('Enlace de ' + (sub === 'maquillaje' ? 'Maquillaje' : 'Perfumes') + ' copiado ✓');
