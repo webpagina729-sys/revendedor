@@ -3713,6 +3713,31 @@ async function iniciarTienda() {
     const filtersBar = document.getElementById('filters-bar');
     filtersBar.style.display = 'flex';
 
+    // Catálogo central (Worker de precios, KV): lo eliminado definitivamente
+    // desde pedidos.html desaparece también de acá (solo categorías ya cargadas en el Worker).
+    try {
+        const _resCat = await fetch('https://preciosmayoristasrevendedores.tuweb.workers.dev/api/catalogo?categoria=todas');
+        const _dataCat = await _resCat.json();
+        if (_dataCat && _dataCat.ok && _dataCat.catalogos) {
+            const _quitar = (arr, cat) => {
+                const vivos = _dataCat.catalogos[cat];
+                if (!vivos) return;
+                for (let i = arr.length - 1; i >= 0; i--) if (!vivos.includes(arr[i].id)) arr.splice(i, 1);
+            };
+            _quitar(PERFUMES_DATA, 'perfumes');
+            _quitar(CALZADOS_DATA, 'calzados');
+            _quitar(MAQUILLAJE_DATA, 'belleza_maquillaje');
+            _quitar(BAZAR_DATA, 'bazar_bazar');
+            _quitar(MELAMINA_DATA, 'bazar_melamina');
+            _quitar(JUGUETES_DATA, 'jugueteria_juguetes');
+            _quitar(PELUCHES_DATA, 'jugueteria_peluches');
+            _quitar(LIBRERIA_DATA, 'libreria');
+            _quitar(LENCERIA_DATA, 'lenceria');
+            _quitar(SUPLEMENTOS_DATA, 'suplementos');
+            _quitar(ELECTRONICOS_DATA, 'electronicos');
+        }
+    } catch(_e) { /* si falla, se muestra el catálogo embebido */ }
+
     // Preparar datos con precios ajustados
     let raw = catalogoActual === 'calzados'
         ? CALZADOS_DATA
