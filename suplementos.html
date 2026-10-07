@@ -4615,11 +4615,31 @@ fetch('https://preciosmayoristasrevendedores.tuweb.workers.dev/api/catalogo?cate
         const quitar = (arr, cat) => {
             if (!arr) return;
             for (let i = arr.length - 1; i >= 0; i--) {
-                const c = cat || catDeId(arr[i].id);
+                const c = arr[i]._catCentral || cat || catDeId(arr[i].id);
                 if (vivos[c] && !vivos[c].has(arr[i].id)) arr.splice(i, 1);
             }
         };
+        const talleCalzado = ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44'];
+        const nuevo = (cat, a) => {
+            const base = { id: a.id, nombre: a.nombre, imagen: a.imagen, precio: a.precio, precioOriginal: a.precio, caracteristicas: [], info: '', _catCentral: cat };
+            if (cat === 'perfumes') return { ...base, categoria: 'unisex' };
+            if (cat === 'calzados') return { ...base, categoria: 'adultos', talle: talleCalzado };
+            if (cat === 'belleza_maquillaje') return { ...base, categoria: 'maquillaje', _origin: 'maquillaje', imagenes: [a.imagen] };
+            if (cat === 'bazar_bazar') return { ...base, categoria: 'bazar' };
+            if (cat === 'bazar_melamina') return { ...base, categoria: 'melamina' };
+            if (cat === 'jugueteria_juguetes') return { ...base, categoria: 'juguetes' };
+            if (cat === 'jugueteria_peluches') return { ...base, categoria: 'peluches' };
+            if (cat === 'libreria') return { ...base, categoria: 'libreria' };
+            if (cat === 'electronicos') return { ...base, categoria: 'electronicos' };
+            if (cat === 'lenceria') return { ...base, categoria: 'lenceria', grupo: 'lenceria', subcategoria: 'conjuntos', precioCosto: a.precio };
+            return base;
+        };
+        const agregar = (arr, cat, extra) => {
+            if (!arr) return;
+            (data.agregados && data.agregados[cat] || []).forEach(a => { if (!arr.some(x => x.id === a.id)) arr.push({ ...nuevo(cat, a), ...extra }); });
+        };
         quitar(SUPLEMENTOS_DATA, 'suplementos');
+        agregar(SUPLEMENTOS_DATA, 'suplementos');
         try { if (typeof renderSuplementosProducts === 'function') renderSuplementosProducts(); } catch(_e) {}
     })
     .catch(() => {});
