@@ -3173,6 +3173,38 @@ const NUEVAS_CATEGORIAS_KEYS = new Set([
 ]);
 
 function calcularPrecioConMargen(precioBase, cat) {
+    const _previo = _precioMargenSolo(precioBase, cat);
+    if (!_previo) return _previo;
+    const _pct = _pctPromoParaPrecio(_previo);
+    return _pct > 0 ? Math.round(_previo * (1 - _pct / 100)) : _previo;
+}
+
+// Porcentaje de la promoción activa que corresponde a un precio (ya con margen,
+// sin descuento): el primer rango (ordenado por "hasta") que lo contiene.
+function _pctPromoParaPrecio(precioPrevio) {
+    const promo = window.promoActiva;
+    if (!promo || !Array.isArray(promo.rangos)) return 0;
+    const pr = promo.rangos
+        .map(r => ({ de: Number(r.de) || 0, hasta: Number(r.hasta) || Infinity, porcentaje: Number(r.porcentaje) || 0 }))
+        .sort((a, b) => a.hasta - b.hasta)
+        .find(r => precioPrevio >= r.de && precioPrevio <= r.hasta);
+    return (pr && pr.porcentaje > 0) ? pr.porcentaje : 0;
+}
+
+// Datos de promoción de un producto: % y precio de antes (sin descuento).
+// El descuento aplica solo a los productos cuyo precio cae en un rango configurado.
+function _promoInfoProducto(p) {
+    if (!p || typeof p !== 'object') return { pct: 0, antes: Number(p) || 0 };
+    const final = Number(p.precioFinal) || 0;
+    const cat = p._catKey;
+    const manual = (vendedor && vendedor.preciosManualCat && cat && vendedor.preciosManualCat[cat]) ? vendedor.preciosManualCat[cat][p.id] : undefined;
+    if (manual !== undefined && manual !== null && manual !== '') return { pct: 0, antes: final };
+    const previo = _precioMargenSolo(p.precio, cat);
+    const pct = previo ? _pctPromoParaPrecio(previo) : 0;
+    return pct > 0 ? { pct, antes: previo } : { pct: 0, antes: final };
+}
+
+function _precioMargenSolo(precioBase, cat) {
     // IMPORTANTE: el precio base de costo siempre es el original del producto.
     const base = Number(precioBase) || 0;
     if (!base) return base;
@@ -3193,16 +3225,6 @@ function calcularPrecioConMargen(precioBase, cat) {
         const rango = rangos.find(r => base >= r.de && base <= r.hasta);
         const pct = rango ? rango.porcentaje : 0;
         precioFinal = Math.round(base * (1 + pct / 100));
-    }
-    // Aplicar descuento de promoción SOBRE el precio final
-    if (window.promoActiva && Array.isArray(window.promoActiva.rangos)) {
-        const pr = window.promoActiva.rangos
-            .map(r => ({ de: Number(r.de) || 0, hasta: Number(r.hasta) || Infinity, porcentaje: Number(r.porcentaje) || 0 }))
-            .sort((a, b) => a.hasta - b.hasta)
-            .find(r => precioFinal >= r.de && precioFinal <= r.hasta);
-        if (pr && pr.porcentaje > 0) {
-            precioFinal = Math.round(precioFinal * (1 - pr.porcentaje / 100));
-        }
     }
     return precioFinal;
 }
@@ -4044,7 +4066,7 @@ function filtrarProductos() {
     if (orden === 'price-asc') lista.sort((a, b) => a.precioFinal - b.precioFinal);
     else if (orden === 'price-desc') lista.sort((a, b) => b.precioFinal - a.precioFinal);
 
-    if (window._modoPromoCatalogo) lista = lista.filter(p => getDescuentoPorcentaje(p.precioFinal) > 0);
+    if (window._modoPromoCatalogo) lista = lista.filter(p => getDescuentoPorcentaje(p) > 0);
 
     productosFilt = lista;
     renderizarProductos();
@@ -4071,14 +4093,14 @@ function renderizarProductos() {
     grid.innerHTML = visibles.map(p => `
         <div class="product-card" onclick="abrirModal(${p.id})">
             <div class="product-img-wrap" style="position:relative;">
-                ${badgeDescuentoHtml(p.precioFinal)}
+                ${badgeDescuentoHtml(p)}
                 <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}"
                      onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f5f5f5%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-family=%22Arial%22 font-size=%2214%22 fill=%22%23999%22%3EFoto%3C/text%3E%3C/svg%3E'">
             </div>
             <div class="product-info">
                 <div class="product-category">${p.categoria}</div>
                 <div class="product-name">${p.nombre}</div>
-                <div class="product-price">${precioHtmlConPromo(p.precioFinal)}</div>
+                <div class="product-price">${precioHtmlConPromo(p)}</div>
                 <button class="add-btn" onclick="event.stopPropagation();abrirModal(${p.id})">Ver más</button>
             </div>
         </div>
@@ -4172,7 +4194,7 @@ function abrirModal(id) {
     if (prevBtn) prevBtn.style.display = multi ? 'flex' : 'none';
     if (nextBtn) nextBtn.style.display = multi ? 'flex' : 'none';
     document.getElementById('modal-nombre').textContent = productoModal.nombre;
-    document.getElementById('modal-precio').innerHTML = precioHtmlConPromo(productoModal.precioFinal);
+    document.getElementById('modal-precio').innerHTML = precioHtmlConPromo(productoModal);
     document.getElementById('modal-info').textContent = productoModal.info || '';
     document.getElementById('modal-momento').textContent = productoModal.momento || '';
 
@@ -4410,7 +4432,7 @@ function renderizarCarrito() {
             <div class="cart-item-info">
                 <div class="cart-item-name">${item.producto.nombre}${item.talle ? ' — T. ' + item.talle : ''}${item.variante ? ' — ' + item.variante : ''}${item.color ? ' — ' + item.color : ''}</div>
                 ${item.comboId ? `<div style="font-size:11px;color:var(--primary);font-weight:700;">🎁 Combo</div>` : ''}
-                <div class="cart-item-price">${(() => { const a = item.comboId ? (Number(item.precioAntes) || 0) : precioAntesPromo(item.producto.precioFinal); return a > item.producto.precioFinal ? '<span class="price-before">' + formatPrice(a * item.qty) + '</span>' : ''; })()}${formatPrice(item.producto.precioFinal * item.qty)}</div>
+                <div class="cart-item-price">${(() => { const a = item.comboId ? (Number(item.precioAntes) || 0) : precioAntesPromo(item.producto); return a > item.producto.precioFinal ? '<span class="price-before">' + formatPrice(a * item.qty) + '</span>' : ''; })()}${formatPrice(item.producto.precioFinal * item.qty)}</div>
                 <div class="cart-qty">
                     <button class="qty-btn" onclick="cambiarCantidad('${item.key}',-1)">−</button>
                     <span class="qty-val">${item.qty}</span>
@@ -4598,7 +4620,7 @@ async function cargarSeccionDescuentosYCombos() {
     const seccion = document.getElementById('descuentos-combos-section');
     if (!seccion) return;
 
-    const conDescuento = (todosProductos || []).filter(p => getDescuentoPorcentaje(p.precioFinal) > 0);
+    const conDescuento = (todosProductos || []).filter(p => getDescuentoPorcentaje(p) > 0);
     const promo = window.promoActiva;
     const hayPromo = conDescuento.length > 0 || _promoTieneDescuento(promo);
 
@@ -5355,36 +5377,27 @@ function cerrarPromoFloat() {
 // ═══════════════════════════════════════════════════════════════
 // DESCUENTOS: helper de porcentaje + badge en las tarjetas
 // ═══════════════════════════════════════════════════════════════
-function getDescuentoPorcentaje(precioFinal) {
-    const promo = window.promoActiva;
-    if (!promo || !Array.isArray(promo.rangos)) return 0;
-    let max = 0;
-    promo.rangos.forEach(r => {
-        const de = Number(r.de) || 0;
-        const hasta = Number(r.hasta) || Infinity;
-        const pct = Number(r.porcentaje) || 0;
-        if (precioFinal >= de && precioFinal <= hasta && pct > max) max = pct;
-    });
-    return max;
+function getDescuentoPorcentaje(prod) {
+    return _promoInfoProducto(prod).pct;
 }
 
-function badgeDescuentoHtml(precioFinal) {
-    const pct = getDescuentoPorcentaje(precioFinal);
+function badgeDescuentoHtml(prod) {
+    const pct = getDescuentoPorcentaje(prod);
     if (pct <= 0) return '';
     return `<div style="position:absolute;top:6px;left:6px;background:#ef4444;color:#fff;font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px;z-index:3;box-shadow:0 1px 4px rgba(0,0,0,.25);">-${pct}%</div>`;
 }
 
 // Precio de antes (tachado) para productos con descuento de promoción.
-function precioAntesPromo(precioFinal) {
-    const pct = getDescuentoPorcentaje(precioFinal);
-    return (pct > 0 && pct < 100) ? Math.round(precioFinal / (1 - pct / 100)) : precioFinal;
+function precioAntesPromo(prod) {
+    return _promoInfoProducto(prod).antes;
 }
-function precioHtmlConPromo(precioFinal) {
-    const antes = precioAntesPromo(precioFinal);
-    if (antes > precioFinal) {
-        return '<span class="price-before">' + formatPrice(antes) + '</span>' + formatPrice(precioFinal);
+function precioHtmlConPromo(prod) {
+    const final = Number(prod && prod.precioFinal) || 0;
+    const antes = precioAntesPromo(prod);
+    if (antes > final) {
+        return '<span class="price-before">' + formatPrice(antes) + '</span>' + formatPrice(final);
     }
-    return formatPrice(precioFinal);
+    return formatPrice(final);
 }
 // ¿La promoción tiene descuento por porcentaje? (si no, es solo de regalo)
 function _promoTieneDescuento(promo) {
@@ -5423,7 +5436,7 @@ function abrirCatalogoEnPromocion() {
         document.getElementById('catalogoPromoModal').classList.add('active');
         return;
     }
-    const enPromo = (todosProductos || []).filter(p => getDescuentoPorcentaje(p.precioFinal) > 0);
+    const enPromo = (todosProductos || []).filter(p => getDescuentoPorcentaje(p) > 0);
     if (enPromo.length === 0) {
         // 🔧 FIX: si el "de" configurado es más alto que el producto más
         // caro, la promo no es "por producto" sino "superando tal monto
@@ -5441,11 +5454,11 @@ function abrirCatalogoEnPromocion() {
         }
     } else {
         grid.innerHTML = enPromo.map(p => {
-            const pct = getDescuentoPorcentaje(p.precioFinal);
-            const precioAntes = precioAntesPromo(p.precioFinal);
+            const pct = getDescuentoPorcentaje(p);
+            const precioAntes = precioAntesPromo(p);
             return `
             <div class="product-card" onclick="abrirModal(${p.id})" style="position:relative;cursor:pointer;">
-                ${badgeDescuentoHtml(p.precioFinal)}
+                ${badgeDescuentoHtml(p)}
                 <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;">
                 <div style="padding:6px 2px;">
                     <div style="font-size:12.5px;font-weight:600;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.nombre}</div>
@@ -5502,7 +5515,10 @@ function irACatalogoGeneral() {
 // ═══════════════════════════════════════════════════════════════
 function abrirVerTiendaDeModal() {
     const titulo = document.getElementById('verTiendaDeTitulo');
-    if (titulo) titulo.textContent = 'Ver tienda de: ' + (nombre || '');
+    const _nomTienda = (typeof configTienda !== 'undefined' && configTienda && configTienda.general && configTienda.general.nombreTienda)
+        ? configTienda.general.nombreTienda
+        : ((typeof vendedor !== 'undefined' && vendedor && vendedor.nombre) ? (vendedor.nombre + ' ' + (vendedor.apellido || '')).trim() : '');
+    if (titulo) titulo.textContent = 'Ver tienda de: ' + _nomTienda;
     document.getElementById('verTiendaDeModal').classList.add('active');
 }
 
@@ -5560,7 +5576,7 @@ async function abrirCatalogoCombos() {
 // Precio de venta actual (el que ve el cliente) de un producto de combo.
 function _precioVentaProductoCombo(p) {
     const real = (todosProductos || []).find(x => x.id === p.id);
-    return real ? (Number(real.precioFinal) || 0) : 0;
+    return real ? (Number(precioAntesPromo(real)) || Number(real.precioFinal) || 0) : 0;
 }
 // Precio del combo: el total de antes tachado + el precio del combo.
 function _precioComboHtml(c) {
@@ -5608,7 +5624,7 @@ function enviarComboAlCarrito(index) {
     }
     const items = c.productos.map(p => {
         const real = (todosProductos || []).find(x => x.id === p.id);
-        return { base: real || p, antes: real ? (Number(real.precioFinal) || 0) : 0 };
+        return { base: real || p, antes: real ? (Number(precioAntesPromo(real)) || Number(real.precioFinal) || 0) : 0 };
     });
     const sumaAntes = items.reduce((a, x) => a + x.antes, 0);
     const totalCombo = Number(c.precioFinal) || 0;
@@ -5790,6 +5806,9 @@ async function iniciarColaPromosYCombos(incluirPromo) {
 // carrito), no el precio de un producto puntual — en ese caso no hay
 // (ni va a haber nunca) un producto individual que entre en el rango.
 function _promoEsUmbralCompra(promo) {
+    // El descuento de una promoción se aplica SOLO a los productos cuyo precio
+    // cae en los rangos configurados — nunca al total del carrito.
+    return false;
     if (!promo || !Array.isArray(promo.rangos) || !promo.rangos.length) return false;
     const minDe = Math.min(...promo.rangos.map(r => Number(r.de) || 0));
     if (minDe <= 0) return false;
@@ -5829,7 +5848,7 @@ function abrirPromoDetail() {
                 `Con una compra mayor a <strong>$${fmt(minDe)}</strong> tenés un <strong>${maxPct}%</strong> aplicado en el total de tu carrito.`);
         } else {
             html += bloque('🏷️', `Hasta ${maxPct}% de descuento`, 'En los productos seleccionados de esta tienda.');
-            enPromo = (todosProductos || []).filter(p => getDescuentoPorcentaje(p.precioFinal) > 0);
+            enPromo = (todosProductos || []).filter(p => getDescuentoPorcentaje(p) > 0);
         }
     }
 
@@ -5848,13 +5867,13 @@ function abrirPromoDetail() {
     // tachado) y/o productos de regalo (etiqueta "Gratis").
     const tarjeta = (p, tipo) => {
         const pf = Number(p.precioFinal) || Number(p.precio) || 0;
-        const pct = getDescuentoPorcentaje(pf);
+        const pct = getDescuentoPorcentaje(p);
         const etiqueta = tipo === 'regalo'
             ? '<span class="pd-card-tag pd-card-tag-gift">Gratis</span>'
             : (pct > 0 ? `<span class="pd-card-tag">-${pct}%</span>` : '');
         const precio = tipo === 'regalo'
             ? `<span class="price-before">${formatPrice(pf)}</span><strong style="color:#16a34a;">Gratis</strong>`
-            : precioHtmlConPromo(pf);
+            : precioHtmlConPromo(p);
         return `<div class="pd-card">
             ${etiqueta}
             <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" onerror="this.style.display='none'">
