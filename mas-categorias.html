@@ -9734,6 +9734,17 @@ function catalogoEfectivoMultishop(p) {
                         localStorage.setItem('preciosManualCat', JSON.stringify(localPrecios));
                     }
                 } catch(e) {}
+                ['preciosIndividualCat','stockProductosCat','promocionesTienda'].forEach(function(campo) {
+                    try {
+                        if (fd[campo] && typeof fd[campo] === 'object') {
+                            var localC = JSON.parse(localStorage.getItem(campo) || '{}');
+                            Object.keys(fd[campo]).forEach(function(cat) {
+                                if (fd[campo][cat] === null) delete localC[cat]; else localC[cat] = fd[campo][cat];
+                            });
+                            localStorage.setItem(campo, JSON.stringify(localC));
+                        }
+                    } catch(e) {}
+                });
                 if (typeof window.refrescarMisTiendasFab === 'function') window.refrescarMisTiendasFab();
                 try {
                     if (window.currentCatalog === 'calzados' && typeof renderShoesProducts === 'function') renderShoesProducts();
@@ -13655,7 +13666,7 @@ function catalogoEfectivoMultishop(p) {
                 // todavía no tiene (cambios genuinamente sin sincronizar).
                 function _mergeDatosDesdeNube(datos) {
                     if (!datos || typeof datos !== 'object') return;
-                    const camposObjeto = ['configTiendaAll','preciosManualCat','preciosIndividualCat','stockProductosCat','coloresTiendaPorCat','coloresExtraTienda'];
+                    const camposObjeto = ['configTiendaAll','preciosManualCat','preciosIndividualCat','stockProductosCat','coloresTiendaPorCat','coloresExtraTienda','promocionesTienda'];
                     camposObjeto.forEach(campo => {
                         if (datos[campo] && typeof datos[campo] === 'object') {
                             try {
