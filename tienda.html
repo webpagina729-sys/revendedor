@@ -2214,7 +2214,31 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
     })
     .catch(() => {});
 
+function _agregadoVivo(p, cat, a) {
+    if (!p || !p._agregado || !a) return p;
+    const lin = (Array.isArray(a.lineasVariantes) ? a.lineasVariantes : []).filter(l => l && l.nombre && Array.isArray(l.opciones) && l.opciones.length);
+    const todas = lin.length ? lin.flatMap(l => l.opciones.map(o => l.nombre + ': ' + o)) : (Array.isArray(a.variantes) ? a.variantes : []);
+    if (!todas.length) return p;
+    const esCal = cat === 'calzados';
+    const talleBase = p.talle;
+    const tlOrig = esCal ? lin.find(l => /talle/i.test(l.nombre)) : null;
+    const marca = arr => { try { Object.defineProperty(arr, '_vivo', { value: true }); } catch (e) {} return arr; };
+    const calc = () => {
+        const pl = window.VARIANTES_GLOBAL_PLATAFORMA;
+        const o = pl && pl[cat] && pl[cat][String(p.id)];
+        const act = (o && Array.isArray(o.variantes)) ? o.variantes : todas;
+        if (!lin.length) return { lineasVariantes: marca([]), variantes: marca(act.slice()), talle: (esCal && Array.isArray(a.variantes) && a.variantes.length) ? marca(act.slice()) : talleBase };
+        const vivas = lin.map(l => ({ nombre: l.nombre, opciones: act.filter(s => s.indexOf(l.nombre + ': ') === 0).map(s => s.slice(l.nombre.length + 2)) })).filter(l => l.opciones.length);
+        const resto = tlOrig ? vivas.filter(l => l.nombre !== tlOrig.nombre) : vivas;
+        const tl = tlOrig ? vivas.find(l => l.nombre === tlOrig.nombre) : null;
+        return { lineasVariantes: marca(resto), variantes: marca(resto.flatMap(l => l.opciones.map(op => l.nombre + ': ' + op))), talle: esCal ? (tlOrig ? marca(tl ? tl.opciones.slice() : []) : talleBase) : undefined };
+    };
+    ['lineasVariantes', 'variantes'].concat(esCal ? ['talle'] : []).forEach(k => Object.defineProperty(p, k, { get: () => calc()[k], set: () => {}, enumerable: true, configurable: true }));
+    return p;
+}
+
 function _variantesActivasDe(catalogo, productId, campo, listaBase) {
+    if (listaBase && listaBase._vivo) return listaBase;
     const override = window.VARIANTES_GLOBAL_PLATAFORMA?.[catalogo]?.[String(productId)]?.[campo];
     return Array.isArray(override) ? override : (listaBase || []);
 }
@@ -3755,7 +3779,7 @@ async function iniciarTienda() {
             const _nuevo = (cat, a) => {
                 const _lin = (Array.isArray(a.lineasVariantes) ? a.lineasVariantes : []).filter(l => l && l.nombre && Array.isArray(l.opciones) && l.opciones.length);
                 const _flat = ls => ls.flatMap(l => l.opciones.map(o => l.nombre + ': ' + o));
-                const base = { id: a.id, nombre: a.nombre, imagen: a.imagen, precio: a.precio, precioOriginal: a.precio, caracteristicas: a.caracteristicas ? [a.caracteristicas] : [], info: '', momento: a.momento || '', lineasVariantes: _lin, variantes: _lin.length ? _flat(_lin) : (Array.isArray(a.variantes) ? a.variantes : []), _agregado: true };
+                const base = { id: a.id, nombre: a.nombre, imagen: a.imagen, precio: a.precio, precioOriginal: a.precio, caracteristicas: a.caracteristicas ? [a.caracteristicas] : [], info: '', momento: a.momento || '', lineasVariantes: _lin, variantes: _lin.length ? _flat(_lin) : (Array.isArray(a.variantes) ? a.variantes : []), _agregado: true, _catCentral: cat, _rawAg: a };
                 if (cat === 'perfumes') return { ...base, categoria: 'unisex' };
                 if (cat === 'calzados') { const _tl = _lin.find(l => /talle/i.test(l.nombre)); const _resto = _lin.filter(l => l !== _tl); return { ...base, categoria: 'adultos', lineasVariantes: _resto, variantes: _flat(_resto), talle: (_tl ? _tl.opciones : (Array.isArray(a.variantes) && a.variantes.length ? a.variantes : ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44'])) }; }
                 if (cat === 'belleza_maquillaje') return { ...base, categoria: 'maquillaje', _origin: 'maquillaje', imagenes: [a.imagen] };
@@ -3763,7 +3787,7 @@ async function iniciarTienda() {
                 return { ...base, categoria: cat.replace(/^(bazar|jugueteria)_/, '') };
             };
             const _agregar = (arr, cat) => {
-                ((_dataCat.agregados || {})[cat] || []).forEach(a => { if (!arr.some(x => x.id === a.id)) arr.push(_nuevo(cat, a)); });
+                ((_dataCat.agregados || {})[cat] || []).forEach(a => { if (!arr.some(x => x.id === a.id)) arr.splice(Math.min(9, arr.length), 0, _nuevo(cat, a)); });
             };
             _agregar(PERFUMES_DATA, 'perfumes');
             _agregar(CALZADOS_DATA, 'calzados');
@@ -3884,7 +3908,7 @@ async function iniciarTienda() {
     todosProductos = rawEnStock.map(p => {
         const catKey = _catalogKeyParaProducto(p);
         const _preciosManualCat = (vendedor && vendedor.preciosManualCat && vendedor.preciosManualCat[catKey]) || {};
-        return {
+        const _prodFinal = {
             ...p,
             // Categoría real de este producto puntual (resuelve las
             // sub-categorías de Belleza/Bazar/Juguetería y el mix de
@@ -3896,6 +3920,7 @@ async function iniciarTienda() {
                 ? Number(_preciosManualCat[p.id])
                 : calcularPrecioConMargen(p.precio, catKey)
         };
+        return _prodFinal._agregado ? _agregadoVivo(_prodFinal, _prodFinal._catCentral, _prodFinal._rawAg) : _prodFinal;
     });
 
     // Construir filtros según catálogo
