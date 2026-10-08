@@ -899,6 +899,10 @@
 
 <!-- GRID -->
 <div id="products-section">
+    <div id="promo-catalogo-bar" style="display:none;align-items:center;gap:10px;padding:10px 16px 0;">
+        <button type="button" class="seccion-btn" style="background:var(--surface);color:var(--primary);border:1.5px solid var(--primary);box-shadow:none;" onclick="volverCatalogoGeneral()">‹ Volver</button>
+        <span style="font-size:13.5px;font-weight:700;color:var(--text);">Productos en promoción</span>
+    </div>
     <div class="products-grid" id="products-grid"></div>
     <div class="no-results" id="no-results" style="display:none;">
         <div class="icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
@@ -4040,6 +4044,8 @@ function filtrarProductos() {
     if (orden === 'price-asc') lista.sort((a, b) => a.precioFinal - b.precioFinal);
     else if (orden === 'price-desc') lista.sort((a, b) => b.precioFinal - a.precioFinal);
 
+    if (window._modoPromoCatalogo) lista = lista.filter(p => getDescuentoPorcentaje(p.precioFinal) > 0);
+
     productosFilt = lista;
     renderizarProductos();
 }
@@ -4276,6 +4282,14 @@ function cerrarModalProducto() {
     talleSelec = null;
     varianteSelec = null;
     colorSelec = null;
+    // Si se abrió desde un combo: volver al combo y restaurar el botón.
+    if (window._modoCombo) {
+        const idx = window._modoCombo.idx;
+        window._modoCombo = null;
+        const btn = document.querySelector('#modal-producto .modal-add-btn');
+        if (btn) btn.textContent = 'Agregar al carrito';
+        verComboDetalle(idx);
+    }
 }
 
 function agregarDesdeModal() {
@@ -4295,6 +4309,18 @@ function agregarDesdeModal() {
     }
     if (coloresActivos.length > 0 && !colorSelec) {
         mostrarToast('Elegí un color para continuar');
+        return;
+    }
+    if (window._modoCombo) {
+        // Dentro de un combo: solo se guarda la elección (no va al carrito todavía).
+        const _c = (window._combosCache || [])[window._modoCombo.idx];
+        if (_c) {
+            const ck = _comboKey(_c, window._modoCombo.idx);
+            window._comboSel = window._comboSel || {};
+            window._comboSel[ck] = window._comboSel[ck] || {};
+            window._comboSel[ck][productoModal.id] = { talle: talleSelec, variante: varianteSelec, color: colorSelec };
+        }
+        cerrarModalProducto();
         return;
     }
     agregarAlCarritoObj(productoModal, talleSelec, varianteSelec, colorSelec);
@@ -4335,7 +4361,9 @@ function agregarAlCarritoObj(producto, talle, variante, color) {
 }
 
 function quitarDelCarrito(key) {
-    carrito = carrito.filter(x => x.key !== key);
+    const _it = carrito.find(x => x.key === key);
+    if (_it && _it.comboId) carrito = carrito.filter(x => x.comboId !== _it.comboId);
+    else carrito = carrito.filter(x => x.key !== key);
     actualizarContadorCarrito();
     renderizarCarrito();
 }
@@ -4343,7 +4371,9 @@ function quitarDelCarrito(key) {
 function cambiarCantidad(key, delta) {
     const item = carrito.find(x => x.key === key);
     if (!item) return;
-    item.qty = Math.max(1, item.qty + delta);
+    const _nq = Math.max(1, item.qty + delta);
+    if (item.comboId) carrito.filter(x => x.comboId === item.comboId).forEach(x => { x.qty = _nq; });
+    else item.qty = _nq;
     renderizarCarrito();
 }
 
@@ -4379,7 +4409,8 @@ function renderizarCarrito() {
                  onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22%3E%3Crect fill=%22%23f5f5f5%22 width=%2260%22 height=%2260%22/%3E%3C/svg%3E'">
             <div class="cart-item-info">
                 <div class="cart-item-name">${item.producto.nombre}${item.talle ? ' — T. ' + item.talle : ''}${item.variante ? ' — ' + item.variante : ''}${item.color ? ' — ' + item.color : ''}</div>
-                <div class="cart-item-price">${formatPrice(item.producto.precioFinal * item.qty)}</div>
+                ${item.comboId ? `<div style="font-size:11px;color:var(--primary);font-weight:700;">🎁 Combo</div>` : ''}
+                <div class="cart-item-price">${(() => { const a = item.comboId ? (Number(item.precioAntes) || 0) : precioAntesPromo(item.producto.precioFinal); return a > item.producto.precioFinal ? '<span class="price-before">' + formatPrice(a * item.qty) + '</span>' : ''; })()}${formatPrice(item.producto.precioFinal * item.qty)}</div>
                 <div class="cart-qty">
                     <button class="qty-btn" onclick="cambiarCantidad('${item.key}',-1)">−</button>
                     <span class="qty-val">${item.qty}</span>
@@ -4603,7 +4634,9 @@ async function cargarSeccionDescuentosYCombos() {
             html += '<button type="button" class="coverflow-arrow" aria-label="Siguiente" onclick="navegarCoverflow(\'coverflow-descuentos\',1)">›</button>';
             html += '</div>';
         }
-        html += '<div class="seccion-cta"><button type="button" class="seccion-btn" onclick="abrirPromoDetail()">Ver promoción</button></div>';
+        html += '<div class="seccion-cta" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;"><button type="button" class="seccion-btn" onclick="abrirPromoDetail()">Ver promoción</button>'
+            + (conDescuento.length > 0 ? '<button type="button" class="seccion-btn" onclick="verProductosEnPromo()">Ver productos en Promo</button>' : '')
+            + '</div>';
     }
     if (hayPromo && combos.length > 0) {
         html += '<hr class="coverflow-divider">';
@@ -4619,7 +4652,7 @@ async function cargarSeccionDescuentosYCombos() {
                 <div class="coverflow-wrap" id="coverflow-combo-${i}"></div>
                 <button type="button" class="coverflow-arrow" aria-label="Siguiente" onclick="navegarCoverflow('coverflow-combo-${i}',1)">›</button>
             </div>
-            <div class="seccion-cta"><button type="button" class="seccion-btn" onclick="verComboDetalle(${i})">Ver combo</button></div>
+            <div class="seccion-cta" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;"><button type="button" class="seccion-btn" onclick="verComboDetalle(${i})">Ver combo</button></div>
         </div>`;
     });
 
@@ -5536,20 +5569,116 @@ function _precioComboHtml(c) {
     return (antes > ahora ? '<span class="price-before">' + formatPrice(antes) + '</span>' : '') + formatPrice(ahora);
 }
 
+// Catálogo de productos en promoción: reemplaza al general (mismo lugar y
+// estética) hasta que el cliente toca "Volver".
+function verProductosEnPromo() {
+    window._modoPromoCatalogo = true;
+    const bar = document.getElementById('promo-catalogo-bar');
+    if (bar) bar.style.display = 'flex';
+    filtrarProductos();
+    const sec = document.getElementById('products-section');
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function volverCatalogoGeneral() {
+    window._modoPromoCatalogo = false;
+    const bar = document.getElementById('promo-catalogo-bar');
+    if (bar) bar.style.display = 'none';
+    filtrarProductos();
+    const sec = document.getElementById('products-section');
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Agrega todos los productos del combo al carrito con el descuento del
+// combo ya aplicado (el precio del combo se reparte proporcionalmente
+// entre sus productos) y el precio sin descuento para mostrarlo tachado.
+function enviarComboAlCarrito(index) {
+    const c = (window._combosCache || [])[index];
+    if (!c || !Array.isArray(c.productos) || !c.productos.length) return;
+    const faltan = c.productos.some(p => !_productoComboListo(c, index, p.id));
+    if (faltan) { document.getElementById('comboElegirModal').classList.add('active'); return; }
+    const _selCombo = (window._comboSel || {})[_comboKey(c, index)] || {};
+    const _sig = c.productos.map(p => { const s0 = _selCombo[p.id] || {}; return [p.id, s0.talle, s0.variante, s0.color].join(':'); }).join('|');
+    const comboId = 'combo-' + _comboKey(c, index) + '-' + _sig.replace(/[^A-Za-z0-9:|_-]/g, '_');
+    if (carrito.some(x => x.comboId === comboId)) {
+        carrito.filter(x => x.comboId === comboId).forEach(x => { x.qty++; });
+        actualizarContadorCarrito();
+        document.getElementById('comboDetalleModal').classList.remove('active');
+        mostrarToast('Combo agregado al carrito ✓');
+        return;
+    }
+    const items = c.productos.map(p => {
+        const real = (todosProductos || []).find(x => x.id === p.id);
+        return { base: real || p, antes: real ? (Number(real.precioFinal) || 0) : 0 };
+    });
+    const sumaAntes = items.reduce((a, x) => a + x.antes, 0);
+    const totalCombo = Number(c.precioFinal) || 0;
+    let acumulado = 0;
+    items.forEach((it, i) => {
+        let precio;
+        if (i === items.length - 1) precio = Math.max(0, totalCombo - acumulado);
+        else precio = sumaAntes > 0 ? Math.round(totalCombo * it.antes / sumaAntes) : Math.round(totalCombo / items.length);
+        acumulado += precio;
+        const producto = Object.assign({}, it.base, { precioFinal: precio });
+        carrito.push({ key: comboId + '-' + it.base.id, producto, qty: 1, talle: (_selCombo[it.base.id] || {}).talle || null, variante: (_selCombo[it.base.id] || {}).variante || null, color: (_selCombo[it.base.id] || {}).color || null,
+            comboId, comboNombre: (c.productos || []).map(x => x.nombre).join(' + '), precioAntes: it.antes });
+    });
+    actualizarContadorCarrito();
+    document.getElementById('comboDetalleModal').classList.remove('active');
+    mostrarToast('Combo agregado al carrito ✓');
+}
+
+function _comboKey(c, index) { return String(c.id || c.slug || index); }
+function _opcionesDeProducto(real) {
+    if (!real) return { talle: false, variante: false, color: false };
+    const k = _catalogKeyDeProductoModal(real);
+    const t1 = _variantesActivasDe(k, real.id, 'talle', real.talle);
+    const t2 = _variantesActivasDe(k, real.id, 'talles', real.talles);
+    return {
+        talle: (t1.length || t2.length) > 0,
+        variante: _variantesActivasDe(k, real.id, 'variantes', real.variantes).length > 0,
+        color: _variantesActivasDe(k, real.id, 'colores', real.colores).length > 0,
+    };
+}
+function _productoComboListo(c, index, prodId) {
+    const real = (todosProductos || []).find(x => x.id === prodId);
+    const o = _opcionesDeProducto(real);
+    if (!o.talle && !o.variante && !o.color) return true;
+    const sel = ((window._comboSel || {})[_comboKey(c, index)] || {})[prodId];
+    if (!sel) return false;
+    return (!o.talle || sel.talle) && (!o.variante || sel.variante) && (!o.color || sel.color);
+}
+function abrirModalCombo(prodId) {
+    const idx = window._comboDetalleIdx;
+    window._modoCombo = { idx, prodId };
+    document.getElementById('comboDetalleModal').classList.remove('active');
+    abrirModal(prodId);
+    const btn = document.querySelector('#modal-producto .modal-add-btn');
+    if (btn) btn.textContent = 'Confirmar elección';
+}
+
 function verComboDetalle(index) {
     const c = (window._combosCache || [])[index];
     if (!c) return;
     document.getElementById('comboDetalleTitulo').textContent = (c.productos || []).map(p => p.nombre).join(' + ');
     document.getElementById('comboDetallePrecio').innerHTML = _precioComboHtml(c);
     const cont = document.getElementById('comboDetalleProductos');
-    cont.innerHTML = (c.productos || []).map(p => `
-        <div style="display:flex;gap:10px;align-items:center;border-top:1px solid var(--gray-light);padding:10px 0;">
-            <img src="${resolveImgUrl(p.imagen)}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0;">
-            <div style="flex:1;">
-                <div style="font-size:13px;font-weight:600;">${p.nombre}</div>
-                ${_precioVentaProductoCombo(p) > 0 ? `<div style="font-size:12px;color:var(--text-light);text-decoration:line-through;">${formatPrice(_precioVentaProductoCombo(p))}</div>` : ''}
-            </div>
-        </div>`).join('');
+    const ck = _comboKey(c, index);
+    cont.innerHTML = (c.productos || []).map(p => {
+        const real = (todosProductos || []).find(x => x.id === p.id);
+        const o = _opcionesDeProducto(real);
+        const necesita = o.talle || o.variante || o.color;
+        const sel = ((window._comboSel || {})[ck] || {})[p.id];
+        const eleg = sel ? [sel.talle, sel.variante, sel.color].filter(Boolean).join(' · ') : '';
+        const precio = _precioVentaProductoCombo(p);
+        return `<div style="border:1px solid var(--border);border-radius:10px;padding:8px;display:flex;flex-direction:column;background:var(--surface);">
+            <img src="${resolveImgUrl(p.imagen)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;">
+            <div style="font-size:12px;font-weight:600;line-height:1.3;margin:6px 0 4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.nombre}</div>
+            ${precio > 0 ? `<div style="font-size:11.5px;color:var(--text-light);text-decoration:line-through;">${formatPrice(precio)}</div>` : ''}
+            ${necesita ? `<div style="font-size:10.5px;margin-top:3px;color:${eleg ? '#16a34a' : 'var(--text-light)'};">${eleg ? '✓ ' + String(eleg).replace(/</g, '&lt;') : 'Falta elegir'}</div>` : ''}
+            ${real ? `<button type="button" class="add-btn" style="width:100%;margin-top:auto;" onclick="abrirModalCombo(${p.id})">Ver más</button>` : ''}
+        </div>`;
+    }).join('');
+    window._comboDetalleIdx = index;
     document.getElementById('catalogoCombosModal').classList.remove('active');
     document.getElementById('comboDetalleModal').classList.add('active');
 }
@@ -6100,13 +6229,23 @@ enviarPedidoConDatos = async function() {
     </div>
 </div>
 
+<!-- Modal: aviso elegir variante/talle del combo -->
+<div class="promo-float-overlay" id="comboElegirModal">
+    <div class="promo-float-box" style="max-width:300px;padding:20px 18px;text-align:center;">
+        <div class="promo-float-sub" style="font-size:13.5px;color:var(--text);line-height:1.5;margin:0 0 14px;text-wrap:balance;">Elige Variante o Talle primero desde (Ver más)</div>
+        <button class="promo-float-btn primary" style="width:100%;" onclick="document.getElementById('comboElegirModal').classList.remove('active')">Aceptar</button>
+    </div>
+</div>
+
 <!-- Modal: detalle de un combo puntual -->
 <div class="promo-detail-overlay" id="comboDetalleModal">
     <div class="promo-detail-box">
         <button class="promo-float-close" onclick="document.getElementById('comboDetalleModal').classList.remove('active')">×</button>
         <div class="promo-detail-title" id="comboDetalleTitulo" style="margin-bottom:6px;">Combo</div>
         <div style="font-size:13px;color:var(--text-light);margin-bottom:14px;">Precio del combo: <strong style="color:var(--primary);font-size:18px;" id="comboDetallePrecio"></strong></div>
-        <div id="comboDetalleProductos"></div>
+        <div style="font-size:10.5px;font-weight:400;color:var(--text-light);line-height:1.4;margin:0 0 10px;text-wrap:balance;">Antes de enviar combo al carrito elegir variante o talles (Según corresponda)</div>
+        <div id="comboDetalleProductos" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;"></div>
+        <div style="display:flex;justify-content:center;margin-top:16px;"><button type="button" class="seccion-btn" style="padding:10px 26px;font-size:13px;" onclick="enviarComboAlCarrito(window._comboDetalleIdx)">Enviar combo al carrito</button></div>
     </div>
 </div>
 
