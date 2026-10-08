@@ -4808,9 +4808,10 @@ fetch('https://preciosmayoristasrevendedores.tuweb.workers.dev/api/catalogo?cate
         };
         const talleCalzado = ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44'];
         const nuevo = (cat, a) => {
-            const base = { id: a.id, nombre: a.nombre, imagen: a.imagen, precio: a.precio, precioOriginal: a.precio, caracteristicas: a.caracteristicas ? [a.caracteristicas] : [], info: '', momento: a.momento || '', variantes: Array.isArray(a.variantes) ? a.variantes : [], _agregado: true, _catCentral: cat };
+            const _lin = (Array.isArray(a.lineasVariantes) ? a.lineasVariantes : []).filter(l => l && l.nombre && Array.isArray(l.opciones) && l.opciones.length);
+            const base = { id: a.id, nombre: a.nombre, imagen: a.imagen, precio: a.precio, precioOriginal: a.precio, caracteristicas: a.caracteristicas ? [a.caracteristicas] : [], info: '', momento: a.momento || '', variantes: _lin.length ? _lin.flatMap(l => l.opciones.map(o => l.nombre + ': ' + o)) : (Array.isArray(a.variantes) ? a.variantes : []), lineasVariantes: _lin, _agregado: true, _catCentral: cat };
             if (cat === 'perfumes') return { ...base, categoria: 'unisex' };
-            if (cat === 'calzados') return { ...base, categoria: 'adultos', variantes: [], talle: (Array.isArray(a.variantes) && a.variantes.length ? a.variantes : talleCalzado) };
+            if (cat === 'calzados') { const _tl = _lin.find(l => /talle/i.test(l.nombre)); const _resto = _lin.filter(l => l !== _tl); return { ...base, categoria: 'adultos', lineasVariantes: _resto, variantes: _resto.flatMap(l => l.opciones.map(o => l.nombre + ': ' + o)), talle: (_tl ? _tl.opciones : (Array.isArray(a.variantes) && a.variantes.length ? a.variantes : talleCalzado)) }; }
             if (cat === 'belleza_maquillaje') return { ...base, categoria: 'maquillaje', _origin: 'maquillaje', imagenes: [a.imagen] };
             if (cat === 'bazar_bazar') return { ...base, categoria: 'bazar' };
             if (cat === 'bazar_melamina') return { ...base, categoria: 'melamina' };
