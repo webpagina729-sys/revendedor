@@ -3735,6 +3735,30 @@ async function iniciarTienda() {
             _quitar(LENCERIA_DATA, 'lenceria');
             _quitar(SUPLEMENTOS_DATA, 'suplementos');
             _quitar(ELECTRONICOS_DATA, 'electronicos');
+            const _nuevo = (cat, a) => {
+                const _lin = (Array.isArray(a.lineasVariantes) ? a.lineasVariantes : []).filter(l => l && l.nombre && Array.isArray(l.opciones) && l.opciones.length);
+                const _flat = ls => ls.flatMap(l => l.opciones.map(o => l.nombre + ': ' + o));
+                const base = { id: a.id, nombre: a.nombre, imagen: a.imagen, precio: a.precio, precioOriginal: a.precio, caracteristicas: a.caracteristicas ? [a.caracteristicas] : [], info: '', momento: a.momento || '', lineasVariantes: _lin, variantes: _lin.length ? _flat(_lin) : (Array.isArray(a.variantes) ? a.variantes : []), _agregado: true };
+                if (cat === 'perfumes') return { ...base, categoria: 'unisex' };
+                if (cat === 'calzados') { const _tl = _lin.find(l => /talle/i.test(l.nombre)); const _resto = _lin.filter(l => l !== _tl); return { ...base, categoria: 'adultos', lineasVariantes: _resto, variantes: _flat(_resto), talle: (_tl ? _tl.opciones : (Array.isArray(a.variantes) && a.variantes.length ? a.variantes : ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44'])) }; }
+                if (cat === 'belleza_maquillaje') return { ...base, categoria: 'maquillaje', _origin: 'maquillaje', imagenes: [a.imagen] };
+                if (cat === 'lenceria') return { ...base, categoria: 'lenceria', grupo: 'lenceria', subcategoria: 'conjuntos', precioCosto: a.precio };
+                return { ...base, categoria: cat.replace(/^(bazar|jugueteria)_/, '') };
+            };
+            const _agregar = (arr, cat) => {
+                ((_dataCat.agregados || {})[cat] || []).forEach(a => { if (!arr.some(x => x.id === a.id)) arr.push(_nuevo(cat, a)); });
+            };
+            _agregar(PERFUMES_DATA, 'perfumes');
+            _agregar(CALZADOS_DATA, 'calzados');
+            _agregar(MAQUILLAJE_DATA, 'belleza_maquillaje');
+            _agregar(BAZAR_DATA, 'bazar_bazar');
+            _agregar(MELAMINA_DATA, 'bazar_melamina');
+            _agregar(JUGUETES_DATA, 'jugueteria_juguetes');
+            _agregar(PELUCHES_DATA, 'jugueteria_peluches');
+            _agregar(LIBRERIA_DATA, 'libreria');
+            _agregar(LENCERIA_DATA, 'lenceria');
+            _agregar(SUPLEMENTOS_DATA, 'suplementos');
+            _agregar(ELECTRONICOS_DATA, 'electronicos');
         }
     } catch(_e) { /* si falla, se muestra el catálogo embebido */ }
 
@@ -4100,7 +4124,12 @@ function abrirModal(id) {
     const variantesActivas = _variantesActivasDe(_catalogKeyDeProductoModal(productoModal), productoModal.id, 'variantes', productoModal.variantes);
     if (variantesActivas.length > 0) {
         varianteSection.style.display = 'block';
-        document.getElementById('variantes-container').innerHTML = variantesActivas.map(v =>
+        const _lineasAg = (productoModal._agregado && Array.isArray(productoModal.lineasVariantes)) ? productoModal.lineasVariantes.filter(l => l && Array.isArray(l.opciones) && l.opciones.length) : [];
+        window._lineasSelTienda = {};
+        document.getElementById('variantes-container').innerHTML = _lineasAg.length ? _lineasAg.map((l, li) =>
+            `<div style="width:100%;margin-bottom:8px"><div style="font-size:12px;font-weight:600;margin-bottom:5px">${String(l.nombre).replace(/</g, '&lt;')}</div><div class="talles">${l.opciones.map(o =>
+                `<button class="talle-btn" data-l="${li}" data-n="${String(l.nombre).replace(/"/g, '&quot;')}" data-v="${String(o).replace(/"/g, '&quot;')}" onclick="seleccionarLineaTienda(this)">${String(o).replace(/</g, '&lt;')}</button>`).join('')}</div></div>`
+        ).join('') : variantesActivas.map(v =>
             `<button class="talle-btn" onclick="seleccionarVariante('${v.replace(/'/g, "\\'")}', this)">${v}</button>`
         ).join('');
     } else {
@@ -4119,6 +4148,15 @@ function abrirModal(id) {
         colorSection.style.display = 'none';
     }
 
+    // Productos cargados desde el panel: no se muestran Información ni las secciones que quedaron vacías.
+    ['modal-chars', 'modal-info', 'modal-momento'].forEach(id => {
+        const e = document.getElementById(id);
+        const t = e && e.previousElementSibling;
+        const ocultar = !!(e && productoModal._agregado && (id === 'modal-info' || !e.textContent.trim()));
+        if (e) e.style.display = ocultar ? 'none' : '';
+        if (t && t.classList.contains('modal-section-title')) t.style.display = ocultar ? 'none' : '';
+    });
+
     document.getElementById('modal-producto').classList.add('active');
 }
 
@@ -4131,6 +4169,19 @@ function irAImagenModalTienda(index) {
         dot.style.width = i === index ? '20px' : '6px';
         dot.style.background = i === index ? '#fff' : 'rgba(255,255,255,.5)';
     });
+}
+
+// Producto cargado con varias líneas de variantes (Talle, Color…): hay que elegir una opción de cada una.
+function seleccionarLineaTienda(btn) {
+    const li = btn.getAttribute('data-l');
+    document.querySelectorAll('#variantes-container .talle-btn[data-l="' + li + '"]').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    window._lineasSelTienda = window._lineasSelTienda || {};
+    window._lineasSelTienda[li] = btn.getAttribute('data-n') + ': ' + btn.getAttribute('data-v');
+    const n = productoModal.lineasVariantes.filter(l => l && Array.isArray(l.opciones) && l.opciones.length).length;
+    const partes = [];
+    for (let k = 0; k < n; k++) { if (window._lineasSelTienda[k]) partes.push(window._lineasSelTienda[k]); }
+    varianteSelec = partes.length === n ? partes.join(' · ') : null;
 }
 
 function seleccionarVariante(valor, btn) {
@@ -4171,7 +4222,7 @@ function agregarDesdeModal() {
         return;
     }
     if (variantesActivas.length > 0 && !varianteSelec) {
-        mostrarToast('Elegí una variante para continuar');
+        mostrarToast(productoModal._agregado && (productoModal.lineasVariantes || []).length > 1 ? 'Elegí una opción de cada variante para continuar' : 'Elegí una variante para continuar');
         return;
     }
     if (coloresActivos.length > 0 && !colorSelec) {
