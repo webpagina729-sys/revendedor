@@ -4808,9 +4808,9 @@ fetch('https://preciosmayoristasrevendedores.tuweb.workers.dev/api/catalogo?cate
         };
         const talleCalzado = ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44'];
         const nuevo = (cat, a) => {
-            const base = { id: a.id, nombre: a.nombre, imagen: a.imagen, precio: a.precio, precioOriginal: a.precio, caracteristicas: [], info: '', _catCentral: cat };
+            const base = { id: a.id, nombre: a.nombre, imagen: a.imagen, precio: a.precio, precioOriginal: a.precio, caracteristicas: a.caracteristicas ? [a.caracteristicas] : [], info: '', momento: a.momento || '', variantes: Array.isArray(a.variantes) ? a.variantes : [], _agregado: true, _catCentral: cat };
             if (cat === 'perfumes') return { ...base, categoria: 'unisex' };
-            if (cat === 'calzados') return { ...base, categoria: 'adultos', talle: talleCalzado };
+            if (cat === 'calzados') return { ...base, categoria: 'adultos', variantes: [], talle: (Array.isArray(a.variantes) && a.variantes.length ? a.variantes : talleCalzado) };
             if (cat === 'belleza_maquillaje') return { ...base, categoria: 'maquillaje', _origin: 'maquillaje', imagenes: [a.imagen] };
             if (cat === 'bazar_bazar') return { ...base, categoria: 'bazar' };
             if (cat === 'bazar_melamina') return { ...base, categoria: 'melamina' };
@@ -6135,7 +6135,8 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             document.getElementById('modal-details-characteristics').innerHTML = (producto.caracteristicas || []).map(c => `<li>${c}</li>`).join('');
             document.getElementById('modal-details-info').textContent = producto.info || '';
             const momentoEl = document.getElementById('modal-details-moment');
-            if (momentoEl) momentoEl.textContent = '';
+            if (momentoEl) momentoEl.textContent = producto.momento || '';
+            ['characteristics', 'info', 'moment'].forEach(k => { const e = document.getElementById('modal-details-' + k); const s = e && e.closest('.modal-details-section'); if (s) s.style.display = (producto._agregado && (k === 'info' || !e.textContent.trim())) ? 'none' : ''; });
             poblarCarruselYVariantesModal(producto);
             actualizarDotsStockModal(enStock);
             document.getElementById('modal-details').classList.add('active');
