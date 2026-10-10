@@ -3295,6 +3295,39 @@
   .banner-badge{width:100%;max-width:none!important;box-sizing:border-box;white-space:nowrap!important;padding:8px 6px!important;font-size:2.55vw!important;line-height:1.3;overflow:hidden}
 }
 </style>
+<script id="auth-worker-datos">
+/* Envía la sesión (token de Firebase) a los workers de datos cuando se lee o
+   modifica algo del propio revendedor: perfil, carrito, pedidos personales,
+   enlaces, combos y promociones. No cambia ninguna función de la página. */
+(function () {
+  if (window.__authWorkerDatos) return;
+  window.__authWorkerDatos = true;
+  var DATOS = /^\/api\/(perfil|carrito|crear-cuenta|login-vendedor-uid|pedido-personal|pedidos-personales|estadisticas-usuario|eliminar-tienda|actualizar-datos-vendedor|guardar-datos-registro|guardar-whatsapp-inicial)(\/|$)/;
+  var REGLAS = {
+    'datosderevendedor.tuweb.workers.dev': { ruta: DATOS, soloPost: false },
+    'workerwebcliente.tuweb.workers.dev': { ruta: /^\/slug$/, soloPost: true },
+    'combosydescuentos.tuweb.workers.dev': { ruta: /^\/(combo|combo\/toggle|combo\/eliminar|promocion|promocion\/toggle|promocion\/eliminar|slug)$/, soloPost: true }
+  };
+  var orig = window.fetch.bind(window);
+  window.fetch = async function (input, init) {
+    try {
+      if (typeof input !== 'string') return orig(input, init);
+      var u = new URL(input, location.href);
+      var r = REGLAS[u.hostname];
+      if (!r || !r.ruta.test(u.pathname)) return orig(input, init);
+      if (r.soloPost && String((init && init.method) || 'GET').toUpperCase() !== 'POST') return orig(input, init);
+      var h = new Headers((init && init.headers) || undefined);
+      try {
+        var us = window.firebase && firebase.auth && firebase.auth().currentUser;
+        if (us && !h.has('Authorization')) h.set('Authorization', 'Bearer ' + (await us.getIdToken()));
+      } catch (e) {}
+      var nuevo = {}; for (var k in (init || {})) nuevo[k] = init[k];
+      nuevo.headers = h;
+      return orig(input, nuevo);
+    } catch (e) { return orig(input, init); }
+  };
+})();
+</script>
 </head>
 <body>
     <!-- 🔧 NUEVO: overlay de carga al Aprobar/No aprobar un pedido — antes
@@ -3790,7 +3823,7 @@
                 <form onsubmit="loginUser(event)">
                     <input type="text" id="login-codigo" placeholder="Código de revendedor" required autocomplete="username">
                     <div class="password-input-wrapper">
-                        <input type="password" id="login-password" placeholder="Contraseña" required>
+                        <input type="password" id="login-password" placeholder="Contraseña de seguridad" required>
                         <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('login-password', this)" tabindex="-1" aria-label="Mostrar contraseña">
                             <svg class="eye-show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             <svg class="eye-hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -6724,6 +6757,28 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
 
             try {
                 const turnstileToken = await obtenerTokenTurnstileLoginAuth();
+
+                // 🔐 Primero se intenta ingresar con CÓDIGO + CONTRASEÑA DE SEGURIDAD.
+                // El servidor devuelve una sesión real de Firebase. Si no coincide
+                // (o la cuenta no tiene contraseña de seguridad) se sigue con el
+                // ingreso de siempre, que queda exactamente igual más abajo.
+                try {
+                    const resSeg = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-seguridad', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codigo: codigo, password: password, turnstileToken })
+                    });
+                    if (resSeg.ok) {
+                        const dSeg = await resSeg.json();
+                        if (dSeg && dSeg.success && dSeg.customToken) {
+                            await firebase.auth().signInWithCustomToken(dSeg.customToken);
+                            localStorage.setItem('codigoVendedorLocal', codigo);
+                            closeAuthModal();
+                            return;
+                        }
+                    }
+                } catch (_eSeg) { /* se sigue con el ingreso de siempre */ }
+
                 let email = '';
                 const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
                     method: 'POST',
@@ -10235,6 +10290,11 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                 generarEnlaceCorto(cat).then(corto => {
                     const el = document.getElementById('verTiendaEnlace');
                     if (el) { el.value = corto; el.disabled = false; }
+                }).catch(() => {
+                    // No se pudo ahora: se reintenta solo en unos minutos y se completa solo.
+                    const el = document.getElementById('verTiendaEnlace');
+                    if (el) el.value = 'Reintentando en unos minutos…';
+                    esperarEnlaceListo(cat, url => { const e2 = document.getElementById('verTiendaEnlace'); if (e2) { e2.value = url; e2.disabled = false; } });
                 });
             } else {
                 inputEnlace.value = '';
@@ -11725,11 +11785,10 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                 /* silenciado */
                 return urlFinal;
             } catch(_e) {
-                // Sin red / Worker caído / timeout: enlace largo como respaldo.
-                /* silenciado */
-                const urlRespaldo = construirEnlaceTienda(slugId, codigo, cat, cfgFull, promo, productoId, sub, uid);
-                /* silenciado */
-                return urlRespaldo;
+                // Sin red / Worker caído / timeout: NO se genera un enlace largo
+                // (llevaría el código del revendedor a la vista). Se avisa el
+                // fallo y quien llama reintenta.
+                throw _e;
             }
         }
 
@@ -11812,7 +11871,30 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             return { cat: catConfig, sub: null };
         }
 
-        async function generarEnlaceCorto(catConfig) {
+                // 🔒 Reintento automático en segundo plano (2, 5 y 10 minutos) cuando no
+        // se pudo generar el enlace corto. Cuando se logra queda en la caché.
+        window._reintentosEnlace = window._reintentosEnlace || {};
+        function programarReintentoEnlace(catConfig, n) {
+            n = n || 1;
+            if (n === 1 && window._reintentosEnlace[catConfig]) return;
+            const esperas = { 1: 120000, 2: 180000, 3: 300000 };
+            if (!esperas[n]) { delete window._reintentosEnlace[catConfig]; return; }
+            window._reintentosEnlace[catConfig] = setTimeout(async () => {
+                try { await generarEnlaceCorto(catConfig, true); delete window._reintentosEnlace[catConfig]; }
+                catch (_) { programarReintentoEnlace(catConfig, n + 1); }
+            }, esperas[n]);
+        }
+        // Rellena el campo del enlace apenas el reintento lo deja listo.
+        function esperarEnlaceListo(catConfig, alListo) {
+            let veces = 0;
+            const t = setInterval(() => {
+                const url = window._enlacesCortosCache && window._enlacesCortosCache[catConfig];
+                if (url) { clearInterval(t); alListo(url); }
+                else if (++veces > 90) clearInterval(t);
+            }, 10000);
+        }
+
+        async function generarEnlaceCorto(catConfig, _esReintento) {
             // Si el código de revendedor todavía no está disponible en
             // memoria (carrera justo después del login), se espera breve
             // pero acotado — nunca de forma indefinida.
@@ -11827,7 +11909,20 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             const { cfgFull, promo } = armarCfgFullYPromo(catConfig);
             const { cat, sub } = derivarRutaYSub(catConfig);
             const slugId = await armarSlugRevendedor(catConfig);
-            const urlCorta = await acortarEnlace(slugId, codigo, cat, cfgFull, promo, null, sub);
+            // 🔒 Ya NO se arma un enlace largo con el código/uid adentro. Si el
+            // servidor no responde: se reintenta unos segundos y, si sigue
+            // sin responder, se vuelve a intentar solo en unos minutos (el
+            // enlace queda listo en la caché apenas se logra).
+            let urlCorta = null, ultimoError = null;
+            for (let intento = 0; intento < 3 && !urlCorta; intento++) {
+                if (intento > 0) await new Promise(r => setTimeout(r, 4000));
+                try { urlCorta = await acortarEnlace(slugId, codigo, cat, cfgFull, promo, null, sub); }
+                catch (e) { ultimoError = e; }
+            }
+            if (!urlCorta) {
+                if (!_esReintento) programarReintentoEnlace(catConfig);
+                throw ultimoError || new Error('No se pudo generar el enlace por ahora');
+            }
             window._enlacesCortosCache[catConfig] = urlCorta;
             return urlCorta;
         }
@@ -13375,6 +13470,11 @@ async function _copiarEnlaceItem(url) {
             generarEnlaceCorto(_promoCat).then(corto => {
                 const el = document.getElementById('promoEnlaceInput');
                 if (el) { el.value = corto; el.disabled = false; }
+            }).catch(() => {
+                // No se pudo ahora: se reintenta solo en unos minutos y se completa solo.
+                const el = document.getElementById('promoEnlaceInput');
+                if (el) el.value = 'Reintentando en unos minutos…';
+                esperarEnlaceListo(_promoCat, url => { const e2 = document.getElementById('promoEnlaceInput'); if (e2) { e2.value = url; e2.disabled = false; } });
             });
         };
 
