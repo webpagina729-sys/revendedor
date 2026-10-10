@@ -2375,11 +2375,9 @@ window._slugFetchOk = true; // se pone en false solo si HUBO slug (?s=) y la res
             if (d.promo && (Array.isArray(d.promo.rangos) || d.promo.gift)) {
                 try { urlParams.set('promo', btoa(unescape(encodeURIComponent(JSON.stringify(d.promo))))); } catch(e) {}
             }
-            try {
-                if (!window._rutaLimpiaActiva) {
-                    window.history.replaceState({}, '', window.location.pathname + '?' + urlParams.toString());
-                }
-            } catch(e) {}
+            // 🔒 La URL del navegador se deja EXACTAMENTE como la compartió el
+            // revendedor (enlace corto): ya no se reescribe con el código de
+            // revendedor ni la configuración. Todo se resuelve en memoria.
         })
         .catch(function() { clearTimeout(timeoutId); });
 })();
@@ -5178,6 +5176,21 @@ function mostrarErrorCheckout(msg) {
 }
 
 // ── Construye y envía el mensaje a WhatsApp con tipo de entrega ──
+// 💬 Mensaje fijo al confirmar el pedido: el detalle del pedido ya le llegó
+// al revendedor en "Pedidos recibidos". Se abre WhatsApp con window.open y,
+// si el navegador lo bloquea (pasa cuando se abre después de esperar al
+// servidor, sobre todo en celulares), se redirige en la misma pestaña.
+function _abrirWAConfirmacionPedido(wa, datosEnvio) {
+    var nomRev = (vendedor && vendedor.nombre) ? String(vendedor.nombre).trim() : '';
+    var nomCli = datosEnvio ? (String(datosEnvio.nombre || '') + ' ' + String(datosEnvio.apellido || '')).trim() : '';
+    var msg = 'Hola ' + nomRev + ' acabo de confirmar un pedido en tu tienda a nombre de ' + nomCli +
+              ', espero la factura pendiente de pago. Muchas gracias \u2665';
+    var url = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(msg);
+    var w = null;
+    try { w = window.open(url, '_blank'); } catch (e) { w = null; }
+    if (!w || w.closed) { window.location.href = url; }
+}
+
 function _enviarWAConTipoEntrega(tipo, datosEnvio) {
     const wa = vendedor.whatsappRevendedor || '';
     if (!wa) return;
@@ -5221,8 +5234,7 @@ function _enviarWAConTipoEntrega(tipo, datosEnvio) {
         partes.push('🏪 Entrega: *Paso a retirar*');
     }
 
-    const msg = partes.filter(x => x !== undefined).join('\n');
-    window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(msg), '_blank');
+    _abrirWAConfirmacionPedido(wa, datosEnvio);
 }
 
 // Guardamos referencia a la función original de WhatsApp (por compatibilidad con el bloque de promo)
@@ -5293,8 +5305,7 @@ function _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, totalCo
         partes.push('🏪 Entrega: *Retirar por sucursal revendedor*');
     }
 
-    const msg = partes.filter(x => x !== undefined).join('\n');
-    window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(msg), '_blank');
+    _abrirWAConfirmacionPedido(wa, datosEnvio);
 }
 
 
