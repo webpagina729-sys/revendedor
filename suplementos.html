@@ -8339,9 +8339,18 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                         if (!panelPayload.codigoVendedor) {
                             alert('⚠️ No se pudo registrar en el panel de gestión: falta el código de revendedor');
                         } else {
+                            // 🔧 FIX: workerpagos.js exige sesión verificada (Authorization:
+                            // Bearer <token>) para aceptar este registro — _sesionEsDuenoDeCodigo
+                            // la necesita para confirmar que quien manda el pedido es el dueño
+                            // real de ese codigoVendedor. Este fetch nunca mandaba ese header,
+                            // así que el Worker lo rechazaba (403) y el pedido NUNCA llegaba a
+                            // panelGestion (pedidos.html nunca lo veía en "Pendientes"), aunque
+                            // en este panel se mostrara como aprobado sin ningún error visible.
+                            const headersPanel = { 'Content-Type': 'application/json' };
+                            try { if (user) headersPanel['Authorization'] = 'Bearer ' + await user.getIdToken(); } catch (_) {}
                             const respPanel = await fetch(WORKER_URL + '/api/panel-gestion', {
                                 method:  'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: headersPanel,
                                 body:    JSON.stringify(panelPayload)
                             });
                             if (!respPanel.ok) {
