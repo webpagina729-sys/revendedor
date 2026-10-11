@@ -17079,7 +17079,7 @@ function mostrarToastOk(msg) {
     }
     try { if (window.firebase && firebase.auth) firebase.auth().onAuthStateChanged(function () { setTimeout(refrescar, 800); }); } catch (_e) {}
     setTimeout(refrescar, 2500);
-    setInterval(refrescar, 45000);
+    setInterval(refrescar, 300000);
 })();
 </script>
 
@@ -17142,6 +17142,6 @@ function mostrarToastOk(msg) {
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') sincronizar(); });
     window.addEventListener('focus', function () { sincronizar(); });
     setTimeout(sincronizar, 3000);
-    setInterval(sincronizar, 60000);
+    setInterval(sincronizar, 300000);
 })();
 </script>
