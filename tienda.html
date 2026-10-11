@@ -3439,7 +3439,7 @@ async function cargarVendedor() {
     // En vivo: si la elimina mientras un cliente la está viendo, se cierra sola.
     setInterval(async function() {
         if (await tiendaInhabilitada()) window.location.reload();
-    }, 30000);
+    }, 300000);
     document.addEventListener('visibilitychange', async function() {
         if (!document.hidden && await tiendaInhabilitada()) window.location.reload();
     });
