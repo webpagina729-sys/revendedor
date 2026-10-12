@@ -6951,6 +6951,15 @@
                 const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
                 delete allConfig[catConfig];
                 localStorage.setItem('configTiendaAll', JSON.stringify(allConfig));
+                // 🔧 FIX: igual que guardarConfigTienda()/guardarMargenSubBelleza()
+                // — sin esto, el enlace corto ya generado quedaba con el margen
+                // viejo cacheado en memoria y "Ver tienda"/"Compartir" seguían
+                // repartiéndolo tal cual, sin que este reinicio se notara nunca
+                // en tienda.html hasta recargar la página entera.
+                if (window._enlacesCortosCache) {
+                    delete window._enlacesCortosCache[catConfig];
+                    delete window._enlacesCortosCache['belleza'];
+                }
                 const uid = (typeof _getUidParaFirestore === 'function' && _getUidParaFirestore());
                 const codigo = (window.currentUser && window.currentUser.codigoVendedor)
                     || localStorage.getItem('codigoVendedorLocal')
@@ -12924,6 +12933,10 @@
                 const coloresExtraAll = JSON.parse(localStorage.getItem('coloresExtraTienda') || '{}');
                 delete coloresExtraAll[cat];
                 localStorage.setItem('coloresExtraTienda', JSON.stringify(coloresExtraAll));
+                // 🔧 FIX: igual que guardarConfigTienda() — sin esto, el enlace
+                // corto ya generado para esta categoría seguía cacheado con el
+                // margen viejo y "Ver tienda" lo repartía tal cual.
+                if (window._enlacesCortosCache) delete window._enlacesCortosCache[cat];
             } catch(e) {}
             const fbUser = firebase.auth().currentUser;
             if (fbUser) {
