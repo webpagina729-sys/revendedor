@@ -6459,6 +6459,12 @@ function catalogoEfectivoMultishop(p) {
         async function guardarMargenSubBelleza() {
             const catConfig = window._editandoMargenSub;
             if (!catConfig) return;
+            // 🔧 FIX: catConfig puede ser un array de 1 o 2 claves reales
+            // (ej. desde Multishop → "Solo Belleza" guarda a la vez en
+            // belleza_maquillaje y belleza_perfume) — se escribe el MISMO
+            // rango en todas, así tienda.html aplica el margen sin importar
+            // por qué categoría/vista haya entrado el cliente.
+            const claves = Array.isArray(catConfig) ? catConfig : [catConfig];
 
             const rangos = [];
             document.querySelectorAll('#margen-sub-rangos-container .rango-config-row').forEach(row => {
@@ -6471,13 +6477,17 @@ function catalogoEfectivoMultishop(p) {
             });
 
             const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-            allConfig[catConfig] = { ...(allConfig[catConfig] || {}), rangos };
+            const _updateData = {};
+            claves.forEach(k => {
+                allConfig[k] = { ...(allConfig[k] || {}), rangos };
+                _updateData[`configTiendaAll.${k}`] = allConfig[k];
+            });
             localStorage.setItem('configTiendaAll', JSON.stringify(allConfig));
 
             // 🔧 FIX: invalidar el enlace corto cacheado para que no se siga
             // repartiendo un link con el margen anterior.
             if (window._enlacesCortosCache) {
-                delete window._enlacesCortosCache[catConfig];
+                claves.forEach(k => delete window._enlacesCortosCache[k]);
                 delete window._enlacesCortosCache['belleza'];
                 delete window._enlacesCortosCache['bazar'];
                 delete window._enlacesCortosCache['jugueteria'];
@@ -6487,7 +6497,8 @@ function catalogoEfectivoMultishop(p) {
             // Mismo mecanismo genérico de guardado por categoría (dot-path),
             // así tienda.html lee este margen exactamente igual que cualquier
             // otra categoría — sin tocar Perfumes ni el resto de Belleza.
-            _guardarEnFirestore({ [`configTiendaAll.${catConfig}`]: allConfig[catConfig] });
+            // Si son 2 claves, van las 2 en la misma llamada (atómico).
+            _guardarEnFirestore(_updateData);
 
             cerrarEditarMargenSubModal();
             const toast = document.getElementById('wa-toast');
@@ -7983,18 +7994,44 @@ function catalogoEfectivoMultishop(p) {
             };
             const nombreSub = mapas[catBase] && mapas[catBase][sub];
             if (nombreSub) {
-                const catConfig = catBase === 'multishop' ? _catConfigDeSubMultishop(sub) : (catBase + '_' + sub);
+                // 🔧 FIX: para EDITAR el margen, Multishop ahora escribe
+                // directo sobre la(s) clave(s) real(es) que lee tienda.html
+                // (ver _catConfigDeSubMultishop). Para COMPARTIR el enlace,
+                // en cambio, se reutiliza la clave GENERAL de la categoría
+                // ('belleza'/'bazar'/'jugueteria'/'libreria'/'electronicos')
+                // — el mismo camino ya probado que usa el botón "Compartir"
+                // de esa categoría cuando se la ve directamente (no desde
+                // Multishop), que ya sabe embeber ambas sub-configuraciones.
+                const catConfigEditar = catBase === 'multishop' ? _catConfigDeSubMultishop(sub) : (catBase + '_' + sub);
+                const catConfigCompartir = catBase === 'multishop' ? sub : (catBase + '_' + sub);
                 toolbar.style.display = 'flex';
                 if (label) label.textContent = 'Solo ' + nombreSub + ':';
-                if (btnLink) btnLink.onclick = () => compartirEnlaceSubGenerico(catConfig, nombreSub);
-                if (btnEdit) btnEdit.onclick = () => abrirEditarMargenSubGenerico(catConfig, nombreSub);
+                if (btnLink) btnLink.onclick = () => compartirEnlaceSubGenerico(catConfigCompartir, nombreSub);
+                if (btnEdit) btnEdit.onclick = () => abrirEditarMargenSubGenerico(catConfigEditar, nombreSub);
             } else {
                 toolbar.style.display = 'none';
             }
         }
         function _catConfigDeSubMultishop(sub) {
-            // 🔧 FIX: claves propias de Multishop, no las de la categoría original.
-            return 'multishop_' + sub;
+            // 🔧 FIX: antes esto devolvía una clave propia "multishop_<sub>"
+            // que tienda.html (el cliente) NUNCA llega a leer — el motor de
+            // precios del cliente, para productos vistos desde Multishop,
+            // siempre resuelve a la clave REAL de la categoría de origen
+            // (belleza_maquillaje/belleza_perfume, bazar_bazar/melamina,
+            // jugueteria_juguetes/peluches, libreria, electronicos). Cualquier
+            // margen guardado bajo "multishop_..." quedaba sin ningún efecto
+            // en el precio que ve el cliente. Ahora se edita/guarda DIRECTO
+            // sobre la(s) clave(s) real(es) — para Belleza/Bazar/Juguetería,
+            // ambas sub-categorías a la vez (mismo margen para las dos),
+            // igual que el resto de las categorías.
+            const mapa = {
+                belleza: ['belleza_maquillaje', 'belleza_perfume'],
+                bazar: ['bazar_bazar', 'bazar_melamina'],
+                jugueteria: ['jugueteria_juguetes', 'jugueteria_peluches'],
+                libreria: ['libreria'],
+                electronicos: ['electronicos']
+            };
+            return mapa[sub] || [sub];
         }
 
         async function compartirEnlaceSubGenerico(catConfig, label) {
@@ -8019,13 +8056,19 @@ function catalogoEfectivoMultishop(p) {
         // depende una opción puntual, para exigir que esté configurada
         // antes de poder editar la opción individualmente.
         function _categoriaGeneralDe(catConfig) {
-            if (catConfig.startsWith('multishop_')) return 'multishop';
+            // 🔧 FIX: catConfig puede venir como array (ej. desde Multishop:
+            // ['belleza_maquillaje','belleza_perfume']) — se usa la primera
+            // clave como representativa, las dos caen bajo la misma
+            // categoría general.
+            const clave = Array.isArray(catConfig) ? catConfig[0] : catConfig;
+            if (!clave) return null;
+            if (clave.startsWith('multishop_')) return 'multishop';
             const mapa = {
                 belleza_maquillaje: 'belleza', belleza_perfume: 'belleza',
                 bazar_bazar: 'bazar', bazar_melamina: 'bazar',
                 jugueteria_juguetes: 'jugueteria', jugueteria_peluches: 'jugueteria'
             };
-            return mapa[catConfig] || null;
+            return mapa[clave] || null;
         }
 
         // Editor de márgenes por sub-categoría — mismo modal (#editarMargenSubModal)
@@ -8052,7 +8095,13 @@ function catalogoEfectivoMultishop(p) {
             const title = document.getElementById('editarMargenSubTitle');
             if (title) title.textContent = 'Editar precios — ' + label;
             const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-            const config = allConfig[catConfig] || null;
+            // 🔧 FIX: catConfig puede ser un array (Multishop → Belleza/Bazar/
+            // Juguetería edita 2 claves reales a la vez) — se muestra lo
+            // guardado en la primera, que es la que se usa como base para
+            // precargar el formulario (las dos quedan siempre sincronizadas
+            // al guardar, más abajo).
+            const _claveLectura = Array.isArray(catConfig) ? catConfig[0] : catConfig;
+            const config = allConfig[_claveLectura] || null;
             const container = document.getElementById('margen-sub-rangos-container');
             container.innerHTML = '';
             if (config && Array.isArray(config.rangos) && config.rangos.length > 0) {
@@ -8738,8 +8787,12 @@ function catalogoEfectivoMultishop(p) {
             );
             if (!confirmado) return;
             try {
+                // 🔧 FIX: catConfig puede ser un array (Multishop → Belleza/
+                // Bazar/Juguetería) — se borra el override en TODAS las
+                // claves reales a la vez, igual que al guardar.
+                const claves = Array.isArray(catConfig) ? catConfig : [catConfig];
                 const allConfig = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
-                delete allConfig[catConfig];
+                claves.forEach(k => { delete allConfig[k]; });
                 localStorage.setItem('configTiendaAll', JSON.stringify(allConfig));
                 const fbUser = firebase.auth().currentUser;
                 const uid = (typeof _getUidParaFirestore === 'function' && _getUidParaFirestore()) || (fbUser && fbUser.uid);
@@ -8747,13 +8800,15 @@ function catalogoEfectivoMultishop(p) {
                     || localStorage.getItem('codigoVendedorLocal')
                     || localStorage.getItem('codigoRevendedorValidado');
                 if (uid || codigo) {
+                    const campos = {};
+                    claves.forEach(k => { campos[`configTiendaAll.${k}`] = '__DELETE_FIELD__'; });
                     fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             uid: uid || undefined,
                             codigoVendedor: codigo || undefined,
-                            campos: { [`configTiendaAll.${catConfig}`]: '__DELETE_FIELD__' }
+                            campos: campos
                         })
                     }).catch(() => {});
                 }
