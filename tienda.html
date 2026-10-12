@@ -2348,8 +2348,18 @@ window._slugFetchOk = true; // se pone en false solo si HUBO slug (?s=) y la res
     function intentarResolverSlug(intento) {
         var ctrl = new AbortController();
         var timeoutId = setTimeout(function() { ctrl.abort(); }, 7000);
-        var url = 'https://workerwebcliente.tuweb.workers.dev/slug/' + encodeURIComponent(sp);
-        return fetch(url, { signal: ctrl.signal })
+        // 🔧 FIX: sin "cache: no-store" ni parámetro anti-caché, el navegador
+        // (sobre todo el navegador interno de WhatsApp/Instagram en celulares,
+        // muy agresivo cacheando GET) podía quedarse con la primera respuesta
+        // de este slug para siempre. Resultado: el revendedor edita los
+        // márgenes, los guarda, el Worker queda actualizado... pero el cliente
+        // que abre ese mismo enlace sigue viendo la config VIEJA (o ninguna,
+        // si la primera vez que se generó el enlace todavía no tenía rangos) —
+        // precio mayorista de por vida en ese dispositivo, aunque el servidor
+        // ya tenga el margen bien guardado. Ahora cada intento pide explícitamente
+        // la versión fresca, con un parámetro que cambia en cada carga.
+        var url = 'https://workerwebcliente.tuweb.workers.dev/slug/' + encodeURIComponent(sp) + '?t=' + Date.now();
+        return fetch(url, { signal: ctrl.signal, cache: 'no-store' })
             .then(function(r) { clearTimeout(timeoutId); _diag('GET /slug intento ' + intento + ': HTTP ' + r.status); return r.ok ? r.json() : null; })
             .catch(function(e) { clearTimeout(timeoutId); _diag('GET /slug intento ' + intento + ': ERROR - ' + (e && e.message)); return null; })
             .then(function(d) {
@@ -3392,7 +3402,12 @@ async function cargarVendedor() {
         //     aunque las reglas de seguridad no permitan hacer queries).
         if (!userData) {
             try {
-                const resPerfil = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(uidParam)}`);
+                // 🔧 FIX: GET sin "no-store" podía quedar cacheado (sobre todo en
+                // navegadores internos de WhatsApp/Instagram) y devolver para
+                // siempre el perfil de ANTES de guardar nuevos márgenes —
+                // incluye configTiendaAll, que es justamente lo que decide el
+                // precio del cliente.
+                const resPerfil = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(uidParam)}&_t=${Date.now()}`, { cache: 'no-store' });
                 _diag('Perfil uid=' + uidParam + ': ' + (resPerfil.ok ? 'encontrado' : 'NO existe'));
                 if (resPerfil.ok) {
                     const respData = await resPerfil.json();
@@ -3476,8 +3491,15 @@ async function cargarVendedor() {
     try {
         const _uidParaStock = uidParam || userData.uid || null;
         let fsStock = null;
+        // 🔧 FIX: estos fetch no tenían "cache: no-store" a pesar de que el
+        // comentario de arriba dice "consulta en vivo, sin caché" — sin esa
+        // opción, el navegador (sobre todo el navegador interno de
+        // WhatsApp/Instagram en celulares) puede quedarse para siempre con
+        // la primera respuesta. Esto es justo lo que trae configTiendaAll
+        // (los márgenes recién guardados), así que si queda cacheada, el
+        // cliente sigue viendo el precio de ANTES de la edición.
         if (_uidParaStock) {
-            const resPerfilStock = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(_uidParaStock)}`);
+            const resPerfilStock = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(_uidParaStock)}&_t=${Date.now()}`, { cache: 'no-store' });
             if (resPerfilStock.ok) {
                 const respData = await resPerfilStock.json();
                 if (respData && respData.ok) fsStock = respData.perfil;
@@ -3492,7 +3514,7 @@ async function cargarVendedor() {
             if (resCodigoStock.ok) {
                 const dataStock = await resCodigoStock.json();
                 if (dataStock && dataStock.valido && dataStock.vendedor && dataStock.vendedor.uid) {
-                    const resPerfilPorCodigo = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(dataStock.vendedor.uid)}`);
+                    const resPerfilPorCodigo = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(dataStock.vendedor.uid)}&_t=${Date.now()}`, { cache: 'no-store' });
                     if (resPerfilPorCodigo.ok) {
                         const respPerfilPorCodigo = await resPerfilPorCodigo.json();
                         if (respPerfilPorCodigo && respPerfilPorCodigo.ok) fsStock = respPerfilPorCodigo.perfil;
@@ -3502,6 +3524,13 @@ async function cargarVendedor() {
         }
         if (fsStock && fsStock.stockProductosCat && typeof fsStock.stockProductosCat === 'object') {
             vendedor.stockProductosCat = fsStock.stockProductosCat;
+        }
+        // 🔧 Esta lectura de perfil ocurre DESPUÉS del login — es la más
+        // fresca que se consigue antes de armar los precios — así que si
+        // trae configTiendaAll lo usamos para pisar lo que haya llegado
+        // del login (que puede ser unos segundos más viejo).
+        if (fsStock && fsStock.configTiendaAll && typeof fsStock.configTiendaAll === 'object' && Object.keys(fsStock.configTiendaAll).length > 0) {
+            vendedor.configTiendaAll = fsStock.configTiendaAll;
         }
     } catch(_) {}
     // Tienda eliminada por el revendedor desde "Mis tiendas guardadas":
