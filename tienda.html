@@ -2240,6 +2240,17 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
     })
     .catch(() => {});
 
+// 🆕 Precios por variante configurados en Stock (pedidos.html) para
+// productos del catálogo BASE (no agregados). { catalogo: { productId: { "Linea: Opcion": precio } } }
+// Precio mayorista crudo — el margen del revendedor se le aplica igual que al precio base.
+window.PRECIOS_VARIANTES_GLOBAL_DATA = {};
+fetch('https://panelgestionestados.tuweb.workers.dev/api/precios-variantes-global')
+    .then(r => r.json())
+    .then(data => {
+        if (data && data.ok) window.PRECIOS_VARIANTES_GLOBAL_DATA = data.precios || {};
+    })
+    .catch(() => {});
+
 function _agregadoVivo(p, cat, a) {
     if (!p || !p._agregado || !a) return p;
     const lin = (Array.isArray(a.lineasVariantes) ? a.lineasVariantes : []).filter(l => l && l.nombre && Array.isArray(l.opciones) && l.opciones.length);
@@ -3227,6 +3238,69 @@ function _precioMargenSolo(precioBase, cat) {
     return precioFinal;
 }
 
+// 🆕 Precio por variante: toma el precio mayorista configurado para la
+// variante que el cliente tiene seleccionada en el modal (si hay alguna
+// con precio propio distinto), o el precio base del producto si no.
+// No inventa combinaciones: cada línea (Talle/Color/etc.) se busca por
+// separado, igual que se configura en Stock, y si hay más de una
+// coincidencia se usa la más alta (nunca se cobra de menos).
+function _precioMayoristaVariante(p, cat) {
+    const claves = [];
+    if (window._lineasSelTienda && Object.keys(window._lineasSelTienda).length) {
+        Object.values(window._lineasSelTienda).forEach(v => { if (v) claves.push(v); });
+    } else if (typeof varianteSelec !== 'undefined' && varianteSelec) {
+        claves.push(varianteSelec);
+    }
+    if (typeof talleSelec !== 'undefined' && talleSelec) claves.push(talleSelec);
+    if (typeof colorSelec !== 'undefined' && colorSelec) claves.push(colorSelec);
+    if (!claves.length) return p.precio;
+    const mapa = p._agregado
+        ? (p.preciosVariantes || {})
+        : ((window.PRECIOS_VARIANTES_GLOBAL_DATA && window.PRECIOS_VARIANTES_GLOBAL_DATA[cat] && window.PRECIOS_VARIANTES_GLOBAL_DATA[cat][String(p.id)]) || {});
+    let mejor = null;
+    claves.forEach(k => {
+        const v = Number(mapa[k]);
+        if (Number.isFinite(v) && v > 0 && (mejor === null || v > mejor)) mejor = v;
+    });
+    return mejor != null ? mejor : p.precio;
+}
+
+// Precio final de venta considerando la variante seleccionada ahora mismo
+// en el modal. Si el revendedor configuró un precio manual para el
+// producto, ese precio manda siempre (no varía por variante, como ya
+// pasaba con el precio base).
+function calcularPrecioVariante(p) {
+    const cat = p._catKey;
+    const manual = (vendedor && vendedor.preciosManualCat && cat && vendedor.preciosManualCat[cat]) ? vendedor.preciosManualCat[cat][p.id] : undefined;
+    if (manual !== undefined && manual !== null && manual !== '') return p.precioFinal;
+    const baseMayorista = _precioMayoristaVariante(p, cat);
+    if (baseMayorista === p.precio) return p.precioFinal;
+    return calcularPrecioConMargen(baseMayorista, cat);
+}
+
+function _promoInfoProductoVariante(p) {
+    const cat = p._catKey;
+    const manual = (vendedor && vendedor.preciosManualCat && cat && vendedor.preciosManualCat[cat]) ? vendedor.preciosManualCat[cat][p.id] : undefined;
+    const final = calcularPrecioVariante(p);
+    if (manual !== undefined && manual !== null && manual !== '') return { pct: 0, antes: final };
+    const baseMayorista = _precioMayoristaVariante(p, cat);
+    const previo = baseMayorista ? _precioMargenSolo(baseMayorista, cat) : 0;
+    const pct = previo ? _pctPromoParaPrecio(previo) : 0;
+    return pct > 0 ? { pct, antes: previo } : { pct: 0, antes: final };
+}
+
+// Igual que precioHtmlConPromo pero recalculado para la variante elegida
+// en el modal (si no hay ninguna elegida todavía, da exactamente lo mismo
+// que precioHtmlConPromo).
+function precioHtmlConPromoVariante(prod) {
+    const final = calcularPrecioVariante(prod);
+    const antes = _promoInfoProductoVariante(prod).antes;
+    if (antes > final) {
+        return '<span class="price-before">' + formatPrice(antes) + '</span>' + formatPrice(final);
+    }
+    return formatPrice(final);
+}
+
 function formatPrice(n) {
     return '$' + n.toLocaleString('es-AR');
 }
@@ -3825,7 +3899,7 @@ async function iniciarTienda() {
             const _nuevo = (cat, a) => {
                 const _lin = (Array.isArray(a.lineasVariantes) ? a.lineasVariantes : []).filter(l => l && l.nombre && Array.isArray(l.opciones) && l.opciones.length);
                 const _flat = ls => ls.flatMap(l => l.opciones.map(o => l.nombre + ': ' + o));
-                const base = { id: a.id, nombre: a.nombre, imagen: a.imagen, precio: a.precio, precioOriginal: a.precio, caracteristicas: a.caracteristicas ? [a.caracteristicas] : [], info: '', momento: a.momento || '', lineasVariantes: _lin, variantes: _lin.length ? _flat(_lin) : (Array.isArray(a.variantes) ? a.variantes : []), _agregado: true, _catCentral: cat, _rawAg: a };
+                const base = { id: a.id, nombre: a.nombre, imagen: a.imagen, precio: a.precio, precioOriginal: a.precio, caracteristicas: a.caracteristicas ? [a.caracteristicas] : [], info: '', momento: a.momento || '', lineasVariantes: _lin, variantes: _lin.length ? _flat(_lin) : (Array.isArray(a.variantes) ? a.variantes : []), preciosVariantes: (a.preciosVariantes && typeof a.preciosVariantes === 'object') ? a.preciosVariantes : {}, _agregado: true, _catCentral: cat, _rawAg: a };
                 if (cat === 'perfumes') return { ...base, categoria: 'unisex' };
                 if (cat === 'calzados') { const _tl = _lin.find(l => /talle/i.test(l.nombre)); const _resto = _lin.filter(l => l !== _tl); return { ...base, categoria: 'adultos', lineasVariantes: _resto, variantes: _flat(_resto), talle: (_tl ? _tl.opciones : (Array.isArray(a.variantes) && a.variantes.length ? a.variantes : ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44'])) }; }
                 if (cat === 'belleza_maquillaje') return { ...base, categoria: 'maquillaje', _origin: 'maquillaje', imagenes: [a.imagen] };
@@ -4175,8 +4249,9 @@ function abrirModal(id) {
     talleSelec = null;
     varianteSelec = null;
     colorSelec = null;
+    window._lineasSelTienda = {};
 
-    modalImagenes = (Array.isArray(productoModal.imagenes) && productoModal.imagenes.length > 1) ? productoModal.imagenes : [productoModal.imagen];
+    modalImagenes =(Array.isArray(productoModal.imagenes) && productoModal.imagenes.length > 1) ? productoModal.imagenes : [productoModal.imagen];
     modalImagenIndex = 0;
     document.getElementById('modal-img').src = resolveImgUrl(modalImagenes[0]);
     const dotsWrap = document.getElementById('modal-img-dots');
@@ -4192,7 +4267,7 @@ function abrirModal(id) {
     if (prevBtn) prevBtn.style.display = multi ? 'flex' : 'none';
     if (nextBtn) nextBtn.style.display = multi ? 'flex' : 'none';
     document.getElementById('modal-nombre').textContent = productoModal.nombre;
-    document.getElementById('modal-precio').innerHTML = precioHtmlConPromo(productoModal);
+    document.getElementById('modal-precio').innerHTML = precioHtmlConPromoVariante(productoModal);
     document.getElementById('modal-info').textContent = productoModal.info || '';
     document.getElementById('modal-momento').textContent = productoModal.momento || '';
 
@@ -4276,24 +4351,37 @@ function seleccionarLineaTienda(btn) {
     const partes = [];
     for (let k = 0; k < n; k++) { if (window._lineasSelTienda[k]) partes.push(window._lineasSelTienda[k]); }
     varianteSelec = partes.length === n ? partes.join(' · ') : null;
+    _actualizarPrecioModalVariante();
 }
 
 function seleccionarVariante(valor, btn) {
     varianteSelec = valor;
     document.querySelectorAll('#variantes-container .talle-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
+    _actualizarPrecioModalVariante();
 }
 
 function seleccionarTalle(talle, btn) {
     talleSelec = talle;
     document.querySelectorAll('#talles-container .talle-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
+    _actualizarPrecioModalVariante();
 }
 
 function seleccionarColor(color, btn) {
     colorSelec = color;
     document.querySelectorAll('#colores-container .talle-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
+    _actualizarPrecioModalVariante();
+}
+
+// Refresca el precio mostrado en el modal con la variante que el cliente
+// tiene seleccionada en este momento (solo para ver el precio — elegir
+// una variante nunca agrega nada al carrito por sí sola).
+function _actualizarPrecioModalVariante() {
+    if (!productoModal) return;
+    const el = document.getElementById('modal-precio');
+    if (el) el.innerHTML = precioHtmlConPromoVariante(productoModal);
 }
 
 function cerrarModalProducto() {
