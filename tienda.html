@@ -6035,7 +6035,10 @@ async function verificarRegaloPendiente() {
         if (!uidVendedor || !datosCliente || !datosCliente.telefono) return;
 
         const telLimpio = String(datosCliente.telefono).replace(/\D/g, '');
-        const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/regalos-pendientes?uid=${encodeURIComponent(uidVendedor)}`);
+        // 🔒 Se manda el teléfono para que el servidor filtre ahí mismo —
+        // así nunca llega al navegador la lista de teléfonos/montos de
+        // otros clientes premiados (ver fix en datosderevendedor_worker).
+        const res = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/regalos-pendientes?uid=${encodeURIComponent(uidVendedor)}&tel=${encodeURIComponent(telLimpio)}`);
         const respData = res.ok ? await res.json() : null;
         const regalosPendientes = (respData && respData.ok && Array.isArray(respData.regalos)) ? respData.regalos : [];
         const regalo = regalosPendientes.find(g => String(g.tel || '').replace(/\D/g, '') === telLimpio);
