@@ -3306,7 +3306,12 @@
   var REGLAS = {
     'datosderevendedor.tuweb.workers.dev': { ruta: DATOS, soloPost: false },
     'workerwebcliente.tuweb.workers.dev': { ruta: /^\/slug$/, soloPost: true },
-    'combosydescuentos.tuweb.workers.dev': { ruta: /^\/(combo|combo\/toggle|combo\/eliminar|promocion|promocion\/toggle|promocion\/eliminar|slug)$/, soloPost: true }
+    'combosydescuentos.tuweb.workers.dev': { ruta: /^\/(combo|combo\/toggle|combo\/eliminar|promocion|promocion\/toggle|promocion\/eliminar|slug)$/, soloPost: true },
+    // 🔒 NUEVO: preciomanual ahora exige sesión del propio revendedor en el
+    // POST (antes cualquiera podía pisar el precio/promo de OTRO revendedor
+    // sin ninguna credencial). Esta regla hace que el token se adjunte solo,
+    // sin tocar el código que arma cada fetch.
+    'preciomanual.tuweb.workers.dev': { ruta: /^\/$/, soloPost: true }
   };
   var orig = window.fetch.bind(window);
   window.fetch = async function (input, init) {
