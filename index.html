@@ -12419,7 +12419,14 @@
                 const de   = Number(row.querySelector('.rango-de').value) || 0;
                 const hasta = Number(row.querySelector('.rango-hasta').value);
                 const pct   = Number(row.querySelector('.rango-pct').value);
-                if (hasta > 0 && pct >= 0) rangos.push({ de, hasta, porcentaje: pct });
+                // 🔧 FIX: si el revendedor deja "Hasta $" vacío pensando que
+                // significa "sin límite", antes la fila se descartaba en
+                // silencio (hasta quedaba en 0, que no pasaba "hasta > 0") y
+                // el margen configurado nunca se guardaba — el precio
+                // compartido terminaba siendo el de costo. Ahora un "Hasta"
+                // vacío/0 se guarda como "sin límite superior" en vez de
+                // perderse.
+                if (pct >= 0) rangos.push({ de, hasta: hasta > 0 ? hasta : 999999999, porcentaje: pct });
             });
             rangos.sort((a, b) => a.hasta - b.hasta);
             // Color de tienda (por categoría)
@@ -12752,7 +12759,14 @@
                 const de = Number(row.querySelector('.rango-de')?.value) || 0;
                 const hasta = Number(row.querySelector('.rango-hasta')?.value) || 0;
                 const pct = Number(row.querySelector('.rango-pct')?.value);
-                if (hasta > 0 && pct >= 0) rangos.push({ de, hasta, porcentaje: pct });
+                // 🔧 FIX: si el revendedor deja "Hasta $" vacío pensando que
+                // significa "sin límite", antes la fila se descartaba en
+                // silencio (hasta quedaba en 0, que no pasaba "hasta > 0") y
+                // el margen configurado nunca se guardaba — el precio
+                // compartido terminaba siendo el de costo. Ahora un "Hasta"
+                // vacío/0 se guarda como "sin límite superior" en vez de
+                // perderse.
+                if (pct >= 0) rangos.push({ de, hasta: hasta > 0 ? hasta : 999999999, porcentaje: pct });
             });
             let totalGanancia = 0;
             productosConfig.forEach(p => {
@@ -15379,7 +15393,14 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                 const de = Number(row.querySelector('.pr-de').value) || 0;
                 const hasta = Number(row.querySelector('.pr-hasta').value);
                 const pct = Number(row.querySelector('.pr-pct').value);
-                if (hasta > 0 && pct >= 0) rangos.push({ de, hasta, porcentaje: pct });
+                // 🔧 FIX: si el revendedor deja "Hasta $" vacío pensando que
+                // significa "sin límite", antes la fila se descartaba en
+                // silencio (hasta quedaba en 0, que no pasaba "hasta > 0") y
+                // el margen configurado nunca se guardaba — el precio
+                // compartido terminaba siendo el de costo. Ahora un "Hasta"
+                // vacío/0 se guarda como "sin límite superior" en vez de
+                // perderse.
+                if (pct >= 0) rangos.push({ de, hasta: hasta > 0 ? hasta : 999999999, porcentaje: pct });
             });
             rangos.sort((a, b) => a.hasta - b.hasta);
             let promos = {};
@@ -16009,7 +16030,14 @@ async function _copiarEnlaceItem(url) {
                 const de = Number(row.querySelector('.pr-de').value) || 0;
                 const hasta = Number(row.querySelector('.pr-hasta').value);
                 const pct = Number(row.querySelector('.pr-pct').value);
-                if (hasta > 0 && pct >= 0) rangos.push({ de, hasta, porcentaje: pct });
+                // 🔧 FIX: si el revendedor deja "Hasta $" vacío pensando que
+                // significa "sin límite", antes la fila se descartaba en
+                // silencio (hasta quedaba en 0, que no pasaba "hasta > 0") y
+                // el margen configurado nunca se guardaba — el precio
+                // compartido terminaba siendo el de costo. Ahora un "Hasta"
+                // vacío/0 se guarda como "sin límite superior" en vez de
+                // perderse.
+                if (pct >= 0) rangos.push({ de, hasta: hasta > 0 ? hasta : 999999999, porcentaje: pct });
             });
             rangos.sort((a, b) => a.hasta - b.hasta);
             if (rangos.length === 0 && !_promoGiftDraft) {
