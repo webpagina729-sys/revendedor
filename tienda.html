@@ -3569,7 +3569,29 @@ async function cargarVendedor() {
         } catch(e) {}
     }
 
-    configTienda = cfgAll || {};
+    // 🔧 FIX: el login (por UID o por código) ya trae configTiendaAll
+    // directo de Firestore — es la fuente SIEMPRE actualizada y vale para
+    // cualquier dispositivo, a diferencia del localStorage de arriba (solo
+    // sirve en el mismo navegador del revendedor). Antes se descartaba por
+    // completo: si el enlace compartido no traía "?cfg=" (viejo, roto, o
+    // compartido ANTES de configurar/actualizar los márgenes y nunca vuelto
+    // a generar desde "Ver mi tienda"), el cliente se quedaba sin ningún
+    // margen aplicado — precio mayorista puro — aunque el revendedor sí
+    // tuviera los márgenes guardados. Ahora se usa como base de respaldo,
+    // de MENOR prioridad que el localStorage del propio navegador y que el
+    // "?cfg=" del enlace (que sigue siendo la fuente con prioridad absoluta
+    // más abajo, sin cambios).
+    let cfgFirestore = null;
+    try {
+        if (vendedor && vendedor.configTiendaAll && typeof vendedor.configTiendaAll === 'object' && Object.keys(vendedor.configTiendaAll).length > 0) {
+            cfgFirestore = vendedor.configTiendaAll;
+        } else if (vendedor && vendedor.configTienda && typeof vendedor.configTienda === 'object') {
+            const catCfgTienda = vendedor.configTienda.categoria;
+            cfgFirestore = catCfgTienda ? { [catCfgTienda]: vendedor.configTienda } : null;
+        }
+    } catch(e) {}
+
+    configTienda = Object.assign({}, cfgFirestore || {}, cfgAll || {});
 
     // 🔧 El enlace (?cfg=) es la ÚNICA fuente de precios/promos/colores
     // para la categoría que se está mostrando — viene directo de
