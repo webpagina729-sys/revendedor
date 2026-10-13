@@ -3598,6 +3598,28 @@
                 </div>
             </div>
 
+            <!-- NICHO 2.7: REMERAS PREMIUM BRN (INDUMENTARIA) -->
+            <div class="nicho-item">
+                <div class="nicho-info">
+                    <h3 class="nicho-title">Remeras Premium brn</h3>
+                    <p class="nicho-subtitle">Algodón peinado 24.1 hombre / Algodón peinado 20.1 mujer</p>
+                </div>
+
+                <!-- CARRUSEL ANCHO (mismo estilo que el resto de nichos) -->
+                <div class="carrusel-container" id="carrusel-container-indumentaria">
+                    <div class="carrusel-wrapper" id="carrusel-wrapper-indumentaria"></div>
+                    <button class="carrusel-nav carrusel-prev" onclick="carruselAnteriorIndumentaria()" title="Anterior">‹</button>
+                    <button class="carrusel-nav carrusel-next" onclick="carruselSiguienteIndumentaria()" title="Siguiente">›</button>
+                    <div class="carrusel-dots" id="carrusel-dots-indumentaria"></div>
+                </div>
+
+                <!-- BADGE + BOTÓN: va directo al catálogo en indumentaria.html -->
+                <div class="nicho-footer">
+                    <div class="nicho-badge">💰 Objetivo en la categoría: $150.000</div>
+                    <a class="nicho-button" href="indumentaria.html" onclick="event.preventDefault();_chequearAntesDeIrA('indumentaria','indumentaria.html');" style="display:block; text-align:center; text-decoration:none;">Comenzar próximo pedido en este lugar</a>
+                </div>
+            </div>
+
             <!-- NICHO 3: CALZADOS -->
             <div class="nicho-item">
                 <div class="nicho-info">
@@ -6529,11 +6551,11 @@
         // no bloquea toda la sección Belleza si Perfumería sigue disponible.
         const NICHO_LABEL_PAUSA = {
             perfumes: 'Perfumería', belleza: 'Belleza', calzados: 'Calzados',
-            lenceria: 'Lencería', suplementos: 'Suplementos',
+            lenceria: 'Lencería', suplementos: 'Suplementos', indumentaria: 'Remeras Premium brn',
         };
         const NICHO_CATALOGOS_PAUSA = {
             perfumes: ['perfumes'], belleza: ['belleza_maquillaje', 'belleza_perfume'],
-            calzados: ['calzados'], lenceria: ['lenceria'], suplementos: ['suplementos'],
+            calzados: ['calzados'], lenceria: ['lenceria'], suplementos: ['suplementos'], indumentaria: ['indumentaria'],
         };
 
         let _categoriasFrenadasCache = null;
@@ -10192,7 +10214,7 @@
                         // 2) item.catalogo (si algún ítem lo trae explícito)
                         // 3) palabras clave en el nombre (solo pedidos viejos
                         //    que no tienen ninguno de los dos datos anteriores)
-                        const categoriasValidas = new Set(['perfumes','calzados','belleza','bazar','jugueteria','libreria','lenceria','suplementos','multishop']);
+                        const categoriasValidas = new Set(['perfumes','calzados','belleza','bazar','jugueteria','libreria','lenceria','suplementos','multishop','indumentaria']);
                         let nicho = null;
                         if (pedido.nicho && categoriasValidas.has(String(pedido.nicho).toLowerCase())) {
                             nicho = String(pedido.nicho).toLowerCase();
@@ -10721,6 +10743,68 @@
             actualizarCarruselSuplementos();
         }
 
+        // ═══ REMERAS PREMIUM BRN (INDUMENTARIA): carrusel de la tarjeta de Inicio ═══
+        let carruselActualIndumentaria = 0;
+        let productosCarruselIndumentaria = [];
+        const INDUMENTARIA_REPO_BASE_CARD = 'https://raw.githubusercontent.com/webpagina729-sys/RemerasBerny/main/';
+
+        function inicializarCarruselIndumentaria() {
+            // Imágenes fijas pedidas para el carrusel de la tarjeta de
+            // Remeras Premium brn en Inicio.
+            const CARRUSEL_INDUMENTARIA_IMGS = ['orange.png', 'distressed.png', 'grid.png', 'box.png', 'boxcinco.png'];
+            productosCarruselIndumentaria = CARRUSEL_INDUMENTARIA_IMGS.map(fname => ({
+                nombre: 'Remeras Premium brn',
+                imagen: INDUMENTARIA_REPO_BASE_CARD + fname
+            }));
+
+            const wrapper = document.getElementById('carrusel-wrapper-indumentaria');
+            const dotsContainer = document.getElementById('carrusel-dots-indumentaria');
+            if (!wrapper || !dotsContainer) return;
+
+            wrapper.innerHTML = '';
+            dotsContainer.innerHTML = '';
+
+            productosCarruselIndumentaria.forEach((producto, index) => {
+                const slide = document.createElement('div');
+                slide.className = 'carrusel-slide';
+                slide.innerHTML = `<img src="${producto.imagen}" alt="${producto.nombre}" loading="lazy">`;
+                wrapper.appendChild(slide);
+
+                const dot = document.createElement('button');
+                dot.className = `carrusel-dot ${index === 0 ? 'active' : ''}`;
+                dot.onclick = () => irASlideIndumentaria(index);
+                dotsContainer.appendChild(dot);
+            });
+
+            carruselActualIndumentaria = 0;
+            actualizarCarruselIndumentaria();
+        }
+
+        function actualizarCarruselIndumentaria() {
+            const wrapper = document.getElementById('carrusel-wrapper-indumentaria');
+            aplicarEfectoCoverflow(wrapper, carruselActualIndumentaria);
+            document.querySelectorAll('#carrusel-dots-indumentaria .carrusel-dot').forEach((dot, index) => {
+                dot.classList.toggle('active', index === carruselActualIndumentaria);
+            });
+        }
+
+        function carruselAnteriorIndumentaria() {
+            if (productosCarruselIndumentaria.length === 0) return;
+            carruselActualIndumentaria = (carruselActualIndumentaria - 1 + productosCarruselIndumentaria.length) % productosCarruselIndumentaria.length;
+            actualizarCarruselIndumentaria();
+        }
+
+        function carruselSiguienteIndumentaria() {
+            if (productosCarruselIndumentaria.length === 0) return;
+            carruselActualIndumentaria = (carruselActualIndumentaria + 1) % productosCarruselIndumentaria.length;
+            actualizarCarruselIndumentaria();
+        }
+
+        function irASlideIndumentaria(index) {
+            carruselActualIndumentaria = index;
+            actualizarCarruselIndumentaria();
+        }
+
         function inicializarCarruselBelleza() {
             // Imágenes fijas pedidas para el carrusel de la tarjeta de
             // Belleza y Cuidado Personal (todas de Maquillaje).
@@ -10796,6 +10880,7 @@
             carruselSiguienteBelleza,
             carruselSiguienteLenceria,
             carruselSiguienteSuplementos,
+            carruselSiguienteIndumentaria,
             carruselSiguienteShoes
         ];
         window.carruselCicloTurno = 0;
@@ -11664,6 +11749,7 @@
                 inicializarCarruselBelleza();
                 inicializarCarruselLenceria();
                 inicializarCarruselSuplementos();
+                inicializarCarruselIndumentaria();
                 
                 // Actualizar vista de nichos
                 actualizarVistaNichos();
@@ -11678,6 +11764,7 @@
                     'carrusel-container-belleza',
                     'carrusel-container-lenceria',
                     'carrusel-container-suplementos',
+                    'carrusel-container-indumentaria',
                     'carrusel-container-shoes-preview'
                 ];
                 let huboContenedorCarrusel = false;
