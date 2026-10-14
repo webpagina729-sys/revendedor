@@ -10155,16 +10155,25 @@
             const esWorker = !!(pedido && pedido._origenWorker);
             const codigoVendedor = await getCodigoVendedorActual() || '';
             try {
+                // 🔧 FIX: este fetch era el único paso de toda la función sin su
+                // propio try/catch — cualquier falla de red acá (p.ej. el
+                // Worker caído un instante) se iba directo al catch general de
+                // abajo y abortaba TODO lo demás (incluido avisar al panel de
+                // gestión), aunque este paso en particular ni siquiera
+                // corresponde a pedidos de tienda.html (solo a pedidos
+                // personales de stock.html, esWorker=false).
                 if (!esWorker && user) {
-                    await fetch('https://datosderevendedor.tuweb.workers.dev/api/pedido-personal/actualizar', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            uid: user.uid,
-                            pedidoId,
-                            campos: { estadoAprobacion: nuevoEstado, fechaAprobacion: Date.now() }
-                        })
-                    });
+                    try {
+                        await fetch('https://datosderevendedor.tuweb.workers.dev/api/pedido-personal/actualizar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                uid: user.uid,
+                                pedidoId,
+                                campos: { estadoAprobacion: nuevoEstado, fechaAprobacion: Date.now() }
+                            })
+                        });
+                    } catch (_e) { console.warn('⚠️ No se pudo actualizar pedido-personal (no bloqueante):', _e); }
                 }
                 // Notificar al Worker (best-effort)
                 try {
@@ -10323,7 +10332,13 @@
                 // Actualizar cache local
                 const p = (window.pedidosRecibidosCache || []).find(x => x.id === pedidoId);
                 if (p) p.estadoAprobacion = nuevoEstado;
-                renderPedidosRecibidos();
+                // 🔧 FIX: el estado YA se actualizó en el backend en este punto
+                // (los pasos de arriba ya corrieron) — si el RENDER de la
+                // lista llegara a romper por algún dato puntual de un pedido
+                // específico, no debe tirar el "No se pudo actualizar el
+                // pedido" general, que hacía creer que el cambio no se guardó
+                // cuando en realidad sí se guardó y solo falló el repintado.
+                try { renderPedidosRecibidos(); } catch (_eRender) { console.error('⚠️ Pedido actualizado pero falló el repintado de la lista:', _eRender); }
 
                 // ── Notificar al panel de gestión en tiempo real (misma o distinta pestaña) ──
                 try {
@@ -10332,8 +10347,14 @@
                     if (window._rwBroadcast) window._rwBroadcast(rwMsg);
                 } catch(_) {}
             } catch (err) {
-                console.error('Error actualizando pedido:', err);
-                alert('No se pudo actualizar el pedido');
+                // 🔧 FIX: el mensaje genérico no decía NADA sobre qué pedido o
+                // qué paso falló — imposible saber por qué, por ejemplo,
+                // Belleza/Juguetería fallaban y Perfumería no. Ahora se loguea
+                // el pedido/categoría/estado involucrados junto con el error
+                // real, y ese mismo detalle se muestra en el aviso para poder
+                // diagnosticarlo sin tener que reproducirlo a ciegas.
+                console.error('Error actualizando pedido:', { pedidoId, nuevoEstado, nicho: pedido && pedido.nicho, items: pedido && (pedido.items || []).map(i => i.catalogo) }, err);
+                alert('No se pudo actualizar el pedido' + (err && err.message ? ' (' + err.message + ')' : ''));
             }
         }
 
