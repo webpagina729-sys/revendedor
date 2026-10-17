@@ -10231,7 +10231,18 @@
                         //    que no tienen ninguno de los dos datos anteriores)
                         const categoriasValidas = new Set(['perfumes','calzados','belleza','bazar','jugueteria','libreria','lenceria','suplementos','multishop','indumentaria']);
                         let nicho = null;
-                        if (pedido.nicho && categoriasValidas.has(String(pedido.nicho).toLowerCase())) {
+                        // 🆕 FIX: antes esto exigía que pedido.nicho estuviera en
+                        // categoriasValidas (una lista fija de categorías clásicas),
+                        // así que un pedido de una categoría creada con "Agregar
+                        // Categoría" (ej. "mascotas") nunca pasaba este if, caía al
+                        // fallback y terminaba mal etiquetado como "multishop" al
+                        // llegar al panel de gestión. Como el propio comentario de
+                        // arriba dice, pedido.nicho YA ES "la fuente de verdad
+                        // real" — se confía en él directamente, sin filtrarlo
+                        // contra la lista clásica. La lista sigue usándose más
+                        // abajo, solo para los fallbacks más débiles (item.catalogo
+                        // y palabras clave) cuando no hay pedido.nicho.
+                        if (pedido.nicho) {
                             nicho = String(pedido.nicho).toLowerCase();
                         } else {
                             const catsPresentes = new Set(
