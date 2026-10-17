@@ -2280,6 +2280,10 @@ const SUPLEMENTOS_DATA = [
 let vendedor       = null;   // datos del vendedor
 let configTienda   = {};     // configTiendaAll del vendedor
 let catalogoActual = null;   // 'perfumes' | 'calzados'
+// 🆕 Si catParam es una categoría creada con "Agregar Categoría" (pedidos.html,
+// no una de las clásicas de arriba), acá queda su metadata ({id,nombre,descripcion,...})
+// para que el resto del archivo pueda mostrarla igual que a las demás.
+let _catExtraActual = null;
 
 // 🔧 NUEVO: variantes/talles que el dueño de la plataforma sacó o
 // agregó puntualmente para un producto (desde pedidos.html → Stock →
@@ -3879,7 +3883,7 @@ function ETIQUETA_CATEGORIA(cat) {
         indumentaria: 'Remeras Premium brn',
         suplementos: 'Salud/Suplementos',
         multishop: 'Multishop'
-    }[cat] || 'Perfumería';
+    }[cat] || (_catExtraActual && _catExtraActual.id === cat ? _catExtraActual.nombre : 'Perfumería');
 }
 function SUBTITULO_CATEGORIA(cat) {
     return {
@@ -3892,10 +3896,38 @@ function SUBTITULO_CATEGORIA(cat) {
         indumentaria: 'Algodón peinado 24.1 hombre / Algodón peinado 20.1 mujer',
         suplementos: 'Colágenos, Vitaminas y Minerales, Específicos, Adaptógenos y Hongos',
         multishop: 'Belleza, Bazar, Juguetería, Librería y Electrónicos en un solo pedido'
-    }[cat] || 'Perfumes árabes importados';
+    }[cat] || (_catExtraActual && _catExtraActual.id === cat ? (_catExtraActual.descripcion || '') : 'Perfumes árabes importados');
+}
+
+// 🆕 Convierte un producto "agregado" de una categoría dinámica (igual
+// formato que devuelve /api/catalogo?categoria=todas) al mismo shape que
+// _nuevo() usa para las categorías clásicas más abajo, sin ningún caso
+// especial de categoría (esas no aplican a una categoría nueva).
+function _mapearProductoExtra(cat, a) {
+    const _lin = (Array.isArray(a.lineasVariantes) ? a.lineasVariantes : []).filter(l => l && l.nombre && Array.isArray(l.opciones) && l.opciones.length);
+    const _flat = ls => ls.flatMap(l => l.opciones.map(o => l.nombre + ': ' + o));
+    return {
+        id: a.id, nombre: a.nombre, imagen: a.imagen, precio: a.precio, precioOriginal: a.precio,
+        caracteristicas: a.caracteristicas ? [a.caracteristicas] : [], info: '', momento: a.momento || '',
+        lineasVariantes: _lin, variantes: _lin.length ? _flat(_lin) : (Array.isArray(a.variantes) ? a.variantes : []),
+        preciosVariantes: (a.preciosVariantes && typeof a.preciosVariantes === 'object') ? a.preciosVariantes : {},
+        _agregado: true, _catCentral: cat, _rawAg: a, categoria: cat
+    };
 }
 
 async function iniciarTienda() {
+    // 🆕 Categorías creadas con "Agregar Categoría" (pedidos.html): si catParam
+    // no es ninguna de las clásicas de abajo, puede ser una de éstas. Se
+    // consulta ANTES de fijar catalogoActual para no afectar en nada el
+    // comportamiento ya existente de las categorías clásicas.
+    try {
+        const _rExtra = await fetch('https://preciosmayoristasrevendedores.tuweb.workers.dev/api/categorias/listar');
+        const _dExtra = await _rExtra.json();
+        if (_dExtra && _dExtra.ok && Array.isArray(_dExtra.categorias)) {
+            _catExtraActual = _dExtra.categorias.find(c => c.id === catParam) || null;
+        }
+    } catch (_e) { /* silencioso: si falla, se comporta igual que antes (cae a 'perfumes') */ }
+
     catalogoActual = (catParam === 'calzados') ? 'calzados'
         : (catParam === 'belleza') ? 'belleza'
         : (catParam === 'bazar') ? 'bazar'
@@ -3905,6 +3937,7 @@ async function iniciarTienda() {
         : (catParam === 'indumentaria') ? 'indumentaria'
         : (catParam === 'suplementos') ? 'suplementos'
         : (catParam === 'multishop') ? 'multishop'
+        : _catExtraActual ? _catExtraActual.id
         : 'perfumes';
 
     // ── Aplicar color personalizado del vendedor (por categoría) ──
@@ -3985,9 +4018,14 @@ async function iniciarTienda() {
 
     // Catálogo central (Worker de precios, KV): lo eliminado definitivamente
     // desde pedidos.html desaparece también de acá (solo categorías ya cargadas en el Worker).
+    // 🆕 _dataCatGlobal: misma respuesta, pero conservada fuera del try para
+    // que la rama de categorías dinámicas (más abajo, armando "raw") pueda
+    // leer sus "agregados" sin pedirla de nuevo.
+    let _dataCatGlobal = null;
     try {
         const _resCat = await fetch('https://preciosmayoristasrevendedores.tuweb.workers.dev/api/catalogo?categoria=todas');
         const _dataCat = await _resCat.json();
+        _dataCatGlobal = _dataCat;
         if (_dataCat && _dataCat.ok && _dataCat.catalogos) {
             const _quitar = (arr, cat) => {
                 const vivos = _dataCat.catalogos[cat];
@@ -4072,6 +4110,11 @@ async function iniciarTienda() {
             ...LIBRERIA_DATA.map(p => ({ ...p, _multishopCat: 'libreria' })),
             ...ELECTRONICOS_DATA.map(p => ({ ...p, _multishopCat: 'electronicos' }))
           ]
+        : (_catExtraActual && catalogoActual === _catExtraActual.id)
+        // 🆕 Categoría creada con "Agregar Categoría": sus productos vienen
+        // de /api/catalogo?categoria=todas (ya pedido arriba), igual que los
+        // "agregados" que las categorías clásicas reciben con _agregar().
+        ? (((_dataCatGlobal && _dataCatGlobal.agregados && _dataCatGlobal.agregados[catalogoActual]) || []).map(a => _mapearProductoExtra(catalogoActual, a)))
         : PERFUMES_DATA;
 
     // Enlace de una sola sub-categoría: mostrar SOLO esos productos, con SU margen configurado.
@@ -4180,6 +4223,11 @@ async function iniciarTienda() {
         ? [{val:'todos', label:'Todos'}, {val:'belleza_cabello', label:'Belleza y Cabello'}, {val:'concentracion_memoria', label:'Concentración y Memoria'}, {val:'dolor_articular', label:'Dolor Articular'}, {val:'energia_cansancio', label:'Energía y Cansancio'}, {val:'estres_sueno', label:'Estrés y Sueño'}, {val:'inflamacion_defensas', label:'Inflamación y Defensas'}]
         : catalogoActual === 'multishop'
         ? [{val:'todos', label:'Todos'}, {val:'belleza', label:'Belleza'}, {val:'bazar', label:'Bazar'}, {val:'jugueteria', label:'Juguetería'}, {val:'libreria', label:'Librería'}, {val:'electronicos', label:'Electrónicos'}]
+        // 🆕 Categoría creada con "Agregar Categoría": no tiene sub-categorías
+        // tipo Mujer/Hombre/Unisex (eso es específico de Perfumería), así que
+        // se muestra un único filtro "Todos" — igual que libreria/indumentaria.
+        : (_catExtraActual && catalogoActual === _catExtraActual.id)
+        ? [{val:'todos', label:'Todos'}]
         : [{val:'todos', label:'Todos'}, {val:'femenino', label:'Mujer'}, {val:'masculino', label:'Hombre'}, {val:'unisex', label:'Unisex'}];
 
     filterBtns.innerHTML = '';
