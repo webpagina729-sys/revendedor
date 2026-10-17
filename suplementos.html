@@ -10466,7 +10466,10 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
         // creador de combos abierto desde "Tiendas Guardadas").
         function getProductosPorCatalogo(cat) {
             if (cat === 'suplementos') return window.productsSuplementos || [];
-            return [];
+            // 🆕 Categorías creadas con "Agregar Categoría" (si en el futuro se
+            // exponen aquí vía window._productosExtra[cat]); hoy esta página no
+            // carga categorías dinámicas, así que este fallback no cambia nada.
+            return (window._productosExtra && window._productosExtra[cat]) || [];
         }
 
         function calcularPromedioGanancia() {
