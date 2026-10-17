@@ -3613,6 +3613,11 @@
                     <button class="nicho-button" onclick="abrirModalCodigo('multishop')">Comenzar próximo pedido en este lugar</button>
                 </div>
             </div>
+            <!-- 🆕 Categorías creadas desde "Agregar Categoría" en pedidos.html
+                 (perfil = Más Categorías). Se llenan en runtime — ver
+                 cargarCategoriasExtraMasCat() más abajo. 100% agregado, no
+                 reemplaza ni reordena ninguno de los nichos de arriba. -->
+            <div id="nichos-extra-mascategorias"></div>
         </div>
     </section>
 
@@ -13381,7 +13386,9 @@ function catalogoEfectivoMultishop(p) {
             if (cat === 'libreria') return window.productsLibreria || [];
             if (cat === 'electronicos') return window.productsElectronicos || [];
             if (cat === 'multishop') return window.productsMultishop || [];
-            return [];
+            // 🆕 Categorías creadas con "Agregar Categoría": sus productos se
+            // exponen en window._productosExtra[cat] (ver bloque categorias-extra-mascategorias).
+            return (window._productosExtra && window._productosExtra[cat]) || [];
         }
 
         function calcularPromedioGanancia() {
@@ -17276,5 +17283,180 @@ function mostrarToastOk(msg) {
     window.addEventListener('focus', function () { sincronizar(); });
     setTimeout(sincronizar, 3000);
     setInterval(sincronizar, 300000);
+})();
+</script>
+<script id="categorias-extra-mascategorias">
+// ═══════════════════════════════════════════════════════════════
+// 🆕 CATEGORÍAS EXTRA (creadas con "Agregar Categoría" en pedidos.html,
+// perfil = Más Categorías): bloque 100% agregado, no modifica ni
+// reemplaza ningún nicho, carrusel o función existente de arriba.
+//
+// Igual que en index.html, mas-categorias.html tampoco compra directo
+// para NINGUNA categoría — "Tu Pedido por Encargo" solo junta pedidos
+// que el cliente ya hizo (agregarPedidoAlCarrito) y el botón real de
+// compra abre gestion.revendeways.shop. Por eso esta vidriera también
+// es de solo consulta: ver el producto, sus variantes, y compartirlo
+// por WhatsApp (el mismo patrón que "Compartir Producto" ya usa el
+// resto de las categorías acá).
+//
+// El carrusel de cada tile reutiliza el mismo sistema GENÉRICO que ya
+// usan Bazar/Juguetería/Librería/Multishop (window._carruselesNuevosEstado
+// + carruselAnteriorCat/carruselSiguienteCat/irASlideCat/actualizarCarruselCat,
+// definidos arriba) — solo se le suman las categorías nuevas con sus
+// propios ids, sin tocar esas funciones ni las categorías ya cargadas.
+// ═══════════════════════════════════════════════════════════════
+(function () {
+    'use strict';
+    var WORKER_PRECIOS_URL = 'https://preciosmayoristasrevendedores.tuweb.workers.dev';
+    var _cats = [];
+    var _prods = {};
+
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function money(n) { return '$' + Math.round(Number(n) || 0).toLocaleString('es-AR'); }
+
+    async function cargarCategoriasExtraMasCat() {
+        try {
+            var rListar = await fetch(WORKER_PRECIOS_URL + '/api/categorias/listar').then(function (r) { return r.json(); }).catch(function () { return null; });
+            var rCat = await fetch(WORKER_PRECIOS_URL + '/api/catalogo?categoria=todas').then(function (r) { return r.json(); }).catch(function () { return null; });
+            var todas = (rListar && rListar.ok && Array.isArray(rListar.categorias)) ? rListar.categorias : [];
+            _cats = todas.filter(function (c) { return Number(c.perfil) === 2; });
+            if (!_cats.length) return;
+            var repos = (rCat && rCat.repos) || {};
+            var agregados = (rCat && rCat.agregados) || {};
+            _cats.forEach(function (c) { _prods[c.id] = agregados[c.id] || []; c._repoBase = (repos[c.id] && repos[c.id][0]) || ''; });
+            // 🆕 Expone los productos de categorías dinámicas en window para que
+            // getProductosPorCatalogo(cat) (usada por combos/promociones) pueda
+            // encontrarlos. No reemplaza ni toca ninguna variable clásica.
+            window._productosExtra = window._productosExtra || {};
+            _cats.forEach(function (c) { window._productosExtra[c.id] = _prods[c.id]; });
+            renderNichosExtraMasCat();
+        } catch (e) { /* silencioso: si falla, mas-categorias.html sigue funcionando igual que siempre */ }
+    }
+
+    function renderNichosExtraMasCat() {
+        var cont = document.getElementById('nichos-extra-mascategorias');
+        if (!cont) return;
+        cont.innerHTML = _cats.map(function (c) {
+            return '<div class="nicho-item">' +
+                    '<div class="nicho-info">' +
+                        '<h3 class="nicho-title">' + esc(c.nombre) + '</h3>' +
+                        '<p class="nicho-subtitle">' + esc(c.descripcion || '') + '</p>' +
+                    '</div>' +
+                    '<div class="carrusel-container" id="carrusel-container-' + c.id + '">' +
+                        '<div class="carrusel-wrapper" id="carrusel-wrapper-' + c.id + '"></div>' +
+                        '<button class="carrusel-nav carrusel-prev" onclick="carruselAnteriorCat(\'' + c.id + '\')" title="Anterior">‹</button>' +
+                        '<button class="carrusel-nav carrusel-next" onclick="carruselSiguienteCat(\'' + c.id + '\')" title="Siguiente">›</button>' +
+                        '<div class="carrusel-dots" id="carrusel-dots-' + c.id + '"></div>' +
+                    '</div>' +
+                    '<div class="nicho-footer">' +
+                        '<div class="nicho-badge">💰 Objetivo: ' + esc(c.objetivo || '—') + '</div>' +
+                        '<button class="nicho-button" onclick="window._extraMcVerCategoria(\'' + c.id + '\')">Ver catálogo</button>' +
+                    '</div>' +
+                '</div>';
+        }).join('');
+        // Mismo mecanismo que inicializarCarruselesNuevos(), pero solo para
+        // las categorías nuevas: no toca _carruselesNuevosImgs ni vuelve a
+        // inicializar las categorías de siempre.
+        window._carruselesNuevosEstado = window._carruselesNuevosEstado || {};
+        _cats.forEach(function (c) {
+            var imgs = (Array.isArray(c.carrusel) ? c.carrusel : []).map(function (f) { return c._repoBase + encodeURIComponent(f); });
+            var wrapper = document.getElementById('carrusel-wrapper-' + c.id);
+            var dots = document.getElementById('carrusel-dots-' + c.id);
+            if (!wrapper || !dots) return;
+            wrapper.innerHTML = '';
+            dots.innerHTML = '';
+            imgs.forEach(function (url, i) {
+                var slide = document.createElement('div');
+                slide.className = 'carrusel-slide';
+                slide.innerHTML = '<img src="' + url + '" alt="' + esc(c.nombre) + '" onerror="this.parentElement.style.display=\'none\'">';
+                wrapper.appendChild(slide);
+                var dot = document.createElement('button');
+                dot.className = 'carrusel-dot' + (i === 0 ? ' active' : '');
+                dot.onclick = function () { irASlideCat(c.id, i); };
+                dots.appendChild(dot);
+            });
+            window._carruselesNuevosEstado[c.id] = { indice: 0, total: imgs.length };
+            if (typeof actualizarCarruselCat === 'function') actualizarCarruselCat(c.id);
+        });
+    }
+
+    // ── Vidriera de solo consulta: grilla de productos de una categoría ──
+    function modal() {
+        var m = document.getElementById('modal-cat-extra-mascategorias');
+        if (m) return m;
+        m = document.createElement('div');
+        m.id = 'modal-cat-extra-mascategorias';
+        m.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10050;overflow-y:auto;padding:16px';
+        m.innerHTML = '<div style="background:#fff;max-width:760px;margin:16px auto;border-radius:12px;padding:20px;position:relative;font-family:inherit"><button onclick="window._extraMcCerrar()" style="position:absolute;top:12px;right:12px;border:none;background:#eee;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1">✕</button><div id="modal-cat-extra-mascategorias-body"></div></div>';
+        document.body.appendChild(m);
+        m.addEventListener('click', function (e) { if (e.target === m) window._extraMcCerrar(); });
+        return m;
+    }
+    window._extraMcCerrar = function () { var m = document.getElementById('modal-cat-extra-mascategorias'); if (m) m.style.display = 'none'; };
+
+    window._extraMcVerCategoria = function (id) {
+        var cat = _cats.find(function (c) { return c.id === id; });
+        var productos = _prods[id] || [];
+        var m = modal();
+        var body = document.getElementById('modal-cat-extra-mascategorias-body');
+        var grid = productos.map(function (p) {
+            var precio = (typeof getPrecioProductoConfigurado === 'function') ? getPrecioProductoConfigurado(p, id) : p.precio;
+            return '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;cursor:pointer" onclick="window._extraMcVerProducto(\'' + id + '\',' + p.id + ')">' +
+                '<img src="' + p.imagen + '" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:8px" loading="lazy">' +
+                '<div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(p.nombre) + '</div>' +
+                '<div style="font-size:13px;color:#00a650;font-weight:700">' + money(precio) + '</div>' +
+            '</div>';
+        }).join('');
+        // 🆕 Margen, promoción y combo para esta categoría: reutiliza EXACTAMENTE
+        // las mismas funciones/pantallas que ya usan las categorías clásicas
+        // desde "Mis tiendas guardadas" (openConfigTiendaModal, abrirCrearPromocion,
+        // abrirCrearCombo). No se inventa ninguna pantalla nueva.
+        var configBtns = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px">' +
+            '<button type="button" class="mt-promo-btn" style="flex:1 1 140px" onclick="window.currentCatalog=\'' + id + '\';(typeof openConfigTiendaModal===\'function\')&&openConfigTiendaModal();">Margen / precio</button>' +
+            '<button type="button" class="mt-promo-btn" style="flex:1 1 140px" onclick="window.currentCatalog=\'' + id + '\';(typeof abrirCrearPromocion===\'function\')&&abrirCrearPromocion(\'' + id + '\');">Promoción / regalo</button>' +
+            '<button type="button" class="mt-promo-btn" style="flex:1 1 140px;background:linear-gradient(135deg,#7c3aed,#a855f7)" onclick="window.currentCatalog=\'' + id + '\';(typeof abrirCrearCombo===\'function\')&&abrirCrearCombo(\'' + id + '\');">Combo</button>' +
+            // 🆕 Genera y comparte el enlace de tienda.html para esta categoría
+            // (copiar / WhatsApp / otras redes), reutilizando EXACTAMENTE la
+            // misma función que ya usan las categorías clásicas desde "Mis
+            // tiendas guardadas" (abrirCompartirTiendaGuardada). Sin este botón,
+            // una categoría nueva nunca generaba el link con ?cat=<id> para
+            // que un cliente pudiera entrar a comprarla.
+            '<button type="button" class="mt-promo-btn" style="flex:1 1 140px;background:linear-gradient(135deg,#00a650,#00c868)" onclick="window.currentCatalog=\'' + id + '\';(typeof abrirCompartirTiendaGuardada===\'function\')&&abrirCompartirTiendaGuardada(\'' + id + '\', this, event);">Compartir tienda</button>' +
+        '</div>';
+        body.innerHTML = '<h2 style="margin:0 0 4px">' + esc(cat ? cat.nombre : '') + '</h2>' +
+            '<p style="font-size:12.5px;color:#666;margin:0 0 14px">' + esc(cat ? (cat.descripcion || '') : '') + '</p>' +
+            configBtns +
+            '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">' + (grid || '<p style="color:#888;grid-column:1/-1">Todavía no hay productos cargados en esta categoría.</p>') + '</div>';
+        m.style.display = 'block';
+    };
+
+    // ── Detalle de un producto: variantes + compartir por WhatsApp (sin carrito) ──
+    window._extraMcVerProducto = function (catId, prodId) {
+        var cat = _cats.find(function (c) { return c.id === catId; });
+        var producto = (_prods[catId] || []).find(function (p) { return p.id === prodId; });
+        if (!producto) return;
+        var precio = (typeof getPrecioProductoConfigurado === 'function') ? getPrecioProductoConfigurado(producto, catId) : producto.precio;
+        var lineas = Array.isArray(producto.lineasVariantes) ? producto.lineasVariantes : [];
+        var variantesHtml = lineas.length ? lineas.map(function (l) {
+            return '<div style="margin:8px 0"><div style="font-size:11.5px;color:#666;margin-bottom:4px">' + esc(l.nombre) + '</div>' +
+                '<div style="display:flex;flex-wrap:wrap;gap:6px">' + (l.opciones || []).map(function (op) {
+                    return '<span style="border:1px solid #ddd;border-radius:14px;padding:4px 10px;font-size:12px">' + esc(op) + '</span>';
+                }).join('') + '</div></div>';
+        }).join('') : (Array.isArray(producto.variantes) && producto.variantes.length ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">' + producto.variantes.map(function (v) { return '<span style="border:1px solid #ddd;border-radius:14px;padding:4px 10px;font-size:12px">' + esc(v) + '</span>'; }).join('') + '</div>' : '');
+        var m = modal();
+        var body = document.getElementById('modal-cat-extra-mascategorias-body');
+        var texto = (cat ? cat.nombre : '') + ' — ' + producto.nombre + ' · ' + money(precio);
+        var wa = 'https://wa.me/?text=' + encodeURIComponent(texto);
+        body.innerHTML = '<button onclick="window._extraMcVerCategoria(\'' + catId + '\')" style="border:none;background:none;color:#00a650;font-size:12.5px;cursor:pointer;padding:0;margin-bottom:10px">‹ Volver a ' + esc(cat ? cat.nombre : '') + '</button>' +
+            '<img src="' + producto.imagen + '" style="width:100%;max-height:260px;object-fit:cover;border-radius:10px;margin-bottom:12px">' +
+            '<h2 style="margin:0 0 4px">' + esc(producto.nombre) + '</h2>' +
+            '<div style="font-size:19px;font-weight:700;color:#00a650;margin-bottom:10px">' + money(precio) + '</div>' +
+            (producto.caracteristicas ? '<p style="font-size:12.5px;color:#555;margin:0 0 10px">' + esc(producto.caracteristicas) + '</p>' : '') +
+            variantesHtml +
+            '<a href="' + wa + '" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:14px;padding:12px;background:#25D366;color:#fff;border-radius:8px;font-weight:700;text-decoration:none">Compartir por WhatsApp</a>';
+    };
+
+    window.cargarCategoriasExtraMasCat = cargarCategoriasExtraMasCat;
+    document.addEventListener('DOMContentLoaded', function () { cargarCategoriasExtraMasCat(); });
 })();
 </script>
