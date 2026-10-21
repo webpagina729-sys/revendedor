@@ -2454,6 +2454,20 @@ window._slugFetchOk = true; // se pone en false solo si HUBO slug (?s=) y la res
             if (d.promo && (Array.isArray(d.promo.rangos) || d.promo.gift)) {
                 try { urlParams.set('promo', btoa(unescape(encodeURIComponent(JSON.stringify(d.promo))))); } catch(e) {}
             }
+            // 🔧 FIX: parsePromoParam() ya corrió una vez, en el primer pase
+            // síncrono del script — mucho antes de que esta promesa del
+            // slug (?s=) resuelva y recién ahí exista "promo" en urlParams.
+            // Esa primera corrida siempre encontraba "promo" vacío y salía
+            // sin setear nada, así que window.promoActiva quedaba en null
+            // para siempre en cualquier enlace corto (el único que genera
+            // "Compartir tienda" desde "Mis tiendas guardadas") — ni la
+            // promoción ni el producto de regalo (que viaja adentro de
+            // promo.gift) llegaban nunca a mostrarse. Se vuelve a correr
+            // acá, ahora que "promo" ya está seteado, para que sí quede
+            // cargada a tiempo para iniciarColaPromosYCombos()/
+            // mostrarPromoFloat() (que corren después, dentro de
+            // cargarVendedor(), en el handler de "load" más abajo).
+            if (typeof parsePromoParam === 'function') parsePromoParam();
             // 🔒 La URL del navegador se deja EXACTAMENTE como la compartió el
             // revendedor (enlace corto): ya no se reescribe con el código de
             // revendedor ni la configuración. Todo se resuelve en memoria.
@@ -3830,6 +3844,10 @@ async function cargarVendedor() {
                                 : (catParam === 'bazar') ? 'bazar_bazar'
                                 : (catParam === 'jugueteria' && subParam === 'peluches') ? 'jugueteria_peluches'
                                 : (catParam === 'jugueteria') ? 'jugueteria_juguetes'
+                                // 🔧 FIX: Multishop con una sub-categoría puntual guarda la promo
+                                // bajo esa sub-categoría (igual que index.html al armar el link), no
+                                // bajo 'multishop'.
+                                : (catParam === 'multishop' && subParam) ? subParam
                                 : catParam;
                 const promo = promos[claveCat] || promos[catParam];
                 // Respeta el ON/OFF que el revendedor configuró desde el panel.
@@ -4887,6 +4905,10 @@ function categoriaEfectivaParaCombos() {
     if (catalogoActual === 'bazar') return 'bazar_bazar';
     if (catalogoActual === 'jugueteria' && subParam === 'peluches') return 'jugueteria_peluches';
     if (catalogoActual === 'jugueteria') return 'jugueteria_juguetes';
+    // 🔧 FIX: Multishop con una sub-categoría puntual guarda los combos bajo
+    // esa sub-categoría (igual que index.html al armar el link), no bajo
+    // 'multishop'.
+    if (catalogoActual === 'multishop' && subParam) return subParam;
     return catalogoActual;
 }
 
@@ -5642,7 +5664,12 @@ function _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, totalCo
 window.promoActiva = null;
 window.promoGiftElegido = null; // {producto, cat}
 
-(function parsePromoParam(){
+// 🔧 FIX: convertida de IIFE a función nombrada reutilizable — se vuelve a
+// llamar desde el .then() de _slugPromise (ver más arriba) una vez que
+// "promo" ya existe en urlParams. Se la sigue llamando una vez acá mismo,
+// sin esperar nada, para no cambiar el comportamiento ya existente de los
+// enlaces que traen "promo" directo en la URL desde el primer momento.
+function parsePromoParam(){
     try {
         const pUrl = urlParams.get('promo');
         if (!pUrl) return;
@@ -5651,7 +5678,8 @@ window.promoGiftElegido = null; // {producto, cat}
             window.promoActiva = parsed;
         }
     } catch(e) {}
-})();
+}
+parsePromoParam();
 
 function mostrarBienvenidaModal() {
     const modal = document.getElementById('bienvenidaModal');
