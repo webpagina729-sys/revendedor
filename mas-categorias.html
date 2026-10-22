@@ -8460,15 +8460,22 @@ function catalogoEfectivoMultishop(p) {
         function _clavesStockDeCatalogo(catalogo) {
             if (catalogo === 'bazar') return ['bazar_bazar', 'bazar_melamina'];
             if (catalogo === 'jugueteria') return ['jugueteria_juguetes', 'jugueteria_peluches'];
+            // Multishop reúne productos de Belleza/Perfumería, Bazar, Juguetería,
+            // Librería y Electrónicos (misma composición que window.productsMultishop
+            // más abajo), así que debe revisar el stock de todas esas claves.
+            if (catalogo === 'multishop') return ['belleza_maquillaje', 'belleza_perfume', 'bazar_bazar', 'bazar_melamina', 'jugueteria_juguetes', 'jugueteria_peluches', 'libreria', 'electronicos'];
             return [catalogo];
         }
 
         function _productosDeClaveStock(claveStock) {
+            if (claveStock === 'belleza_maquillaje') return (window.productsBelleza || []).filter(p => p._origin === 'maquillaje');
+            if (claveStock === 'belleza_perfume') return (window.productsBelleza || []).filter(p => p._origin !== 'maquillaje');
             if (claveStock === 'bazar_bazar') return (window.productsBazar || []).filter(p => p._bazarSub !== 'melamina');
             if (claveStock === 'bazar_melamina') return (window.productsBazar || []).filter(p => p._bazarSub === 'melamina');
             if (claveStock === 'jugueteria_juguetes') return (window.productsJugueteria || []).filter(p => p._jugSub !== 'peluches');
             if (claveStock === 'jugueteria_peluches') return (window.productsJugueteria || []).filter(p => p._jugSub === 'peluches');
             if (claveStock === 'libreria') return window.productsLibreria || [];
+            if (claveStock === 'electronicos') return window.productsElectronicos || [];
             if (claveStock === 'calzados') return window.shoes || [];
             return [];
         }
