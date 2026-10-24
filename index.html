@@ -4784,7 +4784,7 @@
             </div>
             <p style="font-size:13px;color:var(--text-light);margin-bottom:4px;" id="configTiendaCatLabel"></p>
             <p style="font-size:13px;color:var(--text-light);margin-bottom:16px;">Definí rangos de precio y el porcentaje de ganancia para cada rango. Los precios de los productos se calcularán automáticamente.</p>
-            <a href="https://servi.revendeways.shop/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;color:#0066ff;font-size:13px;font-weight:600;text-decoration:none;margin-bottom:16px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Consultar a Servi</a>
+            <a id="consultarServiLink" href="https://servi.revendeways.shop/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;color:#0066ff;font-size:13px;font-weight:600;text-decoration:none;margin-bottom:16px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Consultar a Servi</a>
 
             <div style="background:var(--gray-light);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
                 <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">Nueva configuración</div>
@@ -6146,12 +6146,30 @@
             }
         }
 
-        fetch('https://panelgestionestados.tuweb.workers.dev/api/aviso')
-            .then(r => r.json())
-            .then(data => {
-                if (data && data.ok) mostrarAvisoModalSi(data.aviso);
-            })
-            .catch(() => {});
+        // 🔧 NUEVO: se repite cada 40 min de actividad (no solo al cargar la
+        // página) — así, si desde pedidos.html se publica un aviso nuevo o
+        // se elimina el que se estaba mostrando, se refleja sin que el
+        // revendedor tenga que recargar. El "?_=" evita que algún caché
+        // intermedio (del navegador o de red) devuelva una respuesta vieja.
+        function _cargarAvisoPlataforma() {
+            fetch('https://panelgestionestados.tuweb.workers.dev/api/aviso?_=' + Date.now())
+                .then(r => r.json())
+                .then(data => {
+                    if (!(data && data.ok)) return;
+                    const aviso = data.aviso;
+                    const modalAbierto = document.getElementById('avisoModal');
+                    if (modalAbierto && modalAbierto.classList.contains('active') && (!aviso || aviso.id !== window._avisoActualId)) {
+                        // El aviso que se estaba mostrando ya no es el activo
+                        // (lo eliminaron o se publicó otro) → se cierra.
+                        modalAbierto.classList.remove('active');
+                        if (typeof preventBodyScroll === 'function') preventBodyScroll(false);
+                    }
+                    mostrarAvisoModalSi(aviso);
+                })
+                .catch(() => {});
+        }
+        _cargarAvisoPlataforma();
+        setInterval(_cargarAvisoPlataforma, 40 * 60 * 1000);
 
         // 🔧 NUEVO: aviso al entrar a una categoría cuando la plataforma
         // quitó o volvió a agregar productos del stock global desde
@@ -12439,6 +12457,20 @@
             const catLabel = cat === 'perfumes' ? 'Perfumería' : cat === 'calzados' ? 'Calzados Importados' : cat === 'belleza_maquillaje' ? 'Belleza y Cuidado Personal — Maquillaje' : cat === 'belleza_perfume' ? 'Belleza y Cuidado Personal — Perfumes' : cat === 'belleza' ? 'Belleza y Cuidado Personal' : 'General';
             const el = document.getElementById('configTiendaCatLabel');
             if (el) el.textContent = '📁 Categoría: ' + catLabel;
+            // 🔒 El chat de Servi solo deja escribir a revendedores
+            // registrados — le mandamos el código de revendedor actual para
+            // que lo valide contra la base al abrir.
+            const _serviLink = document.getElementById('consultarServiLink');
+            if (_serviLink) {
+                const _codigoServi = (window.currentUser && window.currentUser.codigoVendedor) || localStorage.getItem('codigoVendedorLocal') || '';
+                // 🔒 El código no va en texto plano en la URL: se manda
+                // codificado (igual que el resto de los enlaces de la
+                // plataforma), así no queda a la vista en la barra de
+                // direcciones ni en el panel de red del navegador.
+                let _d = '';
+                try { if (_codigoServi) _d = btoa(unescape(encodeURIComponent(JSON.stringify({ codigo: _codigoServi })))); } catch (_) {}
+                _serviLink.href = 'https://servi.revendeways.shop/' + (_d ? '?d=' + _d : '');
+            }
 
             // Cargar config existente para esta categoría
             try {
