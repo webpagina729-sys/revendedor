@@ -4372,7 +4372,7 @@
             </div>
             <p style="font-size:13px;color:var(--text-light);margin-bottom:4px;" id="configTiendaCatLabel"></p>
             <p style="font-size:13px;color:var(--text-light);margin-bottom:16px;">Definí rangos de precio y el porcentaje de ganancia para cada rango. Los precios de los productos se calcularán automáticamente.</p>
-            <a href="https://servi.revendeways.shop/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;color:#0066ff;font-size:13px;font-weight:600;text-decoration:none;margin-bottom:16px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Consultar a Servi</a>
+            <a id="consultarServiLink" href="https://servi.revendeways.shop/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;color:#0066ff;font-size:13px;font-weight:600;text-decoration:none;margin-bottom:16px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Consultar a Servi</a>
 
             <div style="background:var(--gray-light);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
                 <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:10px;">Nueva configuración</div>
@@ -10017,6 +10017,20 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             const catLabel = 'Salud/Suplementos';
             const el = document.getElementById('configTiendaCatLabel');
             if (el) el.textContent = '📁 Categoría: ' + catLabel;
+            // 🔒 El chat de Servi solo deja escribir a revendedores
+            // registrados — le mandamos el código de revendedor actual para
+            // que lo valide contra la base al abrir.
+            const _serviLink = document.getElementById('consultarServiLink');
+            if (_serviLink) {
+                const _codigoServi = (window.currentUser && window.currentUser.codigoVendedor) || localStorage.getItem('codigoVendedorLocal') || '';
+                // 🔒 El código no va en texto plano en la URL: se manda
+                // codificado (igual que el resto de los enlaces de la
+                // plataforma), así no queda a la vista en la barra de
+                // direcciones ni en el panel de red del navegador.
+                let _d = '';
+                try { if (_codigoServi) _d = btoa(unescape(encodeURIComponent(JSON.stringify({ codigo: _codigoServi })))); } catch (_) {}
+                _serviLink.href = 'https://servi.revendeways.shop/' + (_d ? '?d=' + _d : '');
+            }
 
             // Cargar config existente para esta categoría
             try {
@@ -12497,7 +12511,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         <div style="width:48px;height:48px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:2px auto 14px;">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
         </div>
-        <h2 class="modal-title" style="text-align:center;font-size:15.5px;margin-bottom:6px;">Eliminar tienda guardada</h2>
+        <h2 class="modal-title" id="eliminarTiendaModalTitulo" style="text-align:center;font-size:15.5px;margin-bottom:6px;">Eliminar tienda guardada</h2>
         <p id="eliminarTiendaTexto" style="font-size:12.5px;color:var(--text-light,#666);line-height:1.5;margin:0 0 18px;text-wrap:balance;"></p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;">
             <button type="button" class="confirmation-button" style="padding:10px 6px;font-size:12.5px;" onclick="window._resolverEliminarTienda(false)">Cancelar</button>
@@ -12575,7 +12589,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
 <div class="modal-overlay" id="crearComboModal">
     <div class="modal-content" style="max-width:460px;">
         <div class="modal-header">
-            <h2 class="modal-title">🎁 Crear combo</h2>
+            <h2 class="modal-title" id="crearComboModalTitle">🎁 Crear combo</h2>
         </div>
         <p id="crearComboCatLabel" style="font-size:12.5px;color:var(--text-light);margin:-6px 0 12px;"></p>
 
@@ -12593,7 +12607,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         <input type="number" id="combo-descuento" min="0" placeholder="0" oninput="calcularTotalesCombo()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:var(--font-body);margin-bottom:8px;">
         <div style="font-size:13px;margin-bottom:16px;">Precio final del combo: <strong style="color:var(--primary);font-size:16px;" id="combo-precio-final">$0</strong></div>
 
-        <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;" onclick="guardarCombo()">Crear</button>
+        <button type="button" id="combo-btn-guardar" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;" onclick="guardarCombo()">Crear</button>
         <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);" onclick="document.getElementById('crearComboModal').classList.remove('active')">Cancelar</button>
     </div>
 </div>
@@ -12646,6 +12660,19 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+    #combosPromosListaModal .cpl-item {
+        border: 1px solid var(--border); border-radius: 10px;
+        padding: 10px 12px; margin-bottom: 10px; font-size: 12.5px;
+    }
+    #combosPromosListaModal .cpl-actions {
+        display: flex; flex-direction: column; gap: 6px; margin-top: 6px;
+    }
+    #combosPromosListaModal .cpl-actions button {
+        width: 100%; display: flex; align-items: center; justify-content: center;
+        gap: 6px; border: none; border-radius: 6px; padding: 7px 10px;
+        font-size: 11.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+        white-space: nowrap;
     }
     #combosPromosListaModal .cpl-btn-cerrar {
         width: 100%; margin-top: 16px; padding: 11px 14px;
@@ -12773,11 +12800,17 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         // Modal de confirmación profesional para "Eliminar tienda guardada"
         // (reemplaza el confirm() nativo del navegador).
         let _resolverET = null;
-        window.pedirConfirmacionEliminarTienda = function(texto) {
+        // 🔧 NUEVO: segundo parámetro opcional "titulo" — permite reusar
+        // este mismo modal compacto de confirmación para otras cosas
+        // además de "Eliminar tienda guardada" (p. ej. combos y
+        // promociones), sin tocar el llamado que ya existía.
+        window.pedirConfirmacionEliminarTienda = function(texto, titulo) {
             return new Promise((resolve) => {
                 _resolverET = resolve;
                 const p = document.getElementById('eliminarTiendaTexto');
                 if (p && texto) p.textContent = texto;
+                const t = document.getElementById('eliminarTiendaModalTitulo');
+                if (t) t.textContent = titulo || 'Eliminar tienda guardada';
                 document.getElementById('eliminarTiendaModal').classList.add('active');
             });
         };
@@ -13003,6 +13036,19 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         const COMBO_WORKER = 'https://combosydescuentos.tuweb.workers.dev';
         window._comboCat = null;
         window._comboSeleccion = {}; // { productId: true }
+        // 🔧 NUEVO: id del combo que se está EDITANDO (null = se está
+        // creando uno nuevo). Lo usa abrirCrearCombo/guardarCombo para que
+        // "Editar" reutilice el mismo combo en vez de crear uno nuevo.
+        window._comboEditId = null;
+        // 🔧 NUEVO: último listado de combos pedido al Worker, guardado por
+        // id — así el botón "Editar" de cada combo puede precargar sus
+        // datos sin tener que volver a pedirlos.
+        window._combosCacheActual = {};
+        // 🔧 NUEVO: iconos SVG compactos para los botones de Editar/
+        // Compartir/Eliminar de la lista de combos y promociones.
+        const _CPL_ICO_LAPIZ = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
+        const _CPL_ICO_COMPARTIR = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>';
+        const _CPL_ICO_ELIMINAR = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
 
         async function comboFetch(path, opts) {
             const ctrl = new AbortController();
@@ -13138,22 +13184,45 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             calcularTotalesCombo();
         };
 
-        window.abrirCrearCombo = async function(cat) {
+        // 🔧 NUEVO: ahora acepta un segundo parámetro opcional
+        // "comboExistente" — si se pasa, precarga sus productos y su
+        // descuento, y guardarCombo() actualiza ESE combo en vez de crear
+        // uno nuevo (botón "Editar" de la lista de combos guardados).
+        window.abrirCrearCombo = async function(cat, comboExistente) {
             const codigoVendedor = window.getCodigoVendedor();
-            const existentes = await comboFetch('/combos?codigo=' + encodeURIComponent(codigoVendedor));
-            if (existentes && existentes.items && existentes.items.length >= 5) {
-                alert('Ya tenés el máximo de 5 combos creados. Eliminá uno para crear otro nuevo.');
-                return;
+            if (!comboExistente) {
+                const existentes = await comboFetch('/combos?codigo=' + encodeURIComponent(codigoVendedor));
+                if (existentes && existentes.items && existentes.items.length >= 5) {
+                    alert('Ya tenés el máximo de 5 combos creados. Eliminá uno para crear otro nuevo.');
+                    return;
+                }
             }
             window._comboCat = cat;
+            window._comboEditId = comboExistente ? comboExistente.id : null;
             window._comboSeleccion = {};
+            if (comboExistente && Array.isArray(comboExistente.productos)) {
+                comboExistente.productos.forEach(p => { window._comboSeleccion[p.id] = true; });
+            }
             const label = 'Salud/Suplementos';
             document.getElementById('crearComboCatLabel').textContent = 'Productos de: ' + label;
 
             renderMiniPreviewCombo();
-            document.getElementById('combo-descuento').value = '';
+            document.getElementById('combo-descuento').value = comboExistente ? (comboExistente.descuento || '') : '';
             calcularTotalesCombo();
+            const tituloEl = document.getElementById('crearComboModalTitle');
+            if (tituloEl) tituloEl.textContent = comboExistente ? '🎁 Editar combo' : '🎁 Crear combo';
+            const btnGuardar = document.getElementById('combo-btn-guardar');
+            if (btnGuardar) btnGuardar.textContent = comboExistente ? 'Guardar cambios' : 'Crear';
             document.getElementById('crearComboModal').classList.add('active');
+        };
+
+        // 🔧 NUEVO: abre "Crear combo" precargado con un combo ya guardado,
+        // tomado del cache que arma abrirCombosPromosLista — así el botón
+        // "Editar" de un combo no tiene que volver a pedirlo al Worker.
+        window.editarComboExistente = function(id, cat) {
+            const c = window._combosCacheActual && window._combosCacheActual[id];
+            if (!c) { alert('No se pudo cargar el combo. Volvé a abrir la lista e intentá de nuevo.'); return; }
+            abrirCrearCombo(cat, c);
         };
 
         window.toggleComboProducto = function(id, checked) {
@@ -13241,29 +13310,33 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             const descuento = Number(document.getElementById('combo-descuento').value) || 0;
             const precioFinal = Math.max(0, precioVenta - descuento);
 
+            const esEdicion = !!window._comboEditId;
             const item = {
+                id: window._comboEditId || undefined,
                 categoria: cat,
                 productos: productos.map(p => ({ id: p.id, nombre: p.nombre, precio: p.precio, imagen: p.imagen })),
                 inversion, precioVenta, descuento, precioFinal,
                 ganancia: precioFinal - inversion,
             };
 
-            const btn = event && event.target ? event.target.closest('button') : null;
+            const btn = event && event.target ? event.target.closest('button') : document.getElementById('combo-btn-guardar');
+            const textoOriginalBtn = esEdicion ? 'Guardar cambios' : 'Crear';
             if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
             const resultado = await comboFetch('/combo', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ codigoVendedor, item })
             });
-            if (btn) { btn.disabled = false; btn.textContent = 'Crear'; }
+            if (btn) { btn.disabled = false; btn.textContent = textoOriginalBtn; }
 
             if (!resultado || !resultado.ok) {
                 alert((resultado && resultado.error) || 'No se pudo guardar el combo. Intentá de nuevo.');
                 return;
             }
 
+            window._comboEditId = null;
             document.getElementById('crearComboModal').classList.remove('active');
-            mostrarToastOk('Combo creado ✓');
+            mostrarToastOk(esEdicion ? 'Combo actualizado ✓' : 'Combo creado ✓');
         };
 
         window.togglePromoLocal = function(cat, activo) {
@@ -13336,6 +13409,10 @@ async function _copiarEnlaceItem(url) {
 
             const combosRes = await comboFetch('/combos?codigo=' + encodeURIComponent(codigoVendedor) + '&categoria=' + encodeURIComponent(cat));
             const combos = (combosRes && combosRes.items) || [];
+            // 🔧 NUEVO: cache para que el botón "Editar" de cada combo
+            // pueda precargarlo sin volver a pedirlo al Worker.
+            window._combosCacheActual = {};
+            combos.forEach(c => { window._combosCacheActual[c.id] = c; });
 
             let html = '';
 
@@ -13344,7 +13421,7 @@ async function _copiarEnlaceItem(url) {
                 html += '<p style="font-size:12.5px;color:var(--text-light);margin-bottom:16px;">Sin promoción creada en esta categoría.</p>';
             } else {
                 html += `
-                    <div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:12.5px;">
+                    <div class="cpl-item" data-tipo="promo">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                             <strong>${promo.nombre || 'Promoción'}</strong>
                             <div style="display:flex;gap:4px;flex-shrink:0;">
@@ -13352,9 +13429,10 @@ async function _copiarEnlaceItem(url) {
                                 <button type="button" onclick="togglePromoLocal('${cat}', false)" style="padding:3px 8px;border-radius:5px;border:1px solid ${!promoActiva ? '#ef4444' : 'var(--border)'};background:${!promoActiva ? '#ef4444' : '#fff'};color:${!promoActiva ? '#fff' : 'var(--text-light)'};font-size:10.5px;font-weight:700;cursor:pointer;">OFF</button>
                             </div>
                         </div>
-                        <div style="display:flex;gap:6px;">
-                            <button type="button" onclick="document.getElementById('combosPromosListaModal').classList.remove('active');abrirCrearPromocion('${cat}')" style="flex:1;background:#f5f5f5;border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">✏️ Editar</button>
-                            <button type="button" onclick="compartirEnlaceCategoriaConPromo('${cat}')" style="flex:1;background:#eff5ff;color:var(--primary);border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">🔗 Compartir tienda con la promo</button>
+                        <div class="cpl-actions">
+                            <button type="button" class="cpl-btn-editar" onclick="document.getElementById('combosPromosListaModal').classList.remove('active');abrirCrearPromocion('${cat}')" style="background:#f5f5f5;color:var(--text);">${_CPL_ICO_LAPIZ}Editar</button>
+                            <button type="button" class="cpl-btn-compartir" onclick="compartirEnlaceCategoriaConPromo('${cat}')" style="background:#eff5ff;color:var(--primary);">${_CPL_ICO_COMPARTIR}Compartir</button>
+                            <button type="button" onclick="eliminarComboOPromo('promocion', '${promo.id}', '${cat}')" style="background:#fef2f2;color:#b91c1c;">${_CPL_ICO_ELIMINAR}Eliminar</button>
                         </div>
                     </div>`;
             }
@@ -13364,15 +13442,16 @@ async function _copiarEnlaceItem(url) {
                 html += '<p style="font-size:12.5px;color:var(--text-light);">Todavía no creaste ningún combo en esta categoría.</p>';
             } else {
                 html += combos.map(c => `
-                    <div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px;">
+                    <div class="cpl-item" data-tipo="combo">
                         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;">
                             <div style="flex:1;min-width:0;">${c.productos.map(p => `<div style="font-size:10.5px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${p.nombre}">${p.nombre}</div>`).join('')}</div>
                             ${itemOnOffToggleHtml('combo', c.id, c.activo, cat)}
                         </div>
                         <div style="color:var(--text-light);margin-bottom:6px;">Precio final: <strong style="color:var(--primary);">$${c.precioFinal.toLocaleString()}</strong> · Ganancia: $${c.ganancia.toLocaleString()}</div>
-                        <div style="display:flex;gap:6px;">
-                            <button type="button" onclick="compartirItemIndividual('combo', '${c.id}', '${cat}')" style="flex:1;background:#eff5ff;color:var(--primary);border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">🔗 Compartir</button>
-                            <button type="button" onclick="eliminarComboOPromo('combo', '${c.id}', '${cat}')" style="flex:1;background:#fef2f2;color:#b91c1c;border:none;border-radius:6px;padding:6px;font-size:11.5px;cursor:pointer;">Eliminar</button>
+                        <div class="cpl-actions">
+                            <button type="button" class="cpl-btn-editar" onclick="document.getElementById('combosPromosListaModal').classList.remove('active');editarComboExistente('${c.id}', '${cat}')" style="background:#f5f5f5;color:var(--text);">${_CPL_ICO_LAPIZ}Editar</button>
+                            <button type="button" class="cpl-btn-compartir" onclick="compartirItemIndividual('combo', '${c.id}', '${cat}')" style="background:#eff5ff;color:var(--primary);">${_CPL_ICO_COMPARTIR}Compartir</button>
+                            <button type="button" onclick="eliminarComboOPromo('combo', '${c.id}', '${cat}')" style="background:#fef2f2;color:#b91c1c;">${_CPL_ICO_ELIMINAR}Eliminar</button>
                         </div>
                     </div>`).join('');
             }
@@ -13404,13 +13483,46 @@ async function _copiarEnlaceItem(url) {
         };
 
         window.eliminarComboOPromo = async function(tipo, id, cat) {
+            // 🔧 NUEVO: antes se borraba al instante con un solo clic, sin
+            // ninguna confirmación. Se reusa el mismo modal compacto que ya
+            // usa "Eliminar tienda guardada".
+            const esCombo = tipo === 'combo';
+            const confirmado = await window.pedirConfirmacionEliminarTienda(
+                esCombo ? '¿Eliminar este combo? Esta acción no se puede deshacer.' : '¿Eliminar esta promoción? Esta acción no se puede deshacer.',
+                esCombo ? 'Eliminar combo' : 'Eliminar promoción'
+            );
+            if (!confirmado) return;
             const codigoVendedor = window.getCodigoVendedor();
-            const path = tipo === 'combo' ? '/combo/eliminar' : '/promocion/eliminar';
-            await comboFetch(path, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codigoVendedor, id })
-            });
+            if (tipo === 'promocion') {
+                // 🔧 FIX: la promoción no vive en este Worker (ver nota en
+                // abrirCombosPromosLista) sino en localStorage + Firestore bajo
+                // "promocionesTienda.<cat>". Antes acá solo se llamaba a
+                // /promocion/eliminar, que borra un documento que nunca
+                // existió ahí — la promoción seguía intacta en localStorage y
+                // por eso volvía a aparecer en la lista. Ahora también se
+                // borra de donde realmente está guardada.
+                try {
+                    const promos = JSON.parse(localStorage.getItem('promocionesTienda') || '{}');
+                    delete promos[cat];
+                    localStorage.setItem('promocionesTienda', JSON.stringify(promos));
+                    _guardarEnFirestore({ [`promocionesTienda.${cat}`]: null });
+                } catch(e) {}
+                await comboFetch('/promocion/eliminar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigoVendedor, id })
+                });
+            } else {
+                const resultado = await comboFetch('/combo/eliminar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigoVendedor, id })
+                });
+                if (!resultado || !resultado.ok) {
+                    alert((resultado && resultado.error) || 'No se pudo eliminar. Intentá de nuevo.');
+                    return;
+                }
+            }
             abrirCombosPromosLista(cat);
         };
 
