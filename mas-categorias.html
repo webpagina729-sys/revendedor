@@ -7419,7 +7419,7 @@ function catalogoEfectivoMultishop(p) {
             const missing = [];
 
             if (perfumeItems.length > 0 && perfumeTotal < MIN_ORDER_PERFUMES) {
-                missing.push(`Perfumes: faltan $${(MIN_ORDER_PERFUMES - perfumeTotal).toLocaleString()}`);
+                missing.push(`Perfumes: faltan $${(MIN_ORDER_PERFUMES - perfumeTotal).toLocaleString('es-AR')}`);
             }
             if (shoeItems.length > 0 && shoesQty < MIN_ORDER_SHOES_QTY) {
                 const falta = MIN_ORDER_SHOES_QTY - shoesQty;
@@ -7950,7 +7950,7 @@ function catalogoEfectivoMultishop(p) {
                     <div class="product-info">
                         <div class="product-name">${p.nombre}</div>
                         <div class="product-price">
-                            <div class="price-current">$${precioMostrado.toLocaleString()}</div>
+                            <div class="price-current">$${precioMostrado.toLocaleString('es-AR')}</div>
                         </div>
                         ${stockDotHtml(catEf, p.id)}
                         <button class="btn-more" onclick="${openFnName}(${p.id})">Ver más</button>
@@ -7971,7 +7971,7 @@ function catalogoEfectivoMultishop(p) {
             detailsImg.onerror = function() { fallbackProductImage(this, producto.imagen); };
             detailsImg.src = resolveImgUrl(producto.imagen);
             document.getElementById('modal-details-name').textContent = producto.nombre;
-            document.getElementById('modal-details-price').textContent = `$${getPrecioProductoConfigurado(producto, catEfectivo).toLocaleString()}`;
+            document.getElementById('modal-details-price').textContent = `$${getPrecioProductoConfigurado(producto, catEfectivo).toLocaleString('es-AR')}`;
             const precioOrigEl = document.getElementById('modal-details-price-original');
             if (precioOrigEl) precioOrigEl.textContent = '';
             document.getElementById('modal-details-characteristics').innerHTML = (producto.caracteristicas || []).map(c => `<li>${c}</li>`).join('');
@@ -9582,9 +9582,9 @@ function catalogoEfectivoMultishop(p) {
                 const perfil = (data && data.ok) ? data.perfil : null;
                 if (perfil && perfil.estadisticas) {
                     const stats = perfil.estadisticas;
-                    document.getElementById('stat-total-investment').textContent = '$' + (stats.totalInversion || 0).toLocaleString();
-                    document.getElementById('stat-total-profit').textContent = '$' + (stats.totalGanancia || 0).toLocaleString();
-                    document.getElementById('stat-total-final').textContent = '$' + (stats.totalFinal || 0).toLocaleString();
+                    document.getElementById('stat-total-investment').textContent = '$' + (stats.totalInversion || 0).toLocaleString('es-AR');
+                    document.getElementById('stat-total-profit').textContent = '$' + (stats.totalGanancia || 0).toLocaleString('es-AR');
+                    document.getElementById('stat-total-final').textContent = '$' + (stats.totalFinal || 0).toLocaleString('es-AR');
                 } else {
                     // Si no hay estadísticas, mostrar 0
                     document.getElementById('stat-total-investment').textContent = '$0';
@@ -10096,8 +10096,8 @@ function catalogoEfectivoMultishop(p) {
                     <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 12px;">
                         <div class="modal-details-name" style="font-size: 17px; font-weight: 600; margin-bottom: 12px; color: var(--text); width: 100%; line-height: 1.3;">${product.nombre}</div>
                         <div class="modal-details-price" style="margin-bottom: 20px; width: 100%;">
-                            <div class="price-current" style="font-size: 20px; font-weight: 700; color: var(--primary); margin-bottom: 4px;">$${product.precio.toLocaleString()}</div>
-                            <div class="price-original" style="font-size: 12px; color: var(--text-light); text-decoration: line-through;">$${product.precioOriginal.toLocaleString()}</div>
+                            <div class="price-current" style="font-size: 20px; font-weight: 700; color: var(--primary); margin-bottom: 4px;">$${product.precio.toLocaleString('es-AR')}</div>
+                            <div class="price-original" style="font-size: 12px; color: var(--text-light); text-decoration: line-through;">$${product.precioOriginal.toLocaleString('es-AR')}</div>
                         </div>
                         ${tallesHtml}
                         ${lineasHtml}
@@ -13225,7 +13225,7 @@ function catalogoEfectivoMultishop(p) {
                     resumenHtml += `<div style="margin-bottom:10px;"><strong>${label}</strong><br>`;
                     if (cfg.rangos && cfg.rangos.length > 0) {
                         cfg.rangos.forEach(r => {
-                            resumenHtml += `<span style="font-size:12px;color:var(--text-light);">De $${(r.de||0).toLocaleString()} hasta $${r.hasta.toLocaleString()} → +${r.porcentaje}%</span><br>`;
+                            resumenHtml += `<span style="font-size:12px;color:var(--text-light);">De $${(r.de||0).toLocaleString('es-AR')} hasta $${r.hasta.toLocaleString('es-AR')} → +${r.porcentaje}%</span><br>`;
                         });
                     }
                     resumenHtml += `</div>`;
@@ -13453,7 +13453,7 @@ function catalogoEfectivoMultishop(p) {
                 totalGanancia += p.precio * pct / 100;
             });
             const promedio = Math.round(totalGanancia / productosConfig.length);
-            el.textContent = 'Promedio de ganancia por venta: $' + promedio.toLocaleString();
+            el.textContent = 'Promedio de ganancia por venta: $' + promedio.toLocaleString('es-AR');
         }
 
         function abrirEditarPrecioProducto(catalogo, productId) {
@@ -13477,12 +13477,12 @@ function catalogoEfectivoMultishop(p) {
                     <div class="modal-header"><h2 class="modal-title">Modificar precio</h2></div>
                     <p style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:8px;">${producto.nombre}</p>
                     <div style="background:var(--gray-light);border-radius:var(--radius);padding:12px;margin-bottom:12px;font-size:13px;color:var(--text-light);line-height:1.8;">
-                        <div style="display:flex;align-items:center;gap:6px;">Precio base: <strong style="color:var(--text);">$${producto.precio.toLocaleString()}</strong>
+                        <div style="display:flex;align-items:center;gap:6px;">Precio base: <strong style="color:var(--text);">$${producto.precio.toLocaleString('es-AR')}</strong>
                             <button type="button" onclick="openConfigTiendaModal && openConfigTiendaModal()" title="Configurar precios" style="margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;color:var(--text-light);">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                             </button>
                         </div>
-                        <div>Precio Configurado: <strong style="color:var(--primary);">$${sugerido.toLocaleString()}</strong></div>
+                        <div>Precio Configurado: <strong style="color:var(--primary);">$${sugerido.toLocaleString('es-AR')}</strong></div>
                     </div>
                     <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Precio manual</label>
                     <input type="number" id="editar-precio-manual-input" min="0" value="${manual}" placeholder="Ingresá el precio" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:var(--font-body);margin-bottom:14px;">
@@ -13521,7 +13521,7 @@ function catalogoEfectivoMultishop(p) {
             modal.innerHTML = `
                 <div class="modal-content" style="max-width:380px;" onclick="event.stopPropagation()">
                     <div class="modal-header" style="justify-content:center;"><h2 class="modal-title" style="text-align:center;">¿A dónde querés enviar este precio?</h2></div>
-                    <p style="font-size:13px;color:var(--text-light);text-align:center;margin:-6px 0 16px;">Precio a guardar: <strong style="color:var(--text);">$${precio.toLocaleString()}</strong></p>
+                    <p style="font-size:13px;color:var(--text-light);text-align:center;margin:-6px 0 16px;">Precio a guardar: <strong style="color:var(--text);">$${precio.toLocaleString('es-AR')}</strong></p>
                     <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;margin-bottom:8px;padding:11px;font-size:13px;" onclick="_confirmarDestinoPrecio('general')">🏬 Tienda general</button>
                     <button type="button" class="confirmation-button" style="width:100%;background:#eef2ff;color:#3730a3;margin-bottom:8px;font-weight:700;padding:11px;font-size:13px;" onclick="_confirmarDestinoPrecio('individual')">🔗 Enlace Individual</button>
                     <button type="button" class="confirmation-button" style="width:100%;background:#f5f5f5;color:var(--text);padding:10px;font-size:13px;" onclick="document.getElementById('destinoPrecioModal').classList.remove('active')">Cancelar</button>
@@ -15153,7 +15153,7 @@ function catalogoEfectivoMultishop(p) {
                     let rangosHtml = '';
                     if (cfg.rangos && cfg.rangos.length > 0) {
                         rangosHtml = cfg.rangos.map(r =>
-                            `De $${(r.de||0).toLocaleString()} a $${(r.hasta||0).toLocaleString()} → +${r.porcentaje}%`
+                            `De $${(r.de||0).toLocaleString('es-AR')} a $${(r.hasta||0).toLocaleString('es-AR')} → +${r.porcentaje}%`
                         ).join('<br>');
                     } else {
                         rangosHtml = 'Sin rangos definidos';
@@ -15954,11 +15954,11 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                 const precioConDesc = Math.round(precioFinal * (1 - pct/100));
                 const ganancia = precioConDesc - costoBase;
                 html += `<div style="margin-bottom:10px;padding-bottom:8px;${i<rows.length-1?'border-bottom:1px dashed #e5e7eb;':''}">
-                    <div style="font-weight:700;font-size:11px;color:var(--text-light,#666);margin-bottom:4px;">Rango $${de.toLocaleString()} – $${hasta.toLocaleString()} · ${pct}% desc.</div>
-                    <div class="calc-row"><span>Costo base</span><span>$${costoBase.toLocaleString()}</span></div>
-                    <div class="calc-row"><span>+ Aumento (${pctAum}%)</span><span>$${precioFinal.toLocaleString()}</span></div>
-                    <div class="calc-row"><span>− Descuento (${pct}%)</span><span>$${precioConDesc.toLocaleString()}</span></div>
-                    <div class="calc-row total"><span>Ganancia por venta</span><span>$${ganancia.toLocaleString()}</span></div>
+                    <div style="font-weight:700;font-size:11px;color:var(--text-light,#666);margin-bottom:4px;">Rango $${de.toLocaleString('es-AR')} – $${hasta.toLocaleString('es-AR')} · ${pct}% desc.</div>
+                    <div class="calc-row"><span>Costo base</span><span>$${costoBase.toLocaleString('es-AR')}</span></div>
+                    <div class="calc-row"><span>+ Aumento (${pctAum}%)</span><span>$${precioFinal.toLocaleString('es-AR')}</span></div>
+                    <div class="calc-row"><span>− Descuento (${pct}%)</span><span>$${precioConDesc.toLocaleString('es-AR')}</span></div>
+                    <div class="calc-row total"><span>Ganancia por venta</span><span>$${ganancia.toLocaleString('es-AR')}</span></div>
                 </div>`;
             });
             body.innerHTML = html || '<div style="color:var(--text-light,#666);font-size:12px;text-align:center;">Cargá al menos un rango para ver el cálculo.</div>';
@@ -16000,8 +16000,8 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             if (!_promoGiftDraft) { box.classList.remove('active'); box.innerHTML = ''; return; }
             const g = _promoGiftDraft;
             box.innerHTML = `<strong>🎁 Regalo configurado:</strong><br>
-                Si el carrito supera <strong>$${(g.condicionDe||0).toLocaleString()}</strong> (hasta $${(g.condicionHasta||0).toLocaleString()}),
-                el cliente elige un producto entre <strong>$${(g.regaloDe||0).toLocaleString()}</strong> y <strong>$${(g.regaloHasta||0).toLocaleString()}</strong>.`;
+                Si el carrito supera <strong>$${(g.condicionDe||0).toLocaleString('es-AR')}</strong> (hasta $${(g.condicionHasta||0).toLocaleString('es-AR')}),
+                el cliente elige un producto entre <strong>$${(g.regaloDe||0).toLocaleString('es-AR')}</strong> y <strong>$${(g.regaloHasta||0).toLocaleString('es-AR')}</strong>.`;
             box.classList.add('active');
         }
 
@@ -16296,10 +16296,10 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             const precioFinal = Math.max(0, precioVenta - descuento);
             const ganancia = precioFinal - inversion;
 
-            document.getElementById('combo-inversion').textContent = '$' + inversion.toLocaleString();
-            document.getElementById('combo-precio-venta').textContent = '$' + precioVenta.toLocaleString();
-            document.getElementById('combo-ganancia').textContent = '$' + ganancia.toLocaleString();
-            document.getElementById('combo-precio-final').textContent = '$' + precioFinal.toLocaleString();
+            document.getElementById('combo-inversion').textContent = '$' + inversion.toLocaleString('es-AR');
+            document.getElementById('combo-precio-venta').textContent = '$' + precioVenta.toLocaleString('es-AR');
+            document.getElementById('combo-ganancia').textContent = '$' + ganancia.toLocaleString('es-AR');
+            document.getElementById('combo-precio-final').textContent = '$' + precioFinal.toLocaleString('es-AR');
         };
 
         window.guardarCombo = async function() {
@@ -16457,7 +16457,7 @@ async function _copiarEnlaceItem(url) {
                             <div style="flex:1;min-width:0;">${c.productos.map(p => `<div style="font-size:10.5px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${p.nombre}">${p.nombre}</div>`).join('')}</div>
                             ${itemOnOffToggleHtml('combo', c.id, c.activo, cat)}
                         </div>
-                        <div style="color:var(--text-light);margin-bottom:6px;">Precio final: <strong style="color:var(--primary);">$${c.precioFinal.toLocaleString()}</strong> · Ganancia: $${c.ganancia.toLocaleString()}</div>
+                        <div style="color:var(--text-light);margin-bottom:6px;">Precio final: <strong style="color:var(--primary);">$${c.precioFinal.toLocaleString('es-AR')}</strong> · Ganancia: $${c.ganancia.toLocaleString('es-AR')}</div>
                         <div class="cpl-actions">
                             <button type="button" class="cpl-btn-editar" onclick="document.getElementById('combosPromosListaModal').classList.remove('active');editarComboExistente('${c.id}', '${cat}')" style="background:#f5f5f5;color:var(--text);">${_CPL_ICO_LAPIZ}Editar</button>
                             <button type="button" class="cpl-btn-compartir" onclick="compartirItemIndividual('combo', '${c.id}', '${cat}')" style="background:#eff5ff;color:var(--primary);">${_CPL_ICO_COMPARTIR}Compartir</button>
