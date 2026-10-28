@@ -11949,7 +11949,7 @@
             _continuarFlujoPostSesion();
         }
 
-        function guardarWhatsappRevendedor() {
+        async function guardarWhatsappRevendedor() {
             const errEl = document.getElementById('whatsapp-modal-error');
             const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
             errEl.style.display = 'none';
@@ -12005,6 +12005,43 @@
                 return;
             }
 
+            // 🔧 FIX: antes se guardaba en localStorage y se mostraba el
+            // modal de éxito de forma INMEDIATA, sin esperar a que el
+            // guardado real en Firestore/Worker se confirmara — esos fetch
+            // tenían un .catch(()=>{}) que tragaba cualquier error en
+            // silencio. Si el guardado fallaba (sin conexión, Worker caído,
+            // etc.), el revendedor veía todo "cargado" en su propio celular
+            // pero el dato nunca llegaba a la base de datos, y aun así
+            // podía seguir usando la app con normalidad. Ahora se espera la
+            // confirmación real del servidor antes de dar esto por guardado:
+            // "Datos Vinculados" NO se muestra hasta que Firestore confirme.
+            const btnGuardar = (typeof event !== 'undefined' && event && event.target) ? event.target.closest('button') : null;
+            const btnTextoOriginal = btnGuardar ? btnGuardar.textContent : '';
+            if (btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = 'Guardando...'; }
+
+            const [okFirestore, okWorker] = await Promise.all([
+                _guardarEnFirestore({
+                    whatsappRevendedor: val,
+                    cuitRevendedor: cuitFormateado,
+                    sexo: sexo,
+                    provincia: provincia,
+                    ciudad: ciudad,
+                    codigoPostal: codigoPostal,
+                    direccion: direccion
+                }),
+                // Guardado confiable vía Worker (con cuenta de servicio): no depende
+                // de si el vendedor tiene sesión de Firebase Auth activa, así que
+                // funciona también para quienes entraron con código de revendedor.
+                _guardarWhatsappCuitEnWorker(val, cuitFormateado, { sexo, provincia, ciudad, codigoPostal, direccion })
+            ]);
+
+            if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = btnTextoOriginal; }
+
+            if (!okFirestore && !okWorker) {
+                showErr('No se pudo guardar. Revisá tu conexión a internet e intentá de nuevo.');
+                return;
+            }
+
             _lsSet('whatsappRevendedor', val);
             _lsSet('cuitRevendedor', cuitFormateado);
             _lsSet('sexoRevendedor', sexo);
@@ -12026,19 +12063,6 @@
                 _lsSet('codigoPostalRevendedor_' + _codigoParaGuardado, codigoPostal);
                 _lsSet('direccionRevendedor_' + _codigoParaGuardado, direccion);
             }
-            _guardarEnFirestore({
-                whatsappRevendedor: val,
-                cuitRevendedor: cuitFormateado,
-                sexo: sexo,
-                provincia: provincia,
-                ciudad: ciudad,
-                codigoPostal: codigoPostal,
-                direccion: direccion
-            });
-            // Guardado confiable vía Worker (con cuenta de servicio): no depende
-            // de si el vendedor tiene sesión de Firebase Auth activa, así que
-            // funciona también para quienes entraron con código de revendedor.
-            _guardarWhatsappCuitEnWorker(val, cuitFormateado, { sexo, provincia, ciudad, codigoPostal, direccion });
 
             document.getElementById('whatsappConfirmModal').classList.remove('active');
 
@@ -12120,7 +12144,7 @@
                 || localStorage.getItem('codigoVendedorLocal')
                 || localStorage.getItem('codigoRevendedorValidado')
                 || '';
-            if (!uid && !codigo) return;
+            if (!uid && !codigo) return Promise.resolve(false);
             const body = {};
             if (uid) body.uid = uid;
             if (codigo) body.codigoVendedor = codigo;
@@ -12135,11 +12159,15 @@
                 if (extra.codigoPostal) body.codigoPostal = extra.codigoPostal;
                 if (extra.direccion) body.direccion = extra.direccion;
             }
-            fetch('https://datosderevendedor.tuweb.workers.dev/api/guardar-whatsapp-inicial', {
+            // 🔧 FIX: ahora devuelve Promise<boolean> (igual que
+            // _guardarEnFirestore) en vez de tragarse el error en silencio,
+            // para que guardarWhatsappRevendedor() pueda confirmar el
+            // guardado real antes de mostrar "Datos Vinculados".
+            return fetch('https://datosderevendedor.tuweb.workers.dev/api/guardar-whatsapp-inicial', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
-            }).catch(() => {});
+            }).then(res => res.ok).catch(() => false);
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -12580,17 +12608,26 @@
         // ante sesiones inconsistentes. Ahora manda ambos datos al Worker, que
         // hace la MISMA resolución (UID primero, código como respaldo) de
         // forma más precisa del lado del servidor, en una sola escritura.
+        // 🔧 FIX: antes esta función era "dispara y olvida" (no devolvía
+        // nada, y el fetch tenía un .catch(()=>{}) que tragaba cualquier
+        // error) — quien la llamaba no tenía forma de saber si el guardado
+        // realmente había funcionado. Ahora devuelve una Promise<boolean>
+        // (true = se guardó, false = no se pudo guardar) para que quien la
+        // llame pueda esperarla y confirmar el resultado real antes de
+        // decirle al usuario que sus datos quedaron guardados. Los
+        // llamados existentes que no esperan esta Promise siguen
+        // funcionando exactamente igual que antes (fire-and-forget).
         function _guardarEnFirestore(data) {
             const uid = _getUidParaFirestore();
             const codigo = (window.currentUser && window.currentUser.codigoVendedor)
                 || localStorage.getItem('codigoVendedorLocal')
                 || localStorage.getItem('codigoRevendedorValidado');
-            if (!uid && !codigo) return;
-            fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil', {
+            if (!uid && !codigo) return Promise.resolve(false);
+            return fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ uid: uid || undefined, codigoVendedor: codigo || undefined, campos: data })
-            }).catch(() => {});
+            }).then(res => res.ok).catch(() => false);
         }
         // ─────────────────────────────────────────────────────────────────────────────────
 
