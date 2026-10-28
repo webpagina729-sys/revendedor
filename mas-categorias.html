@@ -8351,12 +8351,26 @@ function catalogoEfectivoMultishop(p) {
                     <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="cerrarNuevosAgregados()">Ok, continuar</button></div>`);
                 m.classList.add('active');
             };
-            const run = catalogo => {
+            // 🔧 FIX: antes este aviso se mostraba sin fijarse si ya había
+            // otro modal abierto (por ejemplo el de "Iniciar Sesión"),
+            // quedando los dos superpuestos en pantalla. Ahora, si hay
+            // cualquier otro modal activo, espera a que se cierre antes de
+            // mostrarse — nunca queda uno encima del otro.
+            const _hayOtroModalAbierto = () => !!document.querySelector('.modal-overlay.active:not(#naModal):not(#naTodosModal), .auth-modal.active');
+            const run = (catalogo, intentos) => {
+                intentos = intentos || 0;
                 const coincide = r => catalogo === r.cat || r.cat.indexOf(catalogo + '_') === 0 || r.cat.slice(-(catalogo.length + 1)) === '_' + catalogo || (catalogo === 'belleza' && r.cat === 'perfumes');
                 let vistos = []; try { vistos = JSON.parse(localStorage.getItem('nuevosAgregadosVistos') || '[]'); } catch (e) {}
                 const mem = (window.__naMostrados = window.__naMostrados || []);
                 const nuevos = _naReg.filter(r => coincide(r) && !vistos.includes(r.p.id) && !mem.includes(r.p.id)).map(r => r.p);
                 if (!nuevos.length) return;
+                // Máximo ~10s esperando a que se libere otro modal; pasado
+                // eso, se muestra igual para no perder el aviso para siempre.
+                if (_hayOtroModalAbierto() && intentos < 20) {
+                    clearTimeout(window.__naRetry);
+                    window.__naRetry = setTimeout(() => run(catalogo, intentos + 1), 500);
+                    return;
+                }
                 nuevos.forEach(p => mem.push(p.id));
                 try { localStorage.setItem('nuevosAgregadosVistos', JSON.stringify(vistos.concat(nuevos.map(p => p.id)))); } catch (e) {}
                 const abierto = document.getElementById('naModal') && document.getElementById('naModal').classList.contains('active');
