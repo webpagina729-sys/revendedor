@@ -9138,10 +9138,44 @@
         // RECONSTRUCCIÓN DE SESIÓN DESDE FIREBASE
         // ═══════════════════════════════════════════════════════════════════════════
 
+        // 🔧 FIX: si Firebase Auth tiene sesión (authUser) pero Firestore NO
+        // tiene documento para ese uid, antes se asumía siempre "usuario
+        // nuevo" y se fabricaba un perfil + código de revendedor nuevo. El
+        // problema: pasa EXACTAMENTE IGUAL si la cuenta ya existía y su
+        // documento fue borrado de la base (ej. desde Firebase Console) —
+        // la sesión del navegador sigue viva aunque la cuenta ya no exista,
+        // y quedabas "adentro" con una cuenta inventada en vez de tener que
+        // registrarte de nuevo. Antes de concluir "no existe", se hace una
+        // única confirmación extra con más margen de espera (por si es un
+        // registro recién hecho que todavía no terminó de guardarse) y, si
+        // sigue sin aparecer, se cierra la sesión en vez de inventar una.
+        async function _confirmarCuentaBorradaYCerrarSesion(authUser) {
+            await new Promise(r => setTimeout(r, 1800));
+            const confirmado = await loadUserDataFromFirestoreWithRetry(authUser.uid, 2, 700);
+            if (confirmado) {
+                _initializeUserSessionConDatos(confirmado, authUser);
+                return;
+            }
+            console.warn('Cuenta sin documento en Firestore (probablemente eliminada) — cerrando sesión.');
+            try { await firebase.auth().signOut(); } catch (e) {}
+            _limpiarSesionLocal();
+            window.currentUser = null;
+            updateUIForAuthentication(false);
+        }
+
         // Reconstruye la interfaz completa del usuario desde los datos cargados
         function initializeUserSession(userData, authUser) {
             if (!authUser) return;
 
+            if (!userData) {
+                _confirmarCuentaBorradaYCerrarSesion(authUser);
+                return;
+            }
+
+            _initializeUserSessionConDatos(userData, authUser);
+        }
+
+        function _initializeUserSessionConDatos(userData, authUser) {
             // 🔧 FIX: mismo problema que en bvAplicarDatos — si este
             // navegador tenía cacheado el uid de OTRA cuenta (se borró la
             // base y se volvió a registrar, por ejemplo), el localStorage
