@@ -3430,7 +3430,23 @@
       var h = new Headers((init && init.headers) || undefined);
       try {
         var us = window.firebase && firebase.auth && firebase.auth().currentUser;
-        if (us && !h.has('Authorization')) h.set('Authorization', 'Bearer ' + (await us.getIdToken()));
+        // 🔧 FIX: getIdToken() puede fallar de forma intermitente (bug
+        // conocido de Firebase Auth + IndexedDB en Safari/iOS) — antes ese
+        // error se tragaba en silencio acá y el pedido salía SIN
+        // Authorization, aunque la sesión de Firebase existiera. El
+        // backend (autorizarSobreUid) rechaza esos pedidos con 403, y
+        // guardarWhatsappRevendedor() lo mostraba como "revisá tu
+        // conexión a internet" — un mensaje engañoso, porque la conexión
+        // funcionaba perfecto. Ahora se reintenta UNA vez forzando un
+        // token nuevo (forceRefresh=true) antes de rendirse.
+        if (us && !h.has('Authorization')) {
+          var _tok = null;
+          try { _tok = await us.getIdToken(); }
+          catch (e1) {
+            try { _tok = await us.getIdToken(true); } catch (e2) { _tok = null; }
+          }
+          if (_tok) h.set('Authorization', 'Bearer ' + _tok);
+        }
       } catch (e) {}
       var nuevo = {}; for (var k in (init || {})) nuevo[k] = init[k];
       nuevo.headers = h;
@@ -12038,7 +12054,18 @@
             if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = btnTextoOriginal; }
 
             if (!okFirestore && !okWorker) {
-                showErr('No se pudo guardar. Revisá tu conexión a internet e intentá de nuevo.');
+                // 🔧 FIX: antes siempre se mostraba "revisá tu conexión",
+                // aunque la causa real fuera otra (por ejemplo, no haber
+                // podido confirmar la sesión — ver el reintento de
+                // getIdToken más arriba en el archivo). Si no hay ninguna
+                // sesión de Firebase activa y tampoco un código de
+                // revendedor guardado, el problema es la sesión, no la red.
+                const haySesion = !!((window.firebase && firebase.auth && firebase.auth().currentUser) ||
+                    (window.currentUser && window.currentUser.uid) ||
+                    localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado'));
+                showErr(haySesion
+                    ? 'No se pudo guardar. Cerrá la app/pestaña, volvé a entrar y probá de nuevo.'
+                    : 'No se pudo guardar. Revisá tu conexión a internet e intentá de nuevo.');
                 return;
             }
 
