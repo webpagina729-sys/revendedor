@@ -12021,6 +12021,21 @@
                 return;
             }
 
+            // 🔧 FIX: Firebase Auth restaura la sesión persistida (de un
+            // registro o login hecho en OTRA página, como stock.html) de
+            // forma ASÍNCRONA al cargar esta página — leer
+            // firebase.auth().currentUser apenas se abre el modal puede
+            // devolver null todavía, aunque la sesión SÍ exista y esté a
+            // punto de confirmarse unos instantes después. Esto explica por
+            // qué el guardado funciona unas veces y otras no: depende de si
+            // esa restauración ya terminó cuando el usuario toca "Guardar".
+            // Si todavía no hay uid disponible, se le da a Firebase hasta
+            // 4 segundos para confirmar la sesión antes de seguir — nunca
+            // cuelga el botón más que eso.
+            if (!_getUidParaFirestore()) {
+                await _esperarSesionFirebaseSiHaceFalta();
+            }
+
             // 🔧 FIX: antes se guardaba en localStorage y se mostraba el
             // modal de éxito de forma INMEDIATA, sin esperar a que el
             // guardado real en Firestore/Worker se confirmara — esos fetch
@@ -12623,6 +12638,29 @@
             }
             return null;
         }
+
+        // 🔧 FIX: espera a que Firebase Auth confirme (o descarte) la sesión
+        // restaurada de esta página, antes de resignarse a que "no hay uid".
+        // Nunca cuelga: a los 4 segundos sigue de largo igual, con o sin
+        // usuario. Se desuscribe apenas resuelve.
+        function _esperarSesionFirebaseSiHaceFalta() {
+            return new Promise((resolve) => {
+                if (!(window.firebase && firebase.auth)) { resolve(null); return; }
+                if (firebase.auth().currentUser) { resolve(firebase.auth().currentUser); return; }
+                let resuelto = false;
+                let unsub = null;
+                const resolverUnaVez = (user) => {
+                    if (resuelto) return;
+                    resuelto = true;
+                    if (unsub) { try { unsub(); } catch (e) {} }
+                    resolve(user || null);
+                };
+                setTimeout(() => resolverUnaVez(null), 4000);
+                try {
+                    unsub = firebase.auth().onAuthStateChanged((user) => resolverUnaVez(user));
+                } catch (e) { resolverUnaVez(null); }
+            });
+        }
         // Helper para guardar en Firestore con fallback async
         // ── localStorage safe: Safari iOS modo privado lanza excepción en setItem ──
         var _lsMem = {};
@@ -12698,7 +12736,7 @@
                 });
         }
 
-        function _finalizarGuardarConfigTienda(cat, rangos, colorTiendaCat, nombreTienda, allConfigPrev) {
+        async function _finalizarGuardarConfigTienda(cat, rangos, colorTiendaCat, nombreTienda, allConfigPrev) {
             const config = { rangos, default: 0, categoria: cat, colorTienda: colorTiendaCat, nombreTienda };
 
             // Guardar por categoría
@@ -12747,7 +12785,31 @@
             // que pudieran haberse guardado desde otro dispositivo/pestaña.
             const _updateData = { [`configTiendaAll.${cat}`]: config, colorTienda: colorTienda, [`coloresTiendaPorCat.${cat}`]: colorTienda, [`coloresExtraTienda.${cat}`]: coloresExtra };
             if (wa && wa.length >= 10) _updateData.whatsappRevendedor = wa;
-            _guardarEnFirestore(_updateData);
+
+            // 🔧 FIX: antes esto era "disparar y olvidar" (sin await, sin
+            // revisar el resultado) — si el guardado fallaba (por ejemplo,
+            // la misma carrera de tiempos de Firebase Auth restaurando la
+            // sesión al abrir la página, ver _esperarSesionFirebaseSiHaceFalta
+            // más arriba), el usuario igual veía "✅ guardado" y el modal de
+            // compartir se abría como si nada, sin ningún aviso de que en
+            // realidad no se guardó nada en la base. Ahora se le da tiempo a
+            // la sesión si todavía no está lista, se espera la confirmación
+            // real del servidor, y si falla se avisa en vez de mentir con el
+            // toast de éxito — el modal de configuración queda abierto para
+            // poder reintentar.
+            if (!_getUidParaFirestore()) {
+                await _esperarSesionFirebaseSiHaceFalta();
+            }
+            const _okGuardadoCfg = await _guardarEnFirestore(_updateData);
+            if (!_okGuardadoCfg) {
+                const toastErrCfg = document.getElementById('wa-toast');
+                if (toastErrCfg) {
+                    toastErrCfg.textContent = '⚠️ No se pudo guardar. Cerrá la app/pestaña, volvé a entrar y probá de nuevo.';
+                    toastErrCfg.style.display = 'block';
+                    setTimeout(() => { toastErrCfg.style.display = 'none'; }, 4000);
+                }
+                return;
+            }
 
             document.getElementById('configTiendaModal').classList.remove('active');
 
