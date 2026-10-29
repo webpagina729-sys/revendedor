@@ -3694,17 +3694,26 @@ async function cargarVendedor() {
 
     configTienda = Object.assign({}, cfgFirestore || {}, cfgAll || {});
 
-    // 🔧 El enlace (?cfg=) es la ÚNICA fuente de precios/promos/colores
-    // para la categoría que se está mostrando — viene directo de
-    // index.html al momento de compartir. Tiene prioridad absoluta,
-    // tenga o no rangos (puede venir sólo con precio individual/manual).
+    // 🔧 FIX "EN VIVO": antes el ?cfg= (foto tomada en el momento exacto
+    // en que se generó/compartió el enlace) tenía SIEMPRE prioridad
+    // absoluta sobre los márgenes/colores/nombre ACTUALES del revendedor
+    // — un cliente con un enlace ya compartido seguía viendo precios
+    // viejos aunque el revendedor hubiera actualizado su tienda después
+    // de compartirlo. Ahora, para rangos (márgenes), color y nombre de
+    // tienda, se prioriza SIEMPRE la configuración VIVA de Firestore
+    // (cfgFirestore, pedida más arriba con cache:'no-store' en cada carga
+    // de esta página) cuando existe para la categoría — el ?cfg= sigue
+    // siendo el respaldo si todavía no hay nada vivo (enlaces viejos, o
+    // la primera vez que se comparte). Lo que el ?cfg= sigue aportando SIN
+    // CAMBIOS, porque no tiene ningún equivalente "vivo" en el perfil
+    // general del revendedor: precio individual de producto, precio
+    // propio de un enlace puntual, sub-categoría y promoción embebida —
+    // eso sigue viajando exactamente igual que antes.
     try {
         const cfgUrl = urlParams.get('cfg');
         if (cfgUrl) {
             const parsed = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(cfgUrl)))));
             if (parsed && typeof parsed === 'object') {
-                if (parsed.colorTienda) cfgUrlColorTienda = parsed.colorTienda;
-                if (parsed._coloresExtra) cfgUrlColoresExtra = parsed._coloresExtra;
 
                 const catKey = (catParam === 'calzados') ? 'calzados'
                     : (catParam === 'belleza' && subParam === 'maquillaje') ? 'belleza_maquillaje'
@@ -3721,8 +3730,18 @@ async function cargarVendedor() {
                     : (catParam === 'multishop' && subParam) ? subParam
                     : 'perfumes';
 
-                configTienda[catKey] = parsed;
-                configTienda['general'] = parsed;
+                // Config viva de Firestore para ESTA categoría (si existe) —
+                // tiene prioridad sobre la foto congelada del enlace.
+                const vivoCat = (cfgFirestore && cfgFirestore[catKey] && typeof cfgFirestore[catKey] === 'object') ? cfgFirestore[catKey] : null;
+                const cfgParaCategoria = vivoCat ? Object.assign({}, parsed, vivoCat) : parsed;
+                configTienda[catKey] = cfgParaCategoria;
+                configTienda['general'] = cfgParaCategoria;
+
+                // Color: el vivo tiene prioridad; el ?cfg= queda como
+                // respaldo solo si todavía no hay color vivo guardado.
+                if (vivoCat && vivoCat.colorTienda) cfgUrlColorTienda = vivoCat.colorTienda;
+                else if (parsed.colorTienda) cfgUrlColorTienda = parsed.colorTienda;
+                if (parsed._coloresExtra) cfgUrlColoresExtra = parsed._coloresExtra;
 
                 // Precio individual (manual) embebido directo en el enlace
                 // — reemplaza cualquier valor que hubiera quedado de la
@@ -3748,10 +3767,12 @@ async function cargarVendedor() {
                 // Multishop, sin sub puntual): el enlace trae la config y el
                 // precio manual de CADA sub-categoría por separado. Si no se
                 // aplican todas, la parte que no coincide con "catKey" queda
-                // con el precio mayorista sin margen ni precio manual.
+                // con el precio mayorista sin margen ni precio manual. Mismo
+                // criterio "lo vivo pisa lo congelado", categoría por categoría.
                 if (parsed._configPorSub && typeof parsed._configPorSub === 'object') {
                     Object.keys(parsed._configPorSub).forEach(sk => {
-                        configTienda[sk] = parsed._configPorSub[sk];
+                        const vivoSub = (cfgFirestore && cfgFirestore[sk] && typeof cfgFirestore[sk] === 'object') ? cfgFirestore[sk] : null;
+                        configTienda[sk] = vivoSub ? Object.assign({}, parsed._configPorSub[sk], vivoSub) : parsed._configPorSub[sk];
                     });
                 }
                 if (parsed._preciosManualPorSub && typeof parsed._preciosManualPorSub === 'object') {
