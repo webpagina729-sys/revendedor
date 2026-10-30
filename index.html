@@ -3527,7 +3527,7 @@
             <h2 class="nichos-title" style="background: linear-gradient(135deg,#1B7F3D,#2BA84F); color:#fff; padding:14px 20px; border-radius:10px; display:block; box-shadow:0 4px 12px rgba(27,127,61,.25); white-space:normal; text-align:center; max-width:100%; font-size:clamp(16px,4.5vw,28px);">¿Por dónde será tu próximo pedido?</h2>
             
             <!-- NICHO 1: PERFUMERÍA -->
-            <div class="nicho-item">
+            <div class="nicho-item" data-categoria-original="perfumes">
                 <div class="nicho-info">
                     <h3 class="nicho-title">Perfumería</h3>
                     <p class="nicho-subtitle">Fragancias premium de inspiración árabe para tu catálogo</p>
@@ -3549,7 +3549,7 @@
             </div>
 
             <!-- NICHO 2: BELLEZA Y CUIDADO PERSONAL -->
-            <div class="nicho-item">
+            <div class="nicho-item" data-categoria-original="belleza">
                 <div class="nicho-info">
                     <h3 class="nicho-title">Belleza y Cuidado Personal</h3>
                     <p class="nicho-subtitle">PERFUMERÍA + MAQUILLAJE</p>
@@ -3571,7 +3571,7 @@
             </div>
 
             <!-- NICHO 2.5: CONJUNTOS/LENCERÍA -->
-            <div class="nicho-item">
+            <div class="nicho-item" data-categoria-original="lenceria">
                 <div class="nicho-info">
                     <h3 class="nicho-title">Conjuntos/Lencería</h3>
                     <p class="nicho-subtitle">Lencerías de Mujer. Ropa interior de Niñas y Niños</p>
@@ -3593,7 +3593,7 @@
             </div>
 
             <!-- NICHO 2.6: SALUD/SUPLEMENTOS -->
-            <div class="nicho-item">
+            <div class="nicho-item" data-categoria-original="suplementos">
                 <div class="nicho-info">
                     <h3 class="nicho-title">Salud/Suplementos</h3>
                     <p class="nicho-subtitle">Colágenos, Vitaminas y Minerales, Específicos, Adaptógenos y Hongos</p>
@@ -3615,7 +3615,7 @@
             </div>
 
             <!-- NICHO 2.7: REMERAS PREMIUM BRN (INDUMENTARIA) -->
-            <div class="nicho-item">
+            <div class="nicho-item" data-categoria-original="indumentaria">
                 <div class="nicho-info">
                     <h3 class="nicho-title">Remeras Premium brn</h3>
                     <p class="nicho-subtitle">Algodón peinado 24.1 hombre / Algodón peinado 20.1 mujer</p>
@@ -3637,7 +3637,7 @@
             </div>
 
             <!-- NICHO 3: CALZADOS -->
-            <div class="nicho-item">
+            <div class="nicho-item" data-categoria-original="calzados">
                 <div class="nicho-info">
                     <h3 class="nicho-title">Calzados Importados</h3>
                     <p class="nicho-subtitle">Los calzados son importados, calidad premium de Brasil. Zapatillas deportivas urbanas.</p>
@@ -4319,6 +4319,22 @@
             <p id="avisoStockGlobalTexto" style="font-size:13px;color:var(--text-light);line-height:1.5;margin-bottom:10px;"></p>
             <p id="avisoStockGlobalVerTodos" onclick="abrirVerTodosStockGlobal()" style="display:none;text-align:center;font-size:12.5px;font-weight:600;color:var(--primary,#d4446a);cursor:pointer;margin:0 0 16px;text-decoration:underline;">Ver todos los productos</p>
             <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="cerrarAvisoStockGlobal()">Ok, continuar</button>
+        </div>
+    </div>
+
+    <!-- 🆕 "Ocultar categoría" (toggle en pedidos.html): al tocar el botón de
+         una categoría oculta, en vez de llevar al catálogo real, se muestra
+         este aviso — mismo estilo que avisoStockGlobalModal de arriba, para
+         no introducir un diseño nuevo. Las imágenes del carrusel se toman
+         en el momento de las que ya tiene cargadas la vista previa de esa
+         misma categoría (no se inventa ni se pide nada aparte). -->
+    <div class="modal-overlay" id="categoriaProximamenteModal">
+        <div class="modal-content" style="max-width:400px;text-align:center;">
+            <div class="modal-header" style="justify-content:center;">
+                <h2 class="modal-title" id="categoriaProximamenteTitulo" style="text-align:center;"></h2>
+            </div>
+            <div id="categoriaProximamenteCarrusel" style="display:flex;align-items:center;justify-content:center;gap:6px;margin:14px 0 18px;overflow-x:auto;padding:10px 0;"></div>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="document.getElementById('categoriaProximamenteModal').classList.remove('active')">Aceptar y Continuar</button>
         </div>
     </div>
 
@@ -17412,7 +17428,54 @@ function mostrarToastOk(msg) {
             '<a href="' + wa + '" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:14px;padding:12px;background:#25D366;color:#fff;border-radius:8px;font-weight:700;text-decoration:none">Compartir por WhatsApp</a>';
     };
 
+    // 🆕 "Ocultar categoría" (toggle en pedidos.html, ver /api/categorias-ocultas):
+    // la tarjeta de una categoría ORIGINAL (perfumes, belleza, lenceria,
+    // suplementos, indumentaria, calzados — las que tienen
+    // data-categoria-original acá en el HTML) sigue viéndose igual que
+    // siempre para revendedores/clientes, pero su botón de acción queda
+    // bloqueado: en vez de llevar al catálogo, muestra un aviso de
+    // "disponible próximamente". No toca ninguna lógica de cálculo,
+    // variantes ni datos — solo intercepta el click. Si el fetch falla, no
+    // bloquea nada (nunca rompe la pantalla por un error de red).
+    function abrirModalCategoriaProximamente(nichoEl) {
+        var modal = document.getElementById('categoriaProximamenteModal');
+        var titulo = document.getElementById('categoriaProximamenteTitulo');
+        var carrusel = document.getElementById('categoriaProximamenteCarrusel');
+        if (!modal || !titulo || !carrusel) return;
+        var nombre = (nichoEl.querySelector('.nicho-title') || {}).textContent || 'Esta categoría';
+        titulo.textContent = 'La categoría ' + nombre + ' estará disponible próximamente';
+        // Imágenes ya cargadas en ese mismo momento en la vista previa de la
+        // tarjeta — se leen en vivo, no se guarda nada de antemano, para no
+        // depender de en qué orden terminan de cargar los catálogos.
+        var imgs = nichoEl.querySelectorAll('.carrusel-wrapper img');
+        carrusel.innerHTML = Array.prototype.slice.call(imgs).slice(0, 8).map(function (img) {
+            return '<img src="' + img.src + '" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.18);">';
+        }).join('');
+        modal.classList.add('active');
+    }
+
+    async function ocultarCategoriasOriginalesSegunConfig() {
+        try {
+            var r = await fetch(WORKER_PRECIOS_URL + '/api/categorias-ocultas').then(function (r) { return r.json(); });
+            var ocultas = (r && r.ok && Array.isArray(r.categorias)) ? r.categorias : [];
+            ocultas.forEach(function (id) {
+                document.querySelectorAll('[data-categoria-original="' + id + '"]').forEach(function (el) {
+                    el.querySelectorAll('.nicho-button').forEach(function (btn) {
+                        btn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            e.stopImmediatePropagation();
+                            abrirModalCategoriaProximamente(el);
+                        }, true);
+                    });
+                });
+            });
+        } catch (e) { /* silencioso */ }
+    }
+
     window.cargarCategoriasExtraIndex = cargarCategoriasExtraIndex;
-    document.addEventListener('DOMContentLoaded', function () { cargarCategoriasExtraIndex(); });
+    document.addEventListener('DOMContentLoaded', function () {
+        cargarCategoriasExtraIndex();
+        ocultarCategoriasOriginalesSegunConfig();
+    });
 })();
 </script>
