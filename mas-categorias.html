@@ -3543,7 +3543,7 @@
             </div>
 
             <!-- NICHO: BAZAR -->
-            <div class="nicho-item">
+            <div class="nicho-item" data-categoria-original="bazar">
                 <div class="nicho-info">
                     <h3 class="nicho-title">Bazar</h3>
                     <p class="nicho-subtitle">Productos para el hogar, bazar de reventa</p>
@@ -3561,7 +3561,7 @@
             </div>
 
             <!-- NICHO: JUGUETERÍA -->
-            <div class="nicho-item">
+            <div class="nicho-item" data-categoria-original="jugueteria">
                 <div class="nicho-info">
                     <h3 class="nicho-title">Juguetería</h3>
                     <p class="nicho-subtitle">Productos de juguetería, reventa</p>
@@ -3579,7 +3579,7 @@
             </div>
 
             <!-- NICHO: LIBRERÍA -->
-            <div class="nicho-item">
+            <div class="nicho-item" data-categoria-original="libreria">
                 <div class="nicho-info">
                     <h3 class="nicho-title">Librería</h3>
                     <p class="nicho-subtitle">Artículos de librería, reventa</p>
@@ -3597,7 +3597,7 @@
             </div>
 
             <!-- NICHO: MULTISHOP -->
-            <div class="nicho-item">
+            <div class="nicho-item" data-categoria-original="multishop">
                 <div class="nicho-info">
                     <h3 class="nicho-title">Multishop</h3>
                     <p class="nicho-subtitle">Belleza y cuidado personal, Bazar, Juguetería, Librería + Electrónicos, todo en un solo pedido</p>
@@ -4160,6 +4160,19 @@
             <p id="avisoStockGlobalTexto" style="font-size:13px;color:var(--text-light);line-height:1.5;margin-bottom:10px;"></p>
             <p id="avisoStockGlobalVerTodos" onclick="abrirVerTodosStockGlobal()" style="display:none;text-align:center;font-size:12.5px;font-weight:600;color:var(--primary,#d4446a);cursor:pointer;margin:0 0 16px;text-decoration:underline;">Ver todos los productos</p>
             <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="cerrarAvisoStockGlobal()">Ok, continuar</button>
+        </div>
+    </div>
+
+    <!-- 🆕 "Ocultar categoría" (toggle en pedidos.html): al tocar el botón de
+         una categoría oculta, en vez de llevar al catálogo real, se muestra
+         este aviso — mismo estilo que avisoStockGlobalModal de arriba. -->
+    <div class="modal-overlay" id="categoriaProximamenteModal">
+        <div class="modal-content" style="max-width:400px;text-align:center;">
+            <div class="modal-header" style="justify-content:center;">
+                <h2 class="modal-title" id="categoriaProximamenteTitulo" style="text-align:center;"></h2>
+            </div>
+            <div id="categoriaProximamenteCarrusel" style="display:flex;align-items:center;justify-content:center;gap:6px;margin:14px 0 18px;overflow-x:auto;padding:10px 0;"></div>
+            <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="document.getElementById('categoriaProximamenteModal').classList.remove('active')">Aceptar y Continuar</button>
         </div>
     </div>
 
@@ -17575,7 +17588,49 @@ function mostrarToastOk(msg) {
             '<a href="' + wa + '" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:14px;padding:12px;background:#25D366;color:#fff;border-radius:8px;font-weight:700;text-decoration:none">Compartir por WhatsApp</a>';
     };
 
+    // 🆕 "Ocultar categoría" (toggle en pedidos.html, ver /api/categorias-ocultas):
+    // la tarjeta de una categoría ORIGINAL (bazar, jugueteria, libreria,
+    // multishop — las que tienen data-categoria-original acá en el HTML)
+    // sigue viéndose igual para revendedores/clientes, pero su botón de
+    // acción queda bloqueado con un aviso de "disponible próximamente" en
+    // vez de llevar al catálogo. No toca lógica de cálculo, variantes ni
+    // datos — solo intercepta el click.
+    function abrirModalCategoriaProximamenteMasCat(nichoEl) {
+        var modal = document.getElementById('categoriaProximamenteModal');
+        var titulo = document.getElementById('categoriaProximamenteTitulo');
+        var carrusel = document.getElementById('categoriaProximamenteCarrusel');
+        if (!modal || !titulo || !carrusel) return;
+        var nombre = (nichoEl.querySelector('.nicho-title') || {}).textContent || 'Esta categoría';
+        titulo.textContent = 'La categoría ' + nombre + ' estará disponible próximamente';
+        var imgs = nichoEl.querySelectorAll('.carrusel-wrapper img');
+        carrusel.innerHTML = Array.prototype.slice.call(imgs).slice(0, 8).map(function (img) {
+            return '<img src="' + img.src + '" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.18);">';
+        }).join('');
+        modal.classList.add('active');
+    }
+
+    async function ocultarCategoriasOriginalesSegunConfigMasCat() {
+        try {
+            var r = await fetch(WORKER_PRECIOS_URL + '/api/categorias-ocultas').then(function (r) { return r.json(); });
+            var ocultas = (r && r.ok && Array.isArray(r.categorias)) ? r.categorias : [];
+            ocultas.forEach(function (id) {
+                document.querySelectorAll('[data-categoria-original="' + id + '"]').forEach(function (el) {
+                    el.querySelectorAll('.nicho-button').forEach(function (btn) {
+                        btn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            e.stopImmediatePropagation();
+                            abrirModalCategoriaProximamenteMasCat(el);
+                        }, true);
+                    });
+                });
+            });
+        } catch (e) { /* silencioso */ }
+    }
+
     window.cargarCategoriasExtraMasCat = cargarCategoriasExtraMasCat;
-    document.addEventListener('DOMContentLoaded', function () { cargarCategoriasExtraMasCat(); });
+    document.addEventListener('DOMContentLoaded', function () {
+        cargarCategoriasExtraMasCat();
+        ocultarCategoriasOriginalesSegunConfigMasCat();
+    });
 })();
 </script>
