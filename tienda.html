@@ -3979,6 +3979,21 @@ async function iniciarTienda() {
         : _catExtraActual ? _catExtraActual.id
         : 'perfumes';
 
+    // 🆕 "Ocultar categoría" (toggle en pedidos.html, ver /api/categorias-ocultas):
+    // si la categoría resuelta es una ORIGINAL (no una "extra") y está oculta,
+    // el enlace (viejo, ya compartido antes de ocultarla) deja de mostrar
+    // productos — mismo mensaje amigable que "tienda no encontrada", en vez de
+    // un catálogo vacío o roto. No afecta categorías "extra" (tienen su propio
+    // borrado) ni nada del resto del flujo si la categoría sigue visible.
+    try {
+        const _rOcultas = await fetch('https://preciosmayoristasrevendedores.tuweb.workers.dev/api/categorias-ocultas');
+        const _dOcultas = await _rOcultas.json();
+        if (_dOcultas && _dOcultas.ok && Array.isArray(_dOcultas.categorias) && _dOcultas.categorias.includes(catalogoActual)) {
+            mostrarError('Esta categoría ya no está disponible. Consultá con tu administrador por las categorías vigentes.');
+            return;
+        }
+    } catch (_e) { /* silencioso: si falla, se comporta igual que antes (no oculta nada) */ }
+
     // ── Aplicar color personalizado del vendedor (por categoría) ──
     let colorElegido = vendedor.colorTienda;
     let colorFondo, colorContorno, colorNombre, colorPrecio;
