@@ -3299,14 +3299,15 @@ function _precioMargenSolo(precioBase, cat) {
     // IMPORTANTE: el precio base de costo siempre es el original del producto.
     const base = Number(precioBase) || 0;
     if (!base) return base;
-    // Para las categorías nuevas (Bazar, Vajilla de Melamina, Juguetería, Peluches,
-    // Librería, Electrónicos) el precio cargado YA es el precio final de venta.
-    // Solo se recalcula si el revendedor configuró explícitamente un margen propio
-    // para esa categoría puntual (sin heredar tablas de perfumes/calzados/general).
-    const esCategoriaNueva = NUEVAS_CATEGORIAS_KEYS.has(cat);
-    const cfg = esCategoriaNueva
-        ? configTienda[cat]
-        : (configTienda[cat] || configTienda['general'] || configTienda['perfumes'] || configTienda['calzados']);
+    // 🔧 FIX: las categorías nuevas (Bazar, Vajilla de Melamina, Juguetería,
+    // Peluches, Librería, Electrónicos) NO heredaban el margen configurado a
+    // nivel general de Multishop — solo aplicaban un margen si el revendedor
+    // lo configuraba por separado para esa categoría puntual. Eso hacía que
+    // el margen puesto en el panel principal de Multishop no se aplicara a
+    // estos productos. Ahora usan la MISMA lógica que el resto de las
+    // categorías: su propia config tiene prioridad, y si no la tiene, cae a
+    // la config general (Multishop/Perfumes/Calzados) igual que todas.
+    const cfg = configTienda[cat] || configTienda['general'] || configTienda['perfumes'] || configTienda['calzados'];
     let precioFinal = base;
     if (cfg) {
         const rangosRaw = Array.isArray(cfg.rangos) ? cfg.rangos : [];
