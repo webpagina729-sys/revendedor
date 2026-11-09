@@ -3669,6 +3669,14 @@
             <button class="filter-btn" onclick="filterProducts('unisex')">Unisex</button>
             <button class="filter-btn" style="display:none;"></button>
             <button class="filter-btn" style="display:none;"></button>
+            <!-- 🔒 Sellado: 7mo slot reutilizable — Multishop ahora necesita
+                 7 opciones (Todos + Perfumería/Belleza/Bazar/Juguetería/
+                 Librería/Electrónicos) en vez de 6. Igual que los dos
+                 anteriores, queda oculto por defecto y cada vista (perfumes,
+                 calzados, bazar, juguetería, multishop) lo reutiliza o lo
+                 deja oculto según cuántas opciones necesite — no cambia
+                 nada para las vistas que ya usaban 6 o menos. -->
+            <button class="filter-btn" style="display:none;"></button>
         </div>
 
         <!-- Barra sutil de acciones por sub-categoría (solo Belleza: Maquillaje / Perfumes) -->
@@ -6325,6 +6333,7 @@ window.productsJugueteria = [
 window.productsLibreria = LIBRERIA_DATA.map(p => ({ ...p, precioOriginal: p.precio }));
 window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal: p.precio }));
 window.productsMultishop = [
+    ...window.products.map(p => ({ ...p, _multiSub: 'perfumes' })),
     ...window.productsBelleza.map(p => ({ ...p, _multiSub: 'belleza' })),
     ...window.productsBazar.map(p => ({ ...p, _multiSub: 'bazar' })),
     ...window.productsJugueteria.map(p => ({ ...p, _multiSub: 'jugueteria' })),
@@ -6343,6 +6352,7 @@ function catalogoEfectivoJugueteria(p) { return p._jugSub === 'peluches' ? 'jugu
 // real. Ahora cada clave lleva el prefijo "multishop_" para que su
 // configuración sea 100% propia, aunque comparta los mismos productos.
 function catalogoEfectivoMultishop(p) {
+    if (p._multiSub === 'perfumes') return 'multishop_perfumes';
     if (p._multiSub === 'belleza') return 'multishop_' + catalogoEfectivoBelleza(p);
     if (p._multiSub === 'bazar') return 'multishop_' + catalogoEfectivoBazar(p);
     if (p._multiSub === 'jugueteria') return 'multishop_' + catalogoEfectivoJugueteria(p);
@@ -7921,7 +7931,7 @@ function catalogoEfectivoMultishop(p) {
             if (!grid) return;
             let filtered = (window.productsMultishop || []);
             const sub = window.currentMultiFilter || 'todos';
-            if (['belleza','bazar','jugueteria','libreria','electronicos'].includes(sub)) {
+            if (['perfumes','belleza','bazar','jugueteria','libreria','electronicos'].includes(sub)) {
                 filtered = filtered.filter(p => p._multiSub === sub);
             }
             if ((window.currentMultiSearch || '').trim() !== '') {
@@ -7939,8 +7949,17 @@ function catalogoEfectivoMultishop(p) {
             window.itemsDisplayedMulti = (window.itemsDisplayedMulti || 6) + 6;
             renderMultishopProducts();
         }
-        function openDetailsMultishop(id) {
-            const p = (window.productsMultishop || []).find(x => x.id === id);
+        function openDetailsMultishop(id, catEf) {
+            // 🔒 Desambiguación: window.productsMultishop puede contener el mismo
+            // id de producto repetido bajo distintos _multiSub (p.ej. un perfume
+            // existe tanto dentro de Belleza -> sub-rubro "Perfumes" como en el
+            // bucket independiente de Perfumería). Si conocemos el catEf exacto
+            // de la tarjeta donde se tocó "Ver más", filtramos primero por ese
+            // catEf para quedarnos con la copia correcta; si no se recibe catEf
+            // (compatibilidad con llamadas antiguas), cae al comportamiento previo.
+            const lista = (window.productsMultishop || []);
+            let p = catEf ? lista.find(x => x.id === id && catalogoEfectivoMultishop(x) === catEf) : null;
+            if (!p) p = lista.find(x => x.id === id);
             if (!p) return;
             abrirDetalleGenerico(p, catalogoEfectivoMultishop(p), 'multishop', getStockProducto(catalogoEfectivoMultishop(p), p.id));
         }
@@ -7966,7 +7985,7 @@ function catalogoEfectivoMultishop(p) {
                             <div class="price-current">$${precioMostrado.toLocaleString('es-AR')}</div>
                         </div>
                         ${stockDotHtml(catEf, p.id)}
-                        <button class="btn-more" onclick="${openFnName}(${p.id})">Ver más</button>
+                        <button class="btn-more" onclick="${openFnName}(${p.id}, '${catEf}')">Ver más</button>
                     </div>
                 </div>`;
             }
@@ -8009,7 +8028,7 @@ function catalogoEfectivoMultishop(p) {
             const mapas = {
                 bazar: { bazar: 'Bazar', melamina: 'Vajilla de Melamina' },
                 jugueteria: { juguetes: 'Juguetes', peluches: 'Peluches' },
-                multishop: { belleza: 'Belleza', bazar: 'Bazar', jugueteria: 'Juguetería', libreria: 'Librería', electronicos: 'Electrónicos' }
+                multishop: { perfumes: 'Perfumería', belleza: 'Belleza', bazar: 'Bazar', jugueteria: 'Juguetería', libreria: 'Librería', electronicos: 'Electrónicos' }
             };
             const nombreSub = mapas[catBase] && mapas[catBase][sub];
             if (nombreSub) {
@@ -8044,6 +8063,7 @@ function catalogoEfectivoMultishop(p) {
             // ambas sub-categorías a la vez (mismo margen para las dos),
             // igual que el resto de las categorías.
             const mapa = {
+                perfumes: ['perfumes'],
                 belleza: ['belleza_maquillaje', 'belleza_perfume'],
                 bazar: ['bazar_bazar', 'bazar_melamina'],
                 jugueteria: ['jugueteria_juguetes', 'jugueteria_peluches'],
@@ -8491,11 +8511,12 @@ function catalogoEfectivoMultishop(p) {
             // Multishop reúne productos de Belleza/Perfumería, Bazar, Juguetería,
             // Librería y Electrónicos (misma composición que window.productsMultishop
             // más abajo), así que debe revisar el stock de todas esas claves.
-            if (catalogo === 'multishop') return ['belleza_maquillaje', 'belleza_perfume', 'bazar_bazar', 'bazar_melamina', 'jugueteria_juguetes', 'jugueteria_peluches', 'libreria', 'electronicos'];
+            if (catalogo === 'multishop') return ['perfumes', 'belleza_maquillaje', 'belleza_perfume', 'bazar_bazar', 'bazar_melamina', 'jugueteria_juguetes', 'jugueteria_peluches', 'libreria', 'electronicos'];
             return [catalogo];
         }
 
         function _productosDeClaveStock(claveStock) {
+            if (claveStock === 'perfumes') return window.products || [];
             if (claveStock === 'belleza_maquillaje') return (window.productsBelleza || []).filter(p => p._origin === 'maquillaje');
             if (claveStock === 'belleza_perfume') return (window.productsBelleza || []).filter(p => p._origin !== 'maquillaje');
             if (claveStock === 'bazar_bazar') return (window.productsBazar || []).filter(p => p._bazarSub !== 'melamina');
@@ -11907,19 +11928,29 @@ function catalogoEfectivoMultishop(p) {
                     // Actualizar filtros sin acumular listeners
                     filterBtns.forEach((btn, idx) => {
                         btn.classList.toggle('active', idx === 0);
-                        btn.style.display = 'inline-block';
                         if (idx === 0) {
+                            btn.style.display = 'inline-block';
                             btn.textContent = 'Todos';
                             btn.onclick = () => filterProducts('todos');
                         } else if (idx === 1) {
+                            btn.style.display = 'inline-block';
                             btn.textContent = 'Hombre';
                             btn.onclick = () => filterProducts('masculino');
                         } else if (idx === 2) {
+                            btn.style.display = 'inline-block';
                             btn.textContent = 'Mujer';
                             btn.onclick = () => filterProducts('femenino');
                         } else if (idx === 3) {
+                            btn.style.display = 'inline-block';
                             btn.textContent = 'Unisex';
                             btn.onclick = () => filterProducts('unisex');
+                        } else {
+                            // 🔒 Fix: sin este else, los índices ≥4 quedaban visibles
+                            // (display inline-block heredado de una vista anterior,
+                            // p.ej. Multishop) mostrando botones "fantasma" sin texto
+                            // ni acción al entrar a la vista standalone de Perfumería.
+                            btn.style.display = 'none';
+                            btn.onclick = null;
                         }
                     });
                     
@@ -12041,8 +12072,8 @@ function catalogoEfectivoMultishop(p) {
                     }
 
                     const filterBtns = document.querySelectorAll('.filter-btn');
-                    const etiquetasMulti = ['Todos', 'Belleza', 'Bazar', 'Juguetería', 'Librería', 'Electrónicos'];
-                    const valoresMulti = ['todos', 'belleza', 'bazar', 'jugueteria', 'libreria', 'electronicos'];
+                    const etiquetasMulti = ['Todos', 'Perfumería', 'Belleza', 'Bazar', 'Juguetería', 'Librería', 'Electrónicos'];
+                    const valoresMulti = ['todos', 'perfumes', 'belleza', 'bazar', 'jugueteria', 'libreria', 'electronicos'];
                     filterBtns.forEach((btn, idx) => {
                         btn.classList.toggle('active', idx === 0);
                         if (idx < etiquetasMulti.length) {
@@ -13446,6 +13477,19 @@ function catalogoEfectivoMultishop(p) {
             if (cat === 'libreria') return window.productsLibreria || [];
             if (cat === 'electronicos') return window.productsElectronicos || [];
             if (cat === 'multishop') return window.productsMultishop || [];
+            // 🔒 Sellado: el engranaje ⚙️ de cada miniatura dentro de
+            // Multishop llama a abrirEditarPrecioProducto con la clave
+            // PREFIJADA que devuelve catalogoEfectivoMultishop (ej.
+            // "multishop_belleza_maquillaje", "multishop_bazar_bazar",
+            // "multishop_perfumes"). Antes esta función no reconocía ESE
+            // prefijo, devolvía [] para todas esas claves, y
+            // abrirEditarPrecioProducto caía a un fallback que casi nunca
+            // encontraba el producto (ids de rangos distintos) — por eso
+            // el engranaje no abría nada en ninguna subcategoría salvo,
+            // por pura coincidencia de ids, algunos ítems de Belleza.
+            if (typeof cat === 'string' && cat.indexOf('multishop_') === 0) {
+                return (window.productsMultishop || []).filter(p => catalogoEfectivoMultishop(p) === cat);
+            }
             // 🆕 Categorías creadas con "Agregar Categoría": sus productos se
             // exponen en window._productosExtra[cat] (ver bloque categorias-extra-mascategorias).
             return (window._productosExtra && window._productosExtra[cat]) || [];
@@ -13624,7 +13668,7 @@ function catalogoEfectivoMultishop(p) {
             // mismo que ya usa el botón "Compartir producto".
             (async () => {
                 try {
-                    const url = await generarEnlaceProducto(catalogoRutaCompleta(catalogo), productId);
+                    const url = await generarEnlaceProducto(catalogoRutaCompleta(catalogo), productId, catalogo);
                     _abrirModalCompartirEnlace(url);
                 } catch(e) {
                     alert('El precio se guardó, pero no se pudo generar el enlace. Probá con "Compartir producto" desde el mismo producto.');
@@ -14829,11 +14873,24 @@ function catalogoEfectivoMultishop(p) {
             belleza: ['belleza_maquillaje', 'belleza_perfume'],
             bazar: ['bazar_bazar', 'bazar_melamina'],
             jugueteria: ['jugueteria_juguetes', 'jugueteria_peluches'],
+            // 🔒 Sellado: antes esta lista usaba las claves PREFIJADAS
+            // ("multishop_belleza_maquillaje", etc.), pero el editor de
+            // márgenes por sub-categoría (guardarMargenSubBelleza, vía
+            // _catConfigDeSubMultishop) guarda directo en las claves REALES
+            // sin prefijo — las mismas que usan Belleza/Bazar/Juguetería
+            // cuando se los ve de forma standalone. Como nunca coincidían,
+            // al compartir la TIENDA COMPLETA de Multishop, armarCfgFullYPromo
+            // nunca encontraba ningún margen guardado (allConfig[clave]
+            // siempre undefined) y el link viajaba sin ningún margen —
+            // precio mayorista puro para TODAS las sub-categorías. Ahora
+            // lee las mismas claves reales donde el editor efectivamente
+            // escribe, igual que belleza/bazar/jugueteria arriba.
             multishop: [
-                'multishop_belleza', 'multishop_belleza_maquillaje', 'multishop_belleza_perfume',
-                'multishop_bazar', 'multishop_bazar_bazar', 'multishop_bazar_melamina',
-                'multishop_jugueteria', 'multishop_jugueteria_juguetes', 'multishop_jugueteria_peluches',
-                'multishop_libreria', 'multishop_electronicos'
+                'perfumes',
+                'belleza', 'belleza_maquillaje', 'belleza_perfume',
+                'bazar', 'bazar_bazar', 'bazar_melamina',
+                'jugueteria', 'jugueteria_juguetes', 'jugueteria_peluches',
+                'libreria', 'electronicos'
             ]
         };
 
@@ -14913,7 +14970,8 @@ function catalogoEfectivoMultishop(p) {
                     'bazar': 'bazar',
                     'jugueteria': 'jugueteria',
                     'libreria': 'libreria',
-                    'electronicos': 'electronicos'
+                    'electronicos': 'electronicos',
+                    'perfumes': 'perfumes'
                 };
                 return { cat: 'multishop', sub: mapaSub[resto] || resto };
             }
@@ -14979,7 +15037,7 @@ function catalogoEfectivoMultishop(p) {
         // Genera el enlace que abre directamente UN producto puntual en
         // tienda.html, con el precio configurado (base + margen o manual)
         // y la configuración de márgenes del revendedor ya aplicada.
-        async function generarEnlaceProducto(catConfig, productId) {
+        async function generarEnlaceProducto(catConfig, productId, catalogoOriginal) {
             let codigo = getCodigoVendedor();
             let esperas = 0;
             while (!codigo && esperas < 10) {
@@ -14991,9 +15049,20 @@ function catalogoEfectivoMultishop(p) {
             // 🔧 NUEVO: si este producto tiene un precio "Enlace Individual"
             // guardado, se embebe directo en el enlace — sin tocar ni
             // depender de la configuración general de la tienda.
+            //
+            // 🔒 Sellado: el precio individual se guarda bajo la clave
+            // ORIGINAL sin resolver (ej. "multishop_belleza_maquillaje",
+            // ver _guardarPrecioEnlaceIndividual), no bajo "catConfig" ya
+            // resuelto a la categoría standalone (ej. "belleza") que ahora
+            // usa catalogoRutaCompleta para que el MARGEN sí viaje bien
+            // (ver fix de esa función). Si se buscara con "catConfig" acá,
+            // el precio individual de Multishop dejaría de encontrarse tras
+            // ese otro fix. catalogoOriginal preserva la clave con la que
+            // se guardó, para que ambos arreglos convivan sin pisarse.
             try {
+                const claveLecturaPrecioInd = catalogoOriginal || catConfig;
                 const preciosIndividual = JSON.parse(localStorage.getItem('preciosIndividualCat') || '{}');
-                const precioInd = preciosIndividual[catConfig] && preciosIndividual[catConfig][productId];
+                const precioInd = preciosIndividual[claveLecturaPrecioInd] && preciosIndividual[claveLecturaPrecioInd][productId];
                 if (precioInd && precioInd > 0) {
                     cfgFull._precioIndividual = { productId, precio: Math.round(precioInd) };
                 }
@@ -15009,9 +15078,27 @@ function catalogoEfectivoMultishop(p) {
         // — no solo la sub-categoría que se estaba editando.
         function catalogoRutaCompleta(catalogo) {
             if (!catalogo) return catalogo;
-            if (catalogo.indexOf('belleza') === 0) return 'belleza';
-            if (catalogo.indexOf('bazar') === 0) return 'bazar';
-            if (catalogo.indexOf('jugueteria') === 0) return 'jugueteria';
+            // 🔒 Sellado: cuando "catalogo" venía con el prefijo "multishop_"
+            // (ej. "multishop_belleza_maquillaje", que es justo lo que
+            // window.currentProductCatalog guarda al abrir el modal "Ver
+            // más" desde Multishop), ningún "indexOf(...) === 0" de abajo
+            // matcheaba — el string empieza con "multishop_", no con
+            // "belleza"/"bazar"/"jugueteria" — y la función devolvía el
+            // string prefijado intacto. Eso era la causa real de que
+            // "Compartir Producto" desde el modal "Ver más" en Multishop
+            // generara un link sin margen (ni armarCfgFullYPromo ni
+            // derivarRutaYSub reconocen esa clave prefijada completa, así
+            // que viajaba sin ningún margen — precio mayorista puro). Ahora
+            // se pela el prefijo "multishop_" ANTES de evaluar belleza/
+            // bazar/jugueteria, y se agregan libreria/electronicos/perfumes
+            // (que antes tampoco se resolvían) — resuelve exactamente igual
+            // que si el producto se hubiera abierto desde su categoría
+            // standalone, con la MISMA lógica para todas las sub-categorías.
+            const base = catalogo.indexOf('multishop_') === 0 ? catalogo.slice('multishop_'.length) : catalogo;
+            if (base.indexOf('belleza') === 0) return 'belleza';
+            if (base.indexOf('bazar') === 0) return 'bazar';
+            if (base.indexOf('jugueteria') === 0) return 'jugueteria';
+            if (base === 'libreria' || base === 'electronicos' || base === 'perfumes') return base;
             return catalogo;
         }
 
@@ -15020,7 +15107,7 @@ function catalogoEfectivoMultishop(p) {
             const textoOriginal = btn ? btn.innerHTML : null;
             if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generando...'; }
             try {
-                const url = await generarEnlaceProducto(catalogoRutaCompleta(catalogo), productId);
+                const url = await generarEnlaceProducto(catalogoRutaCompleta(catalogo), productId, catalogo);
                 window.open(url, '_blank');
             } catch(e) {
                 alert('No se pudo generar la vista previa. Intentá de nuevo.');
@@ -15034,7 +15121,7 @@ function catalogoEfectivoMultishop(p) {
             const textoOriginal = btn ? btn.innerHTML : null;
             if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Generando...'; }
             try {
-                const url = await generarEnlaceProducto(catalogoRutaCompleta(catalogo), productId);
+                const url = await generarEnlaceProducto(catalogoRutaCompleta(catalogo), productId, catalogo);
                 _abrirModalCompartirEnlace(url);
             } catch(e) {
                 alert('No se pudo generar el enlace. Intentá de nuevo.');
