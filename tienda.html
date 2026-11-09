@@ -3727,7 +3727,12 @@ async function cargarVendedor() {
                     : (catParam === 'lenceria') ? 'lenceria'
                     : (catParam === 'indumentaria') ? 'indumentaria'
                     : (catParam === 'suplementos') ? 'suplementos'
-                    : (catParam === 'multishop' && subParam) ? subParam
+                    // 🔧 FIX: cuando se comparte TODO Multishop (sin sub-
+                    // categoría puntual), subParam viene vacío y esto caía
+                    // en el 'perfumes' de más abajo — por eso el color y el
+                    // margen configurados en mas-categorias.html nunca se
+                    // aplicaban. Mismo criterio que ya usa catalogoActual.
+                    : (catParam === 'multishop') ? (subParam || 'multishop')
                     : 'perfumes';
 
                 // Config viva de Firestore para ESTA categoría (si existe) —
