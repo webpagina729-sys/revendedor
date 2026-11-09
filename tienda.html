@@ -4162,7 +4162,10 @@ async function iniciarTienda() {
         : catalogoActual === 'multishop'
         ? [
             ...MAQUILLAJE_DATA.map(p => ({ ...p, _multishopCat: 'belleza', _bellezaCat: 'maquillaje' })),
-            ...PERFUMES_DATA.map(p => ({ ...p, _multishopCat: 'belleza', _bellezaCat: 'perfume' })),
+            // 🔧 FIX: antes los perfumes quedaban dentro de "belleza" (sin
+            // sub-categoría propia) en Multishop. Ahora tienen su propio
+            // bucket, igual que Bazar/Juguetería/Librería/Electrónicos.
+            ...PERFUMES_DATA.map(p => ({ ...p, _multishopCat: 'perfumes' })),
             ...BAZAR_DATA.map(p => ({ ...p, _multishopCat: 'bazar', _bazarCat: 'bazar' })),
             ...MELAMINA_DATA.map(p => ({ ...p, _multishopCat: 'bazar', _bazarCat: 'melamina' })),
             ...JUGUETES_DATA.map(p => ({ ...p, _multishopCat: 'jugueteria', _jugueteriaCat: 'juguetes' })),
@@ -4200,7 +4203,11 @@ async function iniciarTienda() {
             return p._jugueteriaCat === 'peluches' ? 'jugueteria_peluches' : 'jugueteria_juguetes';
         }
         if (catalogoActual === 'multishop') {
-            if (p._multishopCat === 'belleza') return p._bellezaCat === 'maquillaje' ? 'belleza_maquillaje' : 'belleza_perfume';
+            // 🔧 FIX: "belleza" en Multishop ahora es solo maquillaje (los
+            // perfumes tienen su propio bucket abajo), por eso ya no hace
+            // falta distinguir por _bellezaCat acá.
+            if (p._multishopCat === 'belleza') return 'belleza_maquillaje';
+            if (p._multishopCat === 'perfumes') return 'perfumes';
             if (p._multishopCat === 'bazar') return p._bazarCat === 'melamina' ? 'bazar_melamina' : 'bazar_bazar';
             if (p._multishopCat === 'jugueteria') return p._jugueteriaCat === 'peluches' ? 'jugueteria_peluches' : 'jugueteria_juguetes';
             if (p._multishopCat === 'libreria') return 'libreria';
@@ -4282,7 +4289,7 @@ async function iniciarTienda() {
         : catalogoActual === 'suplementos'
         ? [{val:'todos', label:'Todos'}, {val:'belleza_cabello', label:'Belleza y Cabello'}, {val:'concentracion_memoria', label:'Concentración y Memoria'}, {val:'dolor_articular', label:'Dolor Articular'}, {val:'energia_cansancio', label:'Energía y Cansancio'}, {val:'estres_sueno', label:'Estrés y Sueño'}, {val:'inflamacion_defensas', label:'Inflamación y Defensas'}]
         : catalogoActual === 'multishop'
-        ? [{val:'todos', label:'Todos'}, {val:'belleza', label:'Belleza'}, {val:'bazar', label:'Bazar'}, {val:'jugueteria', label:'Juguetería'}, {val:'libreria', label:'Librería'}, {val:'electronicos', label:'Electrónicos'}]
+        ? [{val:'todos', label:'Todos'}, {val:'belleza', label:'Belleza'}, {val:'perfumes', label:'Perfumería'}, {val:'bazar', label:'Bazar'}, {val:'jugueteria', label:'Juguetería'}, {val:'libreria', label:'Librería'}, {val:'electronicos', label:'Electrónicos'}]
         // 🆕 Categoría creada con "Agregar Categoría": no tiene sub-categorías
         // tipo Mujer/Hombre/Unisex (eso es específico de Perfumería), así que
         // se muestra un único filtro "Todos" — igual que libreria/indumentaria.
@@ -4462,7 +4469,10 @@ function _catalogKeyDeProductoModal(p) {
         return p._jugueteriaCat === 'peluches' ? 'jugueteria_peluches' : 'jugueteria_juguetes';
     }
     if (catalogoActual === 'multishop') {
-        if (p._multishopCat === 'belleza') return p._bellezaCat === 'maquillaje' ? 'belleza_maquillaje' : 'belleza_perfume';
+        // 🔧 FIX: mismo criterio que _catalogKeyParaProducto — "belleza" en
+        // Multishop ya es solo maquillaje, perfumes tiene su propio bucket.
+        if (p._multishopCat === 'belleza') return 'belleza_maquillaje';
+        if (p._multishopCat === 'perfumes') return 'perfumes';
         if (p._multishopCat === 'bazar') return p._bazarCat === 'melamina' ? 'bazar_melamina' : 'bazar_bazar';
         if (p._multishopCat === 'jugueteria') return p._jugueteriaCat === 'peluches' ? 'jugueteria_peluches' : 'jugueteria_juguetes';
         if (p._multishopCat === 'libreria') return 'libreria';
