@@ -6334,7 +6334,12 @@ window.productsLibreria = LIBRERIA_DATA.map(p => ({ ...p, precioOriginal: p.prec
 window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal: p.precio }));
 window.productsMultishop = [
     ...window.products.map(p => ({ ...p, _multiSub: 'perfumes' })),
-    ...window.productsBelleza.map(p => ({ ...p, _multiSub: 'belleza' })),
+    // 🔧 FIX: antes se usaba window.productsBelleza (maquillaje + los
+    // MISMOS perfumes de arriba, re-etiquetados) así que cada perfume
+    // terminaba duplicado: una vez bajo "Perfumería" y otra bajo
+    // "Belleza". En Multishop, Belleza debe traer solo maquillaje —
+    // los perfumes ya están en el bucket de arriba.
+    ...window.productsMaquillaje.map(p => ({ ...p, _multiSub: 'belleza' })),
     ...window.productsBazar.map(p => ({ ...p, _multiSub: 'bazar' })),
     ...window.productsJugueteria.map(p => ({ ...p, _multiSub: 'jugueteria' })),
     ...window.productsLibreria.map(p => ({ ...p, _multiSub: 'libreria' })),
@@ -8459,7 +8464,10 @@ function catalogoEfectivoMultishop(p) {
                 agregar(window.productsLibreria, 'libreria');
                 agregar(window.productsElectronicos, 'electronicos');
                 agregar(window.productsMultishop, 'belleza_maquillaje', { _multiSub: 'belleza' });
-                agregar(window.productsMultishop, 'perfumes', { _multiSub: 'belleza', _origin: 'perfume' });
+                // 🔧 FIX: un producto agregado a mano en la categoría
+                // "Perfumes" iba a Multishop como si fuera de "Belleza" —
+                // mismo criterio de separación que arriba.
+                agregar(window.productsMultishop, 'perfumes', { _multiSub: 'perfumes' });
                 agregar(window.productsMultishop, 'bazar_bazar', { _multiSub: 'bazar', _bazarSub: 'bazar' });
                 agregar(window.productsMultishop, 'bazar_melamina', { _multiSub: 'bazar', _bazarSub: 'melamina' });
                 agregar(window.productsMultishop, 'jugueteria_juguetes', { _multiSub: 'jugueteria', _jugSub: 'juguetes' });
