@@ -11250,13 +11250,36 @@
         // Datos" nunca aparecía de entrada, y el de "Guardar Sesión"
         // terminaba disparándose dos veces. Ahora ambos login llaman a
         // esta única función, con el mismo orden correcto.
-        function _decidirFlujoPostLogin(vendedorData, codigo) {
+        async function _decidirFlujoPostLogin(vendedorData, codigo) {
             const _waGuardado        = (vendedorData && vendedorData.whatsappRevendedor) || '';
             const _cuitGuardado      = (vendedorData && vendedorData.cuitRevendedor) || '';
-            const _sexoGuardado      = localStorage.getItem('sexoRevendedor_' + codigo) || '';
-            const _provinciaGuardada = localStorage.getItem('provinciaRevendedor_' + codigo) || '';
-            const _ciudadGuardada    = localStorage.getItem('ciudadRevendedor_' + codigo) || '';
-            const _cpGuardado        = localStorage.getItem('codigoPostalRevendedor_' + codigo) || '';
+            let _sexoGuardado      = localStorage.getItem('sexoRevendedor_' + codigo) || '';
+            let _provinciaGuardada = localStorage.getItem('provinciaRevendedor_' + codigo) || '';
+            let _ciudadGuardada    = localStorage.getItem('ciudadRevendedor_' + codigo) || '';
+            let _cpGuardado        = localStorage.getItem('codigoPostalRevendedor_' + codigo) || '';
+
+            // 🔧 FIX: antes, si faltaba alguno de estos 4 campos en ESTE
+            // navegador (dispositivo nuevo, caché borrado), se mostraba el
+            // modal igual aunque el revendedor ya los tuviera guardados en
+            // Firestore — porque nunca se consultaba el servidor para estos
+            // campos. Ahora, si falta alguno y hay un uid real, se sincroniza
+            // primero desde Firestore (mismo endpoint /api/perfil que ya usa
+            // el login por cuenta) antes de decidir si hace falta pedirlos.
+            const _uidParaSync = vendedorData && vendedorData.uid;
+            if (_uidParaSync && (!_sexoGuardado || !_provinciaGuardada || !_ciudadGuardada || !_cpGuardado)) {
+                try {
+                    const _respSync = await fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(_uidParaSync)}`);
+                    const _dataSync = _respSync.ok ? await _respSync.json() : null;
+                    const _perfilSync = (_dataSync && _dataSync.ok) ? _dataSync.perfil : null;
+                    if (_perfilSync) {
+                        if (!_sexoGuardado && _perfilSync.sexo) { localStorage.setItem('sexoRevendedor_' + codigo, _perfilSync.sexo); _sexoGuardado = _perfilSync.sexo; }
+                        if (!_provinciaGuardada && _perfilSync.provincia) { localStorage.setItem('provinciaRevendedor_' + codigo, _perfilSync.provincia); _provinciaGuardada = _perfilSync.provincia; }
+                        if (!_ciudadGuardada && _perfilSync.ciudad) { localStorage.setItem('ciudadRevendedor_' + codigo, _perfilSync.ciudad); _ciudadGuardada = _perfilSync.ciudad; }
+                        if (!_cpGuardado && _perfilSync.codigoPostal) { localStorage.setItem('codigoPostalRevendedor_' + codigo, _perfilSync.codigoPostal); _cpGuardado = _perfilSync.codigoPostal; }
+                    }
+                } catch (_) { /* sin conexión con /api/perfil: se sigue con lo que haya en localStorage */ }
+            }
+
             if (!_waGuardado || !_cuitGuardado || !_sexoGuardado || !_provinciaGuardada || !_ciudadGuardada || !_cpGuardado) {
                 window._pendienteGuardarSesionDespuesDeDatos = true;
                 setTimeout(() => {
@@ -11455,7 +11478,7 @@
                     // servidor para WhatsApp/CUIT, y localStorage con el
                     // código de vendedor como parte de la clave para el
                     // resto — cada vendedor con su propio registro real.
-                    _decidirFlujoPostLogin(vendedorEncontrado, codigo);
+                    await _decidirFlujoPostLogin(vendedorEncontrado, codigo);
                 }
             } catch (error) {
                 
@@ -14028,7 +14051,7 @@
                 // (WhatsApp/CUIT/Sexo/Provincia/Ciudad/CP), pide eso
                 // primero, y recién al confirmarlos pregunta si guardar la
                 // sesión — igual que el otro login.
-                _decidirFlujoPostLogin(userData, codigo);
+                await _decidirFlujoPostLogin(userData, codigo);
             };
 
             // Continúa el flujo normal (guía rápida + modal de WhatsApp) una
