@@ -4096,19 +4096,24 @@
 
     <div class="modal-overlay" id="profileModal" onclick="closeProfileModal(event)">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Mi Perfil</h2>
+            <div class="modal-header" style="justify-content:flex-start;align-items:center;gap:8px;">
+                <h2 class="modal-title" style="margin:0;">Mi Perfil</h2>
+                <!-- 🆕 NUEVO: lápiz para abrir "Editar Datos" (nombre, apellido,
+                     cuit, whatsapp, provincia, ciudad, dirección) -->
+                <button type="button" onclick="abrirEditarDatosPerfilModal()" title="Editar datos" aria-label="Editar datos" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text-light);display:flex;flex-shrink:0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                </button>
             </div>
 
             <!-- Lista profesional de datos -->
             <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;">
                 <div style="display:flex;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);background:#fafafa;">
                     <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);min-width:80px;flex-shrink:0;">Nombre</span>
-                    <span id="profileName" style="font-size:14px;color:var(--text);font-weight:500;">—</span>
+                    <span id="profileName" style="font-size:14px;color:var(--text);font-weight:500;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</span>
                 </div>
                 <div style="display:flex;align-items:center;padding:12px 14px;background:#fff;">
                     <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);min-width:80px;flex-shrink:0;">Email</span>
-                    <span id="profileEmail" style="font-size:14px;color:var(--text);font-weight:500;word-break:break-all;">—</span>
+                    <span id="profileEmail" style="font-size:14px;color:var(--text);font-weight:500;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</span>
                 </div>
             </div>
 
@@ -4135,6 +4140,59 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                 Pedidos recibidos
             </button>
+        </div>
+    </div>
+
+    <!-- 🆕 NUEVO: MODAL "EDITAR DATOS" (lápiz al lado de "Mi Perfil") — nombre,
+         apellido, cuit, whatsapp, provincia, ciudad, dirección. Al guardar
+         pide la Contraseña de seguridad (se reutiliza claveSeguridadModal). -->
+    <div class="modal-overlay" id="editarDatosPerfilModal" onclick="if(event.target.id==='editarDatosPerfilModal') cerrarEditarDatosPerfilModal()">
+        <div class="modal-content" style="max-width:420px;" onclick="event.stopPropagation()">
+            <div class="modal-header" style="justify-content:center;">
+                <h2 class="modal-title" style="text-align:center;">Editar Datos</h2>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:6px;">
+                <div style="display:flex;gap:8px;">
+                    <div style="flex:1;min-width:0;">
+                        <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;">Nombre</label>
+                        <input type="text" id="editarPerfil-nombre" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:13.5px;font-family:var(--font-body);box-sizing:border-box;">
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;">Apellido</label>
+                        <input type="text" id="editarPerfil-apellido" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:13.5px;font-family:var(--font-body);box-sizing:border-box;">
+                    </div>
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;">CUIT</label>
+                    <input type="text" id="editarPerfil-cuit" placeholder="Ej: 20-12345678-9" inputmode="numeric" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:13.5px;font-family:var(--font-body);box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;">WhatsApp</label>
+                    <div style="display:flex;align-items:stretch;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:#fff;">
+                        <span style="display:flex;align-items:center;gap:6px;padding:9px 10px;background:#f5f7fa;border-right:1px solid var(--border);font-size:13.5px;font-weight:600;color:#333;white-space:nowrap;">🇦🇷 +54 9</span>
+                        <input type="tel" id="editarPerfil-whatsapp" placeholder="Ej: 2395401234" inputmode="numeric" style="flex:1;min-width:0;padding:9px 10px;border:none;outline:none;font-size:13.5px;font-family:var(--font-body);">
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <div style="flex:1;min-width:0;">
+                        <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;">Provincia</label>
+                        <input type="text" id="editarPerfil-provincia" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:13.5px;font-family:var(--font-body);box-sizing:border-box;">
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;">Ciudad</label>
+                        <input type="text" id="editarPerfil-ciudad" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:13.5px;font-family:var(--font-body);box-sizing:border-box;">
+                    </div>
+                </div>
+                <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;">Dirección</label>
+                    <input type="text" id="editarPerfil-direccion" placeholder="Calle, número, piso" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:13.5px;font-family:var(--font-body);box-sizing:border-box;">
+                </div>
+                <div id="editarPerfil-error" style="display:none;margin-top:2px;padding:10px 14px;background:#fff3f3;border:1px solid #fcc;border-radius:var(--radius);color:#c00;font-size:13px;font-weight:500;"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <button type="button" class="confirmation-button" style="background:#f5f5f5;color:var(--text);" onclick="cerrarEditarDatosPerfilModal()">Cancelar</button>
+                <button type="button" class="confirmation-button confirmation-button-primary" onclick="guardarEditarDatosPerfilModal()">Guardar</button>
+            </div>
         </div>
     </div>
 
@@ -9794,6 +9852,11 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
         };
         window._tieneClaveSeguridad = false;
         window._pendingDatoSeguro = null;
+        // 🆕 NUEVO: pendiente del panel "Editar Datos" (lápiz de "Mi
+        // Perfil") — guarda VARIOS campos a la vez (a diferencia de
+        // _pendingDatoSeguro, que es de a uno), pero reutiliza el mismo
+        // modal de Contraseña de seguridad y el mismo endpoint.
+        window._pendingEditarPerfil = null;
 
         function _formatearParaMostrar(campo, valor) {
             if (!valor) return '';
@@ -9934,6 +9997,187 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             if (!window._datoSeguroState.cuit.editing) renderDatoSeguro('cuit');
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        // 🆕 NUEVO: MODAL "EDITAR DATOS" (lápiz al lado de "Mi Perfil")
+        // nombre, apellido, cuit, whatsapp, provincia, ciudad, dirección.
+        // Reutiliza el mismo modal de Contraseña de seguridad y el mismo
+        // endpoint que ya usa "Configurar mi tienda" para WhatsApp/CUIT —
+        // no se toca esa rama, se agrega una nueva al lado (ver más abajo
+        // en confirmarClaveSeguridad() y cerrarClaveSeguridadModal()).
+        // ═══════════════════════════════════════════════════════════════
+        async function abrirEditarDatosPerfilModal() {
+            closeProfileModal();
+            const uid = _getUidParaFirestore();
+            const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                || localStorage.getItem('codigoVendedorLocal')
+                || localStorage.getItem('codigoRevendedorValidado')
+                || '';
+            let data = null;
+            try {
+                if (uid) {
+                    const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor-uid', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid })
+                    });
+                    if (res.ok) { const j = await res.json(); if (j.success && j.vendedor) data = j.vendedor; }
+                }
+                if (!data && codigo) {
+                    const res2 = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codigo })
+                    });
+                    if (res2.ok) { const j2 = await res2.json(); if (j2.success && j2.vendedor) data = j2.vendedor; }
+                }
+            } catch (e) { /* se usa lo que haya en localStorage/memoria */ }
+
+            const nombre    = (data && data.nombre)    || (window.currentUser && window.currentUser.nombre)   || '';
+            const apellido  = (data && data.apellido)  || (window.currentUser && window.currentUser.apellido) || '';
+            const cuit      = (data && data.cuitRevendedor)     || _lsGet('cuitRevendedor')     || '';
+            const wa        = (data && data.whatsappRevendedor) || _lsGet('whatsappRevendedor') || '';
+            const provincia = (data && data.provincia) || _lsGet('provinciaRevendedor') || '';
+            const ciudad    = (data && data.ciudad)    || _lsGet('ciudadRevendedor')    || '';
+            const direccion = (data && data.direccion) || '';
+            window._tieneClaveSeguridad = !!(data && data.tieneClaveSeguridad);
+
+            document.getElementById('editarPerfil-nombre').value = nombre;
+            document.getElementById('editarPerfil-apellido').value = apellido;
+            document.getElementById('editarPerfil-cuit').value = cuit;
+            let waLocal = wa.replace(/\D/g, '');
+            if (waLocal.startsWith('549')) waLocal = waLocal.slice(3);
+            else if (waLocal.startsWith('54')) waLocal = waLocal.slice(2);
+            document.getElementById('editarPerfil-whatsapp').value = waLocal;
+            document.getElementById('editarPerfil-provincia').value = provincia;
+            document.getElementById('editarPerfil-ciudad').value = ciudad;
+            document.getElementById('editarPerfil-direccion').value = direccion;
+
+            const errEl = document.getElementById('editarPerfil-error');
+            if (errEl) errEl.style.display = 'none';
+
+            document.getElementById('editarDatosPerfilModal').classList.add('active');
+        }
+
+        function cerrarEditarDatosPerfilModal() {
+            document.getElementById('editarDatosPerfilModal').classList.remove('active');
+        }
+
+        function guardarEditarDatosPerfilModal() {
+            const errEl = document.getElementById('editarPerfil-error');
+            const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+            errEl.style.display = 'none';
+
+            const nombre     = document.getElementById('editarPerfil-nombre').value.trim();
+            const apellido   = document.getElementById('editarPerfil-apellido').value.trim();
+            const cuitDigits = document.getElementById('editarPerfil-cuit').value.replace(/\D/g, '');
+            let   waLocal    = document.getElementById('editarPerfil-whatsapp').value.replace(/\D/g, '');
+            const provincia  = document.getElementById('editarPerfil-provincia').value.trim();
+            const ciudad     = document.getElementById('editarPerfil-ciudad').value.trim();
+            const direccion  = document.getElementById('editarPerfil-direccion').value.trim();
+
+            if (!nombre || !apellido || !provincia || !ciudad || !direccion) {
+                showErr('Completá todos los campos antes de continuar.');
+                return;
+            }
+            if (waLocal.startsWith('549')) waLocal = waLocal.slice(3);
+            else if (waLocal.startsWith('54')) waLocal = waLocal.slice(2);
+            if (waLocal.startsWith('0')) waLocal = waLocal.replace(/^0+/, '');
+            if (waLocal.length >= 4 && waLocal.charAt(2) === '1' && waLocal.charAt(3) === '5') {
+                waLocal = waLocal.slice(0, 2) + waLocal.slice(4);
+            }
+            if (!waLocal || waLocal.length < 8) {
+                showErr('Ingresá un número de WhatsApp válido (mínimo 8 dígitos, sin el 0 ni el 15).');
+                return;
+            }
+            if (cuitDigits.length !== 11) {
+                showErr('Ingresá un CUIT válido (11 dígitos, ej: 20123456789).');
+                return;
+            }
+
+            window._pendingEditarPerfil = {
+                nombre, apellido,
+                cuit: cuitDigits.slice(0, 2) + '-' + cuitDigits.slice(2, 10) + '-' + cuitDigits.slice(10),
+                whatsappRevendedor: '549' + waLocal,
+                provincia, ciudad, direccion
+            };
+            abrirClaveSeguridadModal();
+        }
+
+        // Rama de confirmarClaveSeguridad() para el pendiente de "Editar
+        // Datos" (varios campos a la vez) — misma validación de contraseña
+        // y mismo endpoint que la rama de WhatsApp/CUIT, que queda intacta.
+        async function _confirmarClaveSeguridadEditarPerfil() {
+            const pending = window._pendingEditarPerfil;
+            if (!pending) { cerrarClaveSeguridadModal(); return; }
+
+            const errEl = document.getElementById('clave-seguridad-error');
+            const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+            errEl.style.display = 'none';
+
+            const pass = (document.getElementById('clave-seguridad-input').value || '').trim();
+            if (!pass || pass.length < 4) {
+                showErr('Ingresá una contraseña de al menos 4 caracteres.');
+                return;
+            }
+
+            const btn = document.getElementById('btn-confirmar-clave-seguridad');
+            const textoOriginal = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Guardando...';
+
+            try {
+                const uid = _getUidParaFirestore();
+                const codigo = (window.currentUser && window.currentUser.codigoVendedor)
+                    || localStorage.getItem('codigoVendedorLocal')
+                    || localStorage.getItem('codigoRevendedorValidado')
+                    || '';
+
+                const body = Object.assign({ contraseñaSeguridad: pass }, pending);
+                if (uid) body.uid = uid;
+                if (codigo) body.codigoVendedor = codigo;
+
+                const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/actualizar-datos-vendedor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.ok) {
+                    showErr(data.error || 'No se pudo guardar. Probá de nuevo.');
+                    btn.disabled = false; btn.textContent = textoOriginal;
+                    return;
+                }
+
+                window._tieneClaveSeguridad = true;
+
+                if (window.currentUser) {
+                    window.currentUser.nombre = pending.nombre;
+                    window.currentUser.apellido = pending.apellido;
+                }
+                _lsSet('cuitRevendedor', pending.cuit);
+                _lsSet('whatsappRevendedor', pending.whatsappRevendedor);
+                _lsSet('provinciaRevendedor', pending.provincia);
+                _lsSet('ciudadRevendedor', pending.ciudad);
+                const waHidden = document.getElementById('config-whatsapp'); if (waHidden) waHidden.value = pending.whatsappRevendedor;
+                const cuitHidden = document.getElementById('config-cuit'); if (cuitHidden) cuitHidden.value = pending.cuit;
+                window._datoSeguroState.whatsapp.valor = pending.whatsappRevendedor;
+                window._datoSeguroState.cuit.valor = pending.cuit;
+                const nameEl = document.getElementById('profileName');
+                if (nameEl) nameEl.textContent = pending.nombre + (pending.apellido ? ' ' + pending.apellido : '');
+
+                window._pendingEditarPerfil = null;
+                document.getElementById('claveSeguridadModal').classList.remove('active');
+                cerrarEditarDatosPerfilModal();
+
+                const okTexto = document.getElementById('datosGuardadosOkTexto');
+                if (okTexto) okTexto.textContent = 'Cambios guardados con éxito';
+                document.getElementById('datosGuardadosOkModal').classList.add('active');
+
+            } catch (e) {
+                showErr('Error de conexión. Probá de nuevo.');
+            } finally {
+                btn.disabled = false; btn.textContent = textoOriginal;
+            }
+        }
+
         // ─── Modal de "Contraseña de seguridad" ───
         function abrirClaveSeguridadModal() {
             const titulo = document.getElementById('claveSeguridadTitulo');
@@ -9961,9 +10205,18 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                 renderDatoSeguro(campo);
                 window._pendingDatoSeguro = null;
             }
+            // 🆕 NUEVO: cancelar el panel "Editar Datos" no toca el estado
+            // de "Configurar mi tienda" (la rama de arriba).
+            window._pendingEditarPerfil = null;
         }
 
         async function confirmarClaveSeguridad() {
+            // 🆕 NUEVO: pendiente del panel "Editar Datos" (varios campos a
+            // la vez) — se delega a su propia función; la rama de abajo
+            // (WhatsApp/CUIT de "Configurar mi tienda") sigue intacta.
+            if (!window._pendingDatoSeguro && window._pendingEditarPerfil) {
+                return _confirmarClaveSeguridadEditarPerfil();
+            }
             const pending = window._pendingDatoSeguro;
             if (!pending) { cerrarClaveSeguridadModal(); return; }
 
