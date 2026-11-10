@@ -12520,6 +12520,7 @@
                 || localStorage.getItem('codigoRevendedorValidado')
                 || '';
             let data = null;
+            let perfilCompleto = null;
             try {
                 if (uid) {
                     const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor-uid', {
@@ -12535,15 +12536,25 @@
                     });
                     if (res2.ok) { const j2 = await res2.json(); if (j2.success && j2.vendedor) data = j2.vendedor; }
                 }
+                // 🆕 NUEVO: login-vendedor-uid / login-vendedor NO devuelven
+                // provincia/ciudad/dirección (son endpoints de login, con una
+                // lista acotada de campos). Para esos 3 se usa el perfil
+                // completo del dueño — el mismo endpoint que ya usa
+                // initializeUserSession para hidratar el localStorage al
+                // iniciar sesión — sin tocar nada de lo anterior.
+                if (uid) {
+                    const res3 = await fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=' + encodeURIComponent(uid));
+                    if (res3.ok) { const j3 = await res3.json(); if (j3.ok && j3.perfil) perfilCompleto = j3.perfil; }
+                }
             } catch (e) { /* se usa lo que haya en localStorage/memoria */ }
 
-            const nombre    = (data && data.nombre)    || (window.currentUser && window.currentUser.nombre)   || '';
-            const apellido  = (data && data.apellido)  || (window.currentUser && window.currentUser.apellido) || '';
-            const cuit      = (data && data.cuitRevendedor)     || _lsGet('cuitRevendedor')     || '';
-            const wa        = (data && data.whatsappRevendedor) || _lsGet('whatsappRevendedor') || '';
-            const provincia = (data && data.provincia) || _lsGet('provinciaRevendedor') || '';
-            const ciudad    = (data && data.ciudad)    || _lsGet('ciudadRevendedor')    || '';
-            const direccion = (data && data.direccion) || '';
+            const nombre    = (data && data.nombre)    || (perfilCompleto && perfilCompleto.nombre)   || (window.currentUser && window.currentUser.nombre)   || '';
+            const apellido  = (data && data.apellido)  || (perfilCompleto && perfilCompleto.apellido) || (window.currentUser && window.currentUser.apellido) || '';
+            const cuit      = (data && data.cuitRevendedor)     || (perfilCompleto && perfilCompleto.cuitRevendedor)     || _lsGet('cuitRevendedor')     || '';
+            const wa        = (data && data.whatsappRevendedor) || (perfilCompleto && perfilCompleto.whatsappRevendedor) || _lsGet('whatsappRevendedor') || '';
+            const provincia = (perfilCompleto && perfilCompleto.provincia) || _lsGet('provinciaRevendedor') || '';
+            const ciudad    = (perfilCompleto && perfilCompleto.ciudad)    || _lsGet('ciudadRevendedor')    || '';
+            const direccion = (perfilCompleto && perfilCompleto.direccion) || _lsGet('direccionRevendedor') || '';
             window._tieneClaveSeguridad = !!(data && data.tieneClaveSeguridad);
 
             document.getElementById('editarPerfil-nombre').value = nombre;
@@ -12663,6 +12674,7 @@
                 _lsSet('whatsappRevendedor', pending.whatsappRevendedor);
                 _lsSet('provinciaRevendedor', pending.provincia);
                 _lsSet('ciudadRevendedor', pending.ciudad);
+                _lsSet('direccionRevendedor', pending.direccion);
                 const waHidden = document.getElementById('config-whatsapp'); if (waHidden) waHidden.value = pending.whatsappRevendedor;
                 const cuitHidden = document.getElementById('config-cuit'); if (cuitHidden) cuitHidden.value = pending.cuit;
                 window._datoSeguroState.whatsapp.valor = pending.whatsappRevendedor;
