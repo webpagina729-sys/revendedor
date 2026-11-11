@@ -4546,6 +4546,10 @@
                     </div>
                 </div>
                 <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;">Correo electrónico</label>
+                    <input type="email" id="editarPerfil-email" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:13.5px;font-family:var(--font-body);box-sizing:border-box;">
+                </div>
+                <div>
                     <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;">CUIT</label>
                     <input type="text" id="editarPerfil-cuit" placeholder="Ej: 20-12345678-9" inputmode="numeric" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:13.5px;font-family:var(--font-body);box-sizing:border-box;">
                 </div>
@@ -12514,51 +12518,76 @@
         // ═══════════════════════════════════════════════════════════════
         async function abrirEditarDatosPerfilModal() {
             closeProfileModal();
+
+            // 🔒 ARREGLO PERMANENTE: espera (máx. 4s, nunca cuelga) a que
+            // Firebase Auth confirme la sesión restaurada en ESTA página
+            // antes de resolver el uid. Antes, si se tocaba el lápiz muy
+            // rápido al cargar la página, el uid todavía no estaba listo
+            // y el panel caía al único camino que le quedaba —
+            // "/api/login-vendedor" por código— que SÍ tiene límite de
+            // intentos por IP compartido entre páginas y devolvía 429,
+            // dejando Nombre/Apellido/Email vacíos.
+            await _esperarSesionFirebaseSiHaceFalta();
+
+            const fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
             const uid = _getUidParaFirestore();
-            const codigo = (window.currentUser && window.currentUser.codigoVendedor)
-                || localStorage.getItem('codigoVendedorLocal')
-                || localStorage.getItem('codigoRevendedorValidado')
-                || '';
+
             let data = null;
             let perfilCompleto = null;
+            let tokenFirebase = null;
             try {
+                if (fbUser) {
+                    try { tokenFirebase = await fbUser.getIdToken(); }
+                    catch (e1) { try { tokenFirebase = await fbUser.getIdToken(true); } catch (e2) { tokenFirebase = null; } }
+                }
+
+                // 🔒 ARREGLO PERMANENTE: este panel usa SOLO los dos
+                // endpoints que no tienen límite de intentos por IP
+                // (login-vendedor-uid y /api/perfil, ambos por UID). Nunca
+                // llama a "/api/login-vendedor" por código desde acá —ese
+                // es el único de los tres con el límite de 8 intentos/5min
+                // compartido entre todas las páginas, y era la causa del
+                // 429 que dejaba los campos vacíos.
                 if (uid) {
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (tokenFirebase) headers['Authorization'] = 'Bearer ' + tokenFirebase;
+
                     const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor-uid', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        method: 'POST', headers,
                         body: JSON.stringify({ uid })
                     });
                     if (res.ok) { const j = await res.json(); if (j.success && j.vendedor) data = j.vendedor; }
-                }
-                if (!data && codigo) {
-                    const res2 = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codigo })
+
+                    // El perfil completo (incluye provincia/ciudad/dirección,
+                    // y email/dirección solo si el token de arriba prueba
+                    // que el pedido lo hace el propio dueño de la cuenta).
+                    const res3 = await fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=' + encodeURIComponent(uid), {
+                        headers: tokenFirebase ? { 'Authorization': 'Bearer ' + tokenFirebase } : {}
                     });
-                    if (res2.ok) { const j2 = await res2.json(); if (j2.success && j2.vendedor) data = j2.vendedor; }
-                }
-                // 🆕 NUEVO: login-vendedor-uid / login-vendedor NO devuelven
-                // provincia/ciudad/dirección (son endpoints de login, con una
-                // lista acotada de campos). Para esos 3 se usa el perfil
-                // completo del dueño — el mismo endpoint que ya usa
-                // initializeUserSession para hidratar el localStorage al
-                // iniciar sesión — sin tocar nada de lo anterior.
-                if (uid) {
-                    const res3 = await fetch('https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=' + encodeURIComponent(uid));
                     if (res3.ok) { const j3 = await res3.json(); if (j3.ok && j3.perfil) perfilCompleto = j3.perfil; }
                 }
-            } catch (e) { /* se usa lo que haya en localStorage/memoria */ }
+            } catch (e) { /* se usa lo que haya en memoria de la sesión */ }
 
+            // 🔒 ARREGLO PERMANENTE (requisito: nada guardado en el
+            // navegador): ya no se lee NINGÚN campo desde localStorage acá.
+            // Todo viene en vivo del servidor; si el servidor no respondió,
+            // el único respaldo es lo que ya está en memoria de esta misma
+            // sesión (window.currentUser / Firebase Auth), nunca algo
+            // persistido en el navegador.
             const nombre    = (data && data.nombre)    || (perfilCompleto && perfilCompleto.nombre)   || (window.currentUser && window.currentUser.nombre)   || '';
             const apellido  = (data && data.apellido)  || (perfilCompleto && perfilCompleto.apellido) || (window.currentUser && window.currentUser.apellido) || '';
-            const cuit      = (data && data.cuitRevendedor)     || (perfilCompleto && perfilCompleto.cuitRevendedor)     || _lsGet('cuitRevendedor')     || '';
-            const wa        = (data && data.whatsappRevendedor) || (perfilCompleto && perfilCompleto.whatsappRevendedor) || _lsGet('whatsappRevendedor') || '';
-            const provincia = (perfilCompleto && perfilCompleto.provincia) || _lsGet('provinciaRevendedor') || '';
-            const ciudad    = (perfilCompleto && perfilCompleto.ciudad)    || _lsGet('ciudadRevendedor')    || '';
-            const direccion = (perfilCompleto && perfilCompleto.direccion) || _lsGet('direccionRevendedor') || '';
+            const email     = (perfilCompleto && perfilCompleto.email) || (data && data.email) || (fbUser && fbUser.email) || (window.currentUser && window.currentUser.email) || '';
+            const cuit      = (data && data.cuitRevendedor)     || (perfilCompleto && perfilCompleto.cuitRevendedor)     || '';
+            const wa        = (data && data.whatsappRevendedor) || (perfilCompleto && perfilCompleto.whatsappRevendedor) || '';
+            const provincia = (perfilCompleto && perfilCompleto.provincia) || '';
+            const ciudad    = (perfilCompleto && perfilCompleto.ciudad)    || '';
+            const direccion = (perfilCompleto && perfilCompleto.direccion) || '';
             window._tieneClaveSeguridad = !!(data && data.tieneClaveSeguridad);
+            window._emailOriginalEditarPerfil = email;
 
             document.getElementById('editarPerfil-nombre').value = nombre;
             document.getElementById('editarPerfil-apellido').value = apellido;
+            document.getElementById('editarPerfil-email').value = email;
             document.getElementById('editarPerfil-cuit').value = cuit;
             let waLocal = wa.replace(/\D/g, '');
             if (waLocal.startsWith('549')) waLocal = waLocal.slice(3);
@@ -12585,14 +12614,19 @@
 
             const nombre     = document.getElementById('editarPerfil-nombre').value.trim();
             const apellido   = document.getElementById('editarPerfil-apellido').value.trim();
+            const email      = document.getElementById('editarPerfil-email').value.trim().toLowerCase();
             const cuitDigits = document.getElementById('editarPerfil-cuit').value.replace(/\D/g, '');
             let   waLocal    = document.getElementById('editarPerfil-whatsapp').value.replace(/\D/g, '');
             const provincia  = document.getElementById('editarPerfil-provincia').value.trim();
             const ciudad     = document.getElementById('editarPerfil-ciudad').value.trim();
             const direccion  = document.getElementById('editarPerfil-direccion').value.trim();
 
-            if (!nombre || !apellido || !provincia || !ciudad || !direccion) {
+            if (!nombre || !apellido || !email || !provincia || !ciudad || !direccion) {
                 showErr('Completá todos los campos antes de continuar.');
+                return;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showErr('Ingresá un email válido.');
                 return;
             }
             if (waLocal.startsWith('549')) waLocal = waLocal.slice(3);
@@ -12611,7 +12645,7 @@
             }
 
             window._pendingEditarPerfil = {
-                nombre, apellido,
+                nombre, apellido, email,
                 cuit: cuitDigits.slice(0, 2) + '-' + cuitDigits.slice(2, 10) + '-' + cuitDigits.slice(10),
                 whatsappRevendedor: '549' + waLocal,
                 provincia, ciudad, direccion
@@ -12647,13 +12681,27 @@
                     || localStorage.getItem('codigoRevendedorValidado')
                     || '';
 
-                const body = Object.assign({ contraseñaSeguridad: pass }, pending);
+                // 🔒 ARREGLO PERMANENTE: se manda el token real de la sesión
+                // de Firebase ya iniciada, para que el servidor verifique que
+                // quien pide el cambio es el dueño de la cuenta (no solo la
+                // contraseña de seguridad).
+                const fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+                let tokenFirebase = null;
+                if (fbUser) {
+                    try { tokenFirebase = await fbUser.getIdToken(); }
+                    catch (e1) { try { tokenFirebase = await fbUser.getIdToken(true); } catch (e2) { tokenFirebase = null; } }
+                }
+                const headersAuth = { 'Content-Type': 'application/json' };
+                if (tokenFirebase) headersAuth['Authorization'] = 'Bearer ' + tokenFirebase;
+
+                const { email: emailPendiente, ...pendingSinEmail } = pending;
+                const body = Object.assign({ contraseñaSeguridad: pass }, pendingSinEmail);
                 if (uid) body.uid = uid;
                 if (codigo) body.codigoVendedor = codigo;
 
                 const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/actualizar-datos-vendedor', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headersAuth,
                     body: JSON.stringify(body)
                 });
                 const data = await res.json();
@@ -12664,17 +12712,43 @@
                     return;
                 }
 
+                // 📧 Si cambió el email, se actualiza en un segundo paso
+                // dedicado (Firebase Auth + Firestore juntos), con la misma
+                // contraseña de seguridad.
+                let avisoEmail = '';
+                if (emailPendiente && emailPendiente !== (window._emailOriginalEditarPerfil || '')) {
+                    try {
+                        const bodyEmail = { contraseñaSeguridad: pass, nuevoEmail: emailPendiente };
+                        if (uid) bodyEmail.uid = uid;
+                        if (codigo) bodyEmail.codigoVendedor = codigo;
+                        const resEmail = await fetch('https://datosderevendedor.tuweb.workers.dev/api/actualizar-email-vendedor', {
+                            method: 'POST',
+                            headers: headersAuth,
+                            body: JSON.stringify(bodyEmail)
+                        });
+                        const dataEmail = await resEmail.json();
+                        if (!resEmail.ok || !dataEmail.ok) {
+                            avisoEmail = ' (el email no se pudo actualizar: ' + (dataEmail.error || 'probá de nuevo') + ')';
+                        } else {
+                            window._emailOriginalEditarPerfil = emailPendiente;
+                            if (window.currentUser) window.currentUser.email = emailPendiente;
+                            avisoEmail = ' Si cambiaste el email, puede que tengas que volver a iniciar sesión con el nuevo.';
+                        }
+                    } catch (eEmail) {
+                        avisoEmail = ' (el email no se pudo actualizar por un error de conexión)';
+                    }
+                }
+
                 window._tieneClaveSeguridad = true;
 
                 if (window.currentUser) {
                     window.currentUser.nombre = pending.nombre;
                     window.currentUser.apellido = pending.apellido;
                 }
-                _lsSet('cuitRevendedor', pending.cuit);
-                _lsSet('whatsappRevendedor', pending.whatsappRevendedor);
-                _lsSet('provinciaRevendedor', pending.provincia);
-                _lsSet('ciudadRevendedor', pending.ciudad);
-                _lsSet('direccionRevendedor', pending.direccion);
+                // 🔒 ARREGLO PERMANENTE (requisito: nada guardado en el
+                // navegador): ya no se escribe NADA en localStorage acá. El
+                // panel siempre vuelve a pedir los datos en vivo al servidor
+                // la próxima vez que se abre.
                 const waHidden = document.getElementById('config-whatsapp'); if (waHidden) waHidden.value = pending.whatsappRevendedor;
                 const cuitHidden = document.getElementById('config-cuit'); if (cuitHidden) cuitHidden.value = pending.cuit;
                 window._datoSeguroState.whatsapp.valor = pending.whatsappRevendedor;
@@ -12687,7 +12761,7 @@
                 cerrarEditarDatosPerfilModal();
 
                 const okTexto = document.getElementById('datosGuardadosOkTexto');
-                if (okTexto) okTexto.textContent = 'Cambios guardados con éxito';
+                if (okTexto) okTexto.textContent = 'Cambios guardados con éxito.' + avisoEmail;
                 document.getElementById('datosGuardadosOkModal').classList.add('active');
 
             } catch (e) {
