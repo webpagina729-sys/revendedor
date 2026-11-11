@@ -10974,6 +10974,10 @@ function catalogoEfectivoMultishop(p) {
 
                         const panelPayload = {
                             pedidoId:       pedido.id,
+                            // 🔒 NUEVO: uid de respaldo para sesiones por código
+                            // (sin login real de Firebase), usado por el worker
+                            // para autorizar el POST cuando no hay token.
+                            uid:            (user && user.uid) || _getUidParaFirestore() || '',
                             codigoVendedor: codigoVendedor || '',
                             estadoAprobacion: 'aprobado',
                             categoria:      nicho,
