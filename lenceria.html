@@ -4181,6 +4181,10 @@
                     </div>
                 </div>
                 <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;">Cód. Postal</label>
+                    <input type="text" id="editarPerfil-cp" inputmode="numeric" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:13.5px;font-family:var(--font-body);box-sizing:border-box;">
+                </div>
+                <div>
                     <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;">Dirección</label>
                     <input type="text" id="editarPerfil-direccion" placeholder="Calle, número, piso" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:13.5px;font-family:var(--font-body);box-sizing:border-box;">
                 </div>
@@ -9226,6 +9230,25 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             return false;
         }
 
+        // 🔒 ARREGLO PERMANENTE: antes, restaurarSesionGuardada() solo se
+        // llamaba dentro de abrirModalCodigo() — es decir, recién cuando el
+        // revendedor tocaba para entrar a un catálogo. Si en vez de eso
+        // abría primero "Mi Perfil" o "Editar Datos", window.currentUser
+        // seguía siendo el objeto mínimo que deja restaurarSesionCodigoVendedor()
+        // más arriba (solo { codigoVendedor }, sin nombre/apellido/email/uid),
+        // y esos paneles mostraban todo vacío. Ahora, si hay un código
+        // guardado, se dispara esta misma restauración completa apenas
+        // termina de cargar el script — sin esperar a que se abra ningún
+        // catálogo — para que los datos ya estén listos en memoria.
+        (function _dispararRestauracionCompletaAlCargar() {
+            try {
+                const _codigoGuardado = localStorage.getItem('codigoRevendedorValidado') || localStorage.getItem('codigoVendedorLocal');
+                if (_codigoGuardado && !(window.currentUser && window.currentUser.nombre)) {
+                    restaurarSesionGuardada(_codigoGuardado).catch(function () { /* no bloqueante */ });
+                }
+            } catch (_e) { /* no bloqueante */ }
+        })();
+
         // Cerrar modal de validación
         function cerrarModalCodigo() {
             // Limpiar todos los timers cuando se cierra el modal
@@ -10268,6 +10291,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             const wa        = (data && data.whatsappRevendedor) || (perfilCompleto && perfilCompleto.whatsappRevendedor) || '';
             const provincia = (perfilCompleto && perfilCompleto.provincia) || '';
             const ciudad    = (perfilCompleto && perfilCompleto.ciudad)    || '';
+            const cp        = (perfilCompleto && perfilCompleto.codigoPostal) || '';
             const direccion = (perfilCompleto && perfilCompleto.direccion) || '';
             window._tieneClaveSeguridad = !!(data && data.tieneClaveSeguridad);
             window._emailOriginalEditarPerfil = email;
@@ -10282,6 +10306,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             document.getElementById('editarPerfil-whatsapp').value = waLocal;
             document.getElementById('editarPerfil-provincia').value = provincia;
             document.getElementById('editarPerfil-ciudad').value = ciudad;
+            document.getElementById('editarPerfil-cp').value = cp;
             document.getElementById('editarPerfil-direccion').value = direccion;
 
             const errEl = document.getElementById('editarPerfil-error');
@@ -10306,6 +10331,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             let   waLocal    = document.getElementById('editarPerfil-whatsapp').value.replace(/\D/g, '');
             const provincia  = document.getElementById('editarPerfil-provincia').value.trim();
             const ciudad     = document.getElementById('editarPerfil-ciudad').value.trim();
+            const cp         = document.getElementById('editarPerfil-cp').value.trim();
             const direccion  = document.getElementById('editarPerfil-direccion').value.trim();
 
             if (!nombre || !apellido || !email || !provincia || !ciudad || !direccion) {
@@ -10335,7 +10361,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                 nombre, apellido, email,
                 cuit: cuitDigits.slice(0, 2) + '-' + cuitDigits.slice(2, 10) + '-' + cuitDigits.slice(10),
                 whatsappRevendedor: '549' + waLocal,
-                provincia, ciudad, direccion
+                provincia, ciudad, codigoPostal: cp, direccion
             };
             abrirClaveSeguridadModal();
         }
@@ -10722,6 +10748,15 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                 // El UID de Firestore tiene ~28 chars alfanuméricos, el código de vendedor es corto
                 if (uid && uid !== codigo && uid.length > 10) return uid;
             }
+            // 🔒 ARREGLO PERMANENTE: antes, si window.currentUser todavía no
+            // tenía "uid" (p.ej. recién llegado de restaurarSesionCodigoVendedor(),
+            // que solo deja { codigoVendedor }), esta función devolvía null
+            // y el panel de Editar Datos nunca llegaba a pedirle nada al
+            // servidor — aunque el UID real ya estuviera guardado en
+            // localStorage desde index.html para vincular la sesión entre
+            // páginas. Ahora se usa ese mismo UID cacheado como último recurso.
+            const uidLocal = localStorage.getItem('uidVendedorLocal');
+            if (uidLocal && uidLocal.length > 10) return uidLocal;
             return null;
         }
         // Helper para guardar en Firestore con fallback async
