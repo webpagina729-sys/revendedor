@@ -9087,6 +9087,56 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                 }
             } catch(_e) { /* si el cache está corrupto, seguir con el flujo normal */ }
 
+            // 🔒 ARREGLO PERMANENTE: ESTRATEGIA 0 — si ya conocemos el UID
+            // real de Firestore de esta cuenta (de haber iniciado sesión
+            // antes en CUALQUIER página de la tienda, no solo esta), se
+            // resuelve todo por ahí. A diferencia de la búsqueda por código
+            // de la ESTRATEGIA 2 de abajo, "login-vendedor-uid" NO comparte
+            // el límite de intentos por IP entre páginas — así que esto
+            // nunca agota ese límite, y tampoco depende de que Firebase Auth
+            // tenga sesión activa en ESTA página en particular (que es
+            // justamente lo que fallaba: cada página nueva volvía a buscar
+            // por código, gastando el mismo límite compartido).
+            try {
+                const uidConocido = localStorage.getItem('uidVendedorLocal');
+                if (uidConocido) {
+                    const resUid = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-vendedor-uid', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid: uidConocido })
+                    });
+                    if (resUid.ok) {
+                        const jUid = await resUid.json();
+                        const v = (jUid && jUid.success) ? jUid.vendedor : null;
+                        if (v) {
+                            const codigoDelUid = String(v.codigoVendedor || '').trim().toUpperCase();
+                            if (!codigoDelUid || codigoDelUid === codigo) {
+                                window.currentUser = {
+                                    uid: uidConocido,
+                                    codigoVendedor: v.codigoVendedor || codigo,
+                                    nombre: v.nombre || '',
+                                    apellido: v.apellido || '',
+                                    email: v.email || '',
+                                    telefono: v.telefono || '',
+                                    nivel: v.nivel || 1,
+                                    descuentoNivel: v.descuentoNivel || 0,
+                                    whatsappRevendedor: v.whatsappRevendedor || '',
+                                    cuitRevendedor: v.cuitRevendedor || '',
+                                    configTienda: v.configTienda || null,
+                                    configTiendaAll: v.configTiendaAll || null,
+                                };
+                                window.codigoValidado = true;
+                                if (typeof updateUIForAuthentication === 'function') updateUIForAuthentication(true);
+                                try {
+                                    localStorage.setItem('currentUserCache', JSON.stringify(window.currentUser));
+                                    localStorage.setItem('currentUserCacheFecha', Date.now().toString());
+                                } catch(_e2) {}
+                                return true;
+                            }
+                        }
+                    }
+                }
+            } catch (_e) { /* seguimos con las estrategias de abajo */ }
+
             try {
                 // ESTRATEGIA 1: usuario logueado con Firebase → confirmar código directo
                 const usuarioActual = firebase.auth().currentUser || await esperarUsuarioFirebaseActual();
@@ -9138,6 +9188,12 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                                 localStorage.setItem('codigoRevendedorValidado', vendedorEncontrado.codigoVendedor || codigo);
                                 localStorage.setItem('codigoRevendedorValidadoFecha', new Date().getTime());
                                 localStorage.setItem('codigoVendedorLocal', vendedorEncontrado.codigoVendedor || codigo);
+                                // 🔒 ARREGLO PERMANENTE: se guarda el UID real para que la
+                                // próxima vez (esta página u otra) entre por la ESTRATEGIA 0
+                                // de arriba, sin volver a gastar el límite de intentos.
+                                if (vendedorEncontrado.uid) {
+                                    try { localStorage.setItem('uidVendedorLocal', vendedorEncontrado.uid); } catch(_e3) {}
+                                }
                                 if (vendedorEncontrado.configTienda) localStorage.setItem('configTienda', JSON.stringify(vendedorEncontrado.configTienda));
                                 if (vendedorEncontrado.configTiendaAll) localStorage.setItem('configTiendaAll', JSON.stringify(vendedorEncontrado.configTiendaAll));
                                 window.codigoValidado = true;
@@ -11486,6 +11542,12 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
 
                 // Obtener UID real desde Firestore (por codigoVendedor) si firebase.auth no lo tiene
                 var _uidReal = fbUser ? fbUser.uid : (userData.uid || null);
+                // 🔒 ARREGLO PERMANENTE: se guarda el UID apenas se lo conoce,
+                // para que cualquier otra página de la tienda (mas-categorias,
+                // indumentaria, suplementos) pueda restaurar la sesión sin
+                // pasar por la búsqueda por código (la única que comparte el
+                // límite de intentos por IP entre todas las páginas).
+                if (_uidReal) { try { localStorage.setItem('uidVendedorLocal', _uidReal); } catch(_e4) {} }
 
                 // 🔧 NUEVO: además de "userData" (respuesta del login), se
                 // trae el documento COMPLETO de Firestore por UID y se
@@ -11518,6 +11580,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                             if (data && data.valido && data.vendedor && data.vendedor.uid) {
                                 var _uid = data.vendedor.uid;
                                 if (window.currentUser) window.currentUser.uid = _uid;
+                                try { localStorage.setItem('uidVendedorLocal', _uid); } catch(_e5) {}
                                 _traerYMergearDocCompleto(_uid);
                             }
                         }).catch(function(){});
