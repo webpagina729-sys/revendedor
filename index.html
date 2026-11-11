@@ -10459,7 +10459,7 @@
                             // Sin código de revendedor, el Worker rechaza el
                             // registro (lo exige como obligatorio) — avisar en
                             // vez de fallar en silencio.
-                            toast('⚠️ No se pudo registrar en el panel de gestión: falta el código de revendedor', 'err');
+                            alert('⚠️ No se pudo registrar en el panel de gestión: falta el código de revendedor');
                         } else {
                             // 🔧 FIX: workerpagos.js exige sesión verificada (Authorization:
                             // Bearer <token>) para aceptar este registro — _sesionEsDuenoDeCodigo
@@ -10476,14 +10476,14 @@
                                 body:    JSON.stringify(panelPayload)
                             });
                             if (!respPanel.ok) {
-                                toast('⚠️ El pedido se aprobó pero no llegó al panel de gestión. Probá de nuevo o avisame si se repite.', 'err');
+                                alert('⚠️ El pedido se aprobó pero no llegó al panel de gestión. Probá de nuevo o avisame si se repite.');
                             }
                         }
                     } catch (_) {
                         // No bloquear el flujo principal, pero SÍ avisar — antes
                         // esto fallaba 100% en silencio y no había forma de saber
                         // que un pedido no había llegado al panel de gestión.
-                        toast('⚠️ El pedido se aprobó pero no llegó al panel de gestión (error de conexión). Probá de nuevo.', 'err');
+                        alert('⚠️ El pedido se aprobó pero no llegó al panel de gestión (error de conexión). Probá de nuevo.');
                     }
                 }
                 // ── Persistir estado en workerwebcliente (pedidos de tienda.html) ──
