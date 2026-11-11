@@ -4571,6 +4571,10 @@
                     </div>
                 </div>
                 <div>
+                    <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;">Cód. Postal</label>
+                    <input type="text" id="editarPerfil-cp" inputmode="numeric" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:13.5px;font-family:var(--font-body);box-sizing:border-box;">
+                </div>
+                <div>
                     <label style="display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;">Dirección</label>
                     <input type="text" id="editarPerfil-direccion" placeholder="Calle, número, piso" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:13.5px;font-family:var(--font-body);box-sizing:border-box;">
                 </div>
@@ -12591,6 +12595,7 @@
             const wa        = (data && data.whatsappRevendedor) || (perfilCompleto && perfilCompleto.whatsappRevendedor) || '';
             const provincia = (perfilCompleto && perfilCompleto.provincia) || '';
             const ciudad    = (perfilCompleto && perfilCompleto.ciudad)    || '';
+            const cp        = (perfilCompleto && perfilCompleto.codigoPostal) || '';
             const direccion = (perfilCompleto && perfilCompleto.direccion) || '';
             window._tieneClaveSeguridad = !!(data && data.tieneClaveSeguridad);
             window._emailOriginalEditarPerfil = email;
@@ -12605,6 +12610,7 @@
             document.getElementById('editarPerfil-whatsapp').value = waLocal;
             document.getElementById('editarPerfil-provincia').value = provincia;
             document.getElementById('editarPerfil-ciudad').value = ciudad;
+            document.getElementById('editarPerfil-cp').value = cp;
             document.getElementById('editarPerfil-direccion').value = direccion;
 
             const errEl = document.getElementById('editarPerfil-error');
@@ -12629,6 +12635,7 @@
             let   waLocal    = document.getElementById('editarPerfil-whatsapp').value.replace(/\D/g, '');
             const provincia  = document.getElementById('editarPerfil-provincia').value.trim();
             const ciudad     = document.getElementById('editarPerfil-ciudad').value.trim();
+            const cp         = document.getElementById('editarPerfil-cp').value.trim();
             const direccion  = document.getElementById('editarPerfil-direccion').value.trim();
 
             if (!nombre || !apellido || !email || !provincia || !ciudad || !direccion) {
@@ -12658,7 +12665,7 @@
                 nombre, apellido, email,
                 cuit: cuitDigits.slice(0, 2) + '-' + cuitDigits.slice(2, 10) + '-' + cuitDigits.slice(10),
                 whatsappRevendedor: '549' + waLocal,
-                provincia, ciudad, direccion
+                provincia, ciudad, codigoPostal: cp, direccion
             };
             abrirClaveSeguridadModal();
         }
