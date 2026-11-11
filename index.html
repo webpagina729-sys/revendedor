@@ -13938,6 +13938,12 @@
 
                 // Obtener UID real desde Firestore (por codigoVendedor) si firebase.auth no lo tiene
                 var _uidReal = fbUser ? fbUser.uid : (userData.uid || null);
+                // 🔒 ARREGLO PERMANENTE: se guarda el UID apenas se lo conoce,
+                // para que las demás páginas de la tienda (indumentaria,
+                // lenceria, mas-categorias, suplementos) puedan restaurar la
+                // sesión sin pasar por la búsqueda por código (la única que
+                // comparte el límite de intentos por IP entre todas las páginas).
+                if (_uidReal) { try { localStorage.setItem('uidVendedorLocal', _uidReal); } catch(_e4) {} }
 
                 // 🔧 NUEVO: además de lo que ya vino en "userData" (la
                 // respuesta del login), se trae el documento COMPLETO de
@@ -13977,6 +13983,7 @@
                             if (data && data.valido && data.vendedor && data.vendedor.uid) {
                                 var _uid = data.vendedor.uid;
                                 if (window.currentUser) window.currentUser.uid = _uid;
+                                try { localStorage.setItem('uidVendedorLocal', _uid); } catch(_e5) {}
                                 _traerYMergearDocCompleto(_uid);
                             }
                         }).catch(function(){});
