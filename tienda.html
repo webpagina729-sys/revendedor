@@ -2341,7 +2341,28 @@ let cfgUrlColorTienda  = null; // color principal embebido en ?cfg= del enlace (
 let cfgUrlColoresExtra = null; // colores extra (fondo/contorno/nombre/precio) embebidos en ?cfg=
 let todosProductos = [];     // array original con precio ajustado
 let productosFilt  = [];     // array filtrado/ordenado
-let carrito        = [];     // [{producto, qty, talle?}]
+// 🔧 FIX: antes "carrito" era una variable en memoria pura, sin ningún
+// respaldo — cualquier recarga de la página (navegación accidental, el
+// sistema operativo matando la pestaña en segundo plano con poca
+// batería, deslizar para refrescar, etc.) borraba el carrito entero sin
+// que el cliente tocara ningún botón de "vaciar". Ahora se restaura acá
+// mismo desde localStorage (con sessionStorage/memoria como respaldo vía
+// _lsGet, igual que el resto de los datos de este archivo) y se guarda
+// en cada cambio — ver _guardarCarritoEnStorage() más abajo.
+let carrito = (function _restaurarCarritoGuardado() {
+    try {
+        const raw = _lsGet('rw_carrito_tienda_v1');
+        if (raw) {
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr)) return arr;
+        }
+    } catch (e) { /* si el dato guardado está corrupto, arrancamos con carrito vacío */ }
+    return [];
+})();     // [{producto, qty, talle?}]
+
+function _guardarCarritoEnStorage() {
+    try { _lsSet('rw_carrito_tienda_v1', JSON.stringify(carrito)); } catch (e) { /* no bloquear la compra por esto */ }
+}
 let productoModal  = null;   // producto abierto en modal
 let talleSelec     = null;
 
@@ -4795,6 +4816,7 @@ function cambiarCantidad(key, delta) {
 function actualizarContadorCarrito() {
     const total = carrito.reduce((s, x) => s + x.qty, 0);
     document.getElementById('cart-count').textContent = total;
+    _guardarCarritoEnStorage();
 }
 
 function abrirCarrito() {
@@ -4807,6 +4829,7 @@ function cerrarCarrito() {
 }
 
 function renderizarCarrito() {
+    _guardarCarritoEnStorage();
     const container = document.getElementById('cart-items-container');
     const summary = document.getElementById('cart-summary');
 
@@ -5455,6 +5478,14 @@ async function enviarPedidoConDatos() {
         setTimeout(function() {
             cerrarCheckout();
             cerrarCarrito();
+            // 🔧 FIX: el carrito ahora se guarda en localStorage (persiste
+            // entre recargas) — así que, pedido ya confirmado y enviado por
+            // WhatsApp, hay que vaciarlo acá explícitamente. Si no, al volver
+            // a abrir tienda.html los mismos productos seguirían apareciendo
+            // en el carrito y se podrían llegar a enviar dos veces.
+            carrito = [];
+            _guardarCarritoEnStorage();
+            actualizarContadorCarrito();
             _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, total);
         }, 400);
     } catch(e) {
@@ -5462,6 +5493,9 @@ async function enviarPedidoConDatos() {
         _guardarClienteLocalParaLogin(nombre, apellido, telefono, direccion, provincia, ciudad, cp);
         cerrarCheckout();
         cerrarCarrito();
+        carrito = [];
+        _guardarCarritoEnStorage();
+        actualizarContadorCarrito();
         _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, total);
     }
 }
