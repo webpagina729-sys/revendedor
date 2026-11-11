@@ -9492,6 +9492,16 @@ function catalogoEfectivoMultishop(p) {
         // FUNCIONES PARA NUEVOS MODALES
 
         async function openProfileModal() {
+            // 🔒 ARREGLO PERMANENTE: antes se leía firebase.auth().currentUser
+            // en el instante exacto del clic — si Firebase Auth todavía no
+            // había terminado de confirmar la sesión restaurada de esta
+            // página (tarda un instante, no es instantáneo), currentUser
+            // era null en ese momento y el panel mostraba "—" en Nombre y
+            // Email aunque la sesión sí estuviera realmente iniciada. Ahora
+            // espera (máx. 4s, nunca cuelga) a que se confirme antes de leerla.
+            if (!firebase.auth().currentUser) {
+                await _esperarSesionFirebaseSiHaceFalta();
+            }
             const user = firebase.auth().currentUser;
             const wUser = window.currentUser;
 
