@@ -3419,7 +3419,7 @@
 (function () {
   if (window.__authWorkerDatos) return;
   window.__authWorkerDatos = true;
-  var DATOS = /^\/api\/(perfil|carrito|crear-cuenta|login-vendedor-uid|pedido-personal|pedidos-personales|estadisticas-usuario|eliminar-tienda|actualizar-datos-vendedor|guardar-datos-registro|guardar-whatsapp-inicial|aprobar-pedido|panel-gestion|pedido\/borrar)(\/|$)/;
+  var DATOS = /^\/api\/(perfil|carrito|crear-cuenta|login-vendedor-uid|pedido-personal|pedidos-personales|estadisticas-usuario|eliminar-tienda|actualizar-datos-vendedor|guardar-datos-registro|guardar-whatsapp-inicial|aprobar-pedido|panel-gestion|pedido\/borrar|aviso-stock\/obtener|aviso-stock\/guardar)(\/|$)/;
   var REGLAS = {
     'datosderevendedor.tuweb.workers.dev': { ruta: DATOS, soloPost: false },
     'workerwebcliente.tuweb.workers.dev': { ruta: /^\/slug$/, soloPost: true },
@@ -8603,16 +8603,39 @@ function catalogoEfectivoMultishop(p) {
             return [];
         }
 
-        function chequearCambiosStockGlobal(catalogo) {
+        // 🆕 FIX: antes esto se guardaba en localStorage (por navegador, no
+        // por cuenta) — una cuenta recién registrada en un dispositivo ya
+        // usado heredaba el historial de otra cuenta y le aparecía el aviso
+        // sin corresponderle. Ahora el historial y el tope de 2 veces
+        // mostradas se guardan del lado del servidor, por identidad
+        // verificada (Worker datosderevendedor, colección avisosStock),
+        // nunca en el navegador. Misma detección de cambios de siempre.
+        async function chequearCambiosStockGlobal(catalogo) {
             if (!catalogo || !window.STOCK_GLOBAL_PLATAFORMA) return;
             const claves = _clavesStockDeCatalogo(catalogo);
+            const codigo = localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado') || '';
+            const uidLocal = localStorage.getItem('uidVendedorLocal') || '';
+
+            let estado;
+            try {
+                const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/aviso-stock/obtener', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo, uid: uidLocal })
+                });
+                estado = res.ok ? await res.json() : null;
+            } catch (e) { estado = null; }
+            if (!estado || !estado.ok) return;
+
+            const vistoCompleto = estado.visto || {};
+            const vecesMostradas = estado.vecesMostradas || 0;
             const quitados = [];
             const agregados = [];
+            const vistoAActualizar = {};
 
             claves.forEach(clave => {
                 const actual = window.STOCK_GLOBAL_PLATAFORMA[clave] || {};
-                let visto = {};
-                try { visto = JSON.parse(localStorage.getItem('stockGlobalVisto_' + clave) || '{}'); } catch(e) {}
+                const visto = vistoCompleto[clave] || {};
                 const productos = _productosDeClaveStock(clave);
                 const porId = {};
                 productos.forEach(p => { porId[p.id] = p; });
@@ -8627,9 +8650,21 @@ function catalogoEfectivoMultishop(p) {
                     }
                 });
 
-                localStorage.setItem('stockGlobalVisto_' + clave, JSON.stringify(actual));
+                vistoAActualizar[clave] = actual;
             });
 
+            // 🆕 Tope: ya mostrado 2 veces en total -> nunca más se vuelve a
+            // abrir el modal (pero el "visto" se sigue guardando igual).
+            const puedeMostrar = vecesMostradas < 2 && (quitados.length > 0 || agregados.length > 0);
+            try {
+                await fetch('https://datosderevendedor.tuweb.workers.dev/api/aviso-stock/guardar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo, uid: uidLocal, visto: vistoAActualizar, incrementarMostrado: puedeMostrar })
+                });
+            } catch (e) {}
+
+            if (!puedeMostrar) return;
             if (quitados.length) mostrarAvisoStockGlobal(quitados, false);
             else if (agregados.length) mostrarAvisoStockGlobal(agregados, true);
         }
