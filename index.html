@@ -1597,6 +1597,30 @@
             text-wrap: balance;
         }
 
+        /* 🔧 "Próximamente" (categoría oculta): el título se arma en JS con
+           una frase larga ("La categoría X estará disponible próximamente")
+           que con los 19px fijos de .modal-title se cortaba o desbordaba en
+           celulares chicos. Tamaño fluido solo para este título puntual —
+           no se toca .modal-title global para no afectar otros modales. */
+        #categoriaProximamenteTitulo { font-size: clamp(14px, 4.4vw, 18px); }
+        #categoriaProximamenteModal .modal-header { margin-bottom: 10px; }
+
+        /* 🔧 "¿Guardar inicio de sesión?": mismo criterio compacto/profesional
+           que #promoConfirmModal — encabezado centrado, ícono en círculo,
+           espaciados más ajustados (antes: título a la izquierda arriba por
+           el justify-content:space-between heredado, con un emoji suelto de
+           44px abajo centrado — quedaba desprolijo). */
+        #guardarSesionModal .modal-content { padding: 26px 28px; }
+        #guardarSesionModal .modal-header { justify-content: center; margin-bottom: 14px; }
+        #guardarSesionModal .modal-title { text-align: center; font-size: 17px; }
+        #guardarSesionModal .gs-icon {
+            width: 54px; height: 54px; border-radius: 50%; margin: 0 auto 12px;
+            background: #f5f5f8; display: flex; align-items: center; justify-content: center;
+            font-size: 24px;
+        }
+        #guardarSesionModal .gs-text { font-size: 13px; color: #666; line-height: 1.5; margin: 0 0 10px; }
+        #guardarSesionModal .gs-text:last-of-type { margin-bottom: 18px; }
+
         /* Subtítulos/descripciones dentro de cualquier modal: mismo
            criterio — nunca debe quedar una palabra sola en el último
            renglón, y el ajuste de línea se hace de forma pareja. */
@@ -4765,18 +4789,14 @@
 
     <!-- MODAL ¿GUARDAR INICIO DE SESIÓN? -->
     <div class="modal-overlay" id="guardarSesionModal">
-        <div class="modal-content" style="max-width:420px;">
+        <div class="modal-content" style="max-width:380px;">
             <div class="modal-header">
                 <h2 class="modal-title">¿Guardar inicio de&nbsp;sesión?</h2>
             </div>
-            <div style="text-align:center;padding:16px 0 8px;">
-                <div style="font-size:44px;margin-bottom:12px;">🔐</div>
-                <p style="color:#666;font-size:14px;line-height:1.6;margin-bottom:8px;text-wrap:pretty;">
-                    Si elegís <strong>Sí</strong>, la próxima vez que entres a tu tienda se va a abrir directo con este código de&nbsp;revendedor.
-                </p>
-                <p style="color:#666;font-size:14px;line-height:1.6;margin-bottom:20px;text-wrap:pretty;">
-                    Si elegís <strong>No</strong>, te vamos a pedir el código cada vez que entres, por&nbsp;seguridad.
-                </p>
+            <div style="text-align:center;">
+                <div class="gs-icon">🔐</div>
+                <p class="gs-text">Si elegís <strong>Sí</strong>, la próxima vez que entres a tu tienda se va a abrir directo con este código de&nbsp;revendedor.</p>
+                <p class="gs-text">Si elegís <strong>No</strong>, te vamos a pedir el código cada vez que entres, por&nbsp;seguridad.</p>
             </div>
             <div style="display:flex;gap:10px;">
                 <button type="button" class="confirmation-button" style="flex:1;background:#f5f5f5;color:var(--text);" onclick="responderGuardarSesion(false)">No</button>
