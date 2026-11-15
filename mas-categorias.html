@@ -1651,6 +1651,14 @@
             line-height: 1.3;
         }
 
+        /* 🔧 "Próximamente" (categoría oculta): el título se arma en JS con
+           una frase larga ("La categoría X estará disponible próximamente")
+           que con los 19px fijos de .modal-title se cortaba o desbordaba en
+           celulares chicos. Tamaño fluido solo para este título puntual —
+           no se toca .modal-title global para no afectar otros modales. */
+        #categoriaProximamenteTitulo { font-size: clamp(14px, 4.4vw, 18px); }
+        #categoriaProximamenteModal .modal-header { margin-bottom: 10px; }
+
         .modal-close {
             background: none;
             border: none;
