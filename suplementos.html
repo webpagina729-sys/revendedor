@@ -7701,7 +7701,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             // el usuario esté en Inicio (no en medio de un catálogo).
             (function programarGuiaRapida() {
                 const vecesVista = parseInt(localStorage.getItem('guiaRapidaVeces') || '0');
-                if (vecesVista >= 3) return;
+                if (vecesVista >= 2) return;
 
                 // Observador global: cada vez que CUALQUIER modal pierde la
                 // clase "active" (se cierra), reiniciamos el contador de 20s.
@@ -11818,7 +11818,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                 // Mostrar guía rápida en los primeros 3 inicios/recargas
                 setTimeout(function() {
                     var vecesVista = parseInt(localStorage.getItem('guiaRapidaVeces') || '0');
-                    if (vecesVista < 3) {
+                    if (vecesVista < 2) {
                         var guideModal = document.getElementById('emailConfirmationModal');
                         if (guideModal && !guideModal.classList.contains('active')) {
                             guideModal.classList.add('active');
