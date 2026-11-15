@@ -10392,6 +10392,20 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             btn.disabled = true; btn.textContent = 'Guardando...';
 
             try {
+                // 🔒 ARREGLO DEFINITIVO: la autorización del servidor depende
+                // 100% del token real de Firebase (verificado contra Firebase
+                // y la base de datos) — nunca del uid/código que mande el
+                // navegador. Si la sesión todavía no terminó de restaurarse
+                // en esta página, se espera (máx. 4s, igual que al abrir el
+                // panel) antes de resignarse.
+                await _esperarSesionFirebaseSiHaceFalta();
+                const fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+                if (!fbUser) {
+                    showErr('Tu sesión expiró. Volvé a iniciar sesión con tu código y contraseña, y probá de nuevo.');
+                    btn.disabled = false; btn.textContent = textoOriginal;
+                    return;
+                }
+
                 const uid = _getUidParaFirestore();
                 const codigo = (window.currentUser && window.currentUser.codigoVendedor)
                     || localStorage.getItem('codigoVendedorLocal')
@@ -10402,14 +10416,15 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                 // de Firebase ya iniciada, para que el servidor verifique que
                 // quien pide el cambio es el dueño de la cuenta (no solo la
                 // contraseña de seguridad).
-                const fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
                 let tokenFirebase = null;
-                if (fbUser) {
-                    try { tokenFirebase = await fbUser.getIdToken(); }
-                    catch (e1) { try { tokenFirebase = await fbUser.getIdToken(true); } catch (e2) { tokenFirebase = null; } }
+                try { tokenFirebase = await fbUser.getIdToken(); }
+                catch (e1) { try { tokenFirebase = await fbUser.getIdToken(true); } catch (e2) { tokenFirebase = null; } }
+                if (!tokenFirebase) {
+                    showErr('No se pudo verificar tu sesión. Volvé a iniciar sesión y probá de nuevo.');
+                    btn.disabled = false; btn.textContent = textoOriginal;
+                    return;
                 }
-                const headersAuth = { 'Content-Type': 'application/json' };
-                if (tokenFirebase) headersAuth['Authorization'] = 'Bearer ' + tokenFirebase;
+                const headersAuth = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenFirebase };
 
                 const { email: emailPendiente, ...pendingSinEmail } = pending;
                 const body = Object.assign({ contraseñaSeguridad: pass }, pendingSinEmail);
@@ -10540,6 +10555,28 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             btn.disabled = true; btn.textContent = 'Guardando...';
 
             try {
+                // 🔒 ARREGLO DEFINITIVO: misma garantía que en "Editar Datos"
+                // — el servidor solo autoriza con un token real de Firebase
+                // (verificado contra Firebase y la base de datos), nunca con
+                // el uid/código que mande el navegador. Antes esta rama ni
+                // siquiera intentaba mandar un token, por eso el servidor
+                // rechazaba con "No autorizado".
+                await _esperarSesionFirebaseSiHaceFalta();
+                const fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+                if (!fbUser) {
+                    showErr('Tu sesión expiró. Volvé a iniciar sesión con tu código y contraseña, y probá de nuevo.');
+                    btn.disabled = false; btn.textContent = textoOriginal;
+                    return;
+                }
+                let tokenFirebase = null;
+                try { tokenFirebase = await fbUser.getIdToken(); }
+                catch (e1) { try { tokenFirebase = await fbUser.getIdToken(true); } catch (e2) { tokenFirebase = null; } }
+                if (!tokenFirebase) {
+                    showErr('No se pudo verificar tu sesión. Volvé a iniciar sesión y probá de nuevo.');
+                    btn.disabled = false; btn.textContent = textoOriginal;
+                    return;
+                }
+
                 const uid = _getUidParaFirestore();
                 const codigo = (window.currentUser && window.currentUser.codigoVendedor)
                     || localStorage.getItem('codigoVendedorLocal')
@@ -10554,7 +10591,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
 
                 const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/actualizar-datos-vendedor', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenFirebase },
                     body: JSON.stringify(body)
                 });
                 const data = await res.json();
