@@ -4813,7 +4813,7 @@
                  (por ejemplo, por un reseteo masivo) y todavía no definió una
                  propia. Oculto por defecto; se muestra desde JS. -->
             <div id="clave-seguridad-requiere-cambio-aviso" style="display:none;margin-bottom:14px;padding:10px 14px;background:#fff8e1;border:1px solid #f1c40f;border-radius:var(--radius);color:#8a6400;font-size:12px;line-height:1.5;">
-                Tu contraseña de seguridad es temporal. Definí una propia abajo, en "Nueva contraseña de seguridad", para seguir usando tu cuenta.
+                Tu contraseña de seguridad es temporal. Escribila arriba para confirmar, y definí una propia abajo, en "Nueva contraseña de seguridad", para seguir usando tu cuenta.
             </div>
             <div class="password-input-wrapper">
                 <input type="password" id="clave-seguridad-input" placeholder="Contraseña de seguridad" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
@@ -13434,7 +13434,18 @@ function catalogoEfectivoMultishop(p) {
                 texto.textContent = 'Es la primera vez que editás estos datos. Guardá bien esta contraseña: la vas a necesitar más adelante para hacer cambios.';
             }
             const input = document.getElementById('clave-seguridad-input');
-            if (input) input.value = '';
+            if (input) {
+                input.value = '';
+                // 🔧 FIX DEFINITIVO: con contraseña temporal pendiente, este
+                // campo (el de ARRIBA) y el de "Nueva contraseña de
+                // seguridad" (el de ABAJO) se confundían fácil — ninguno de
+                // los dos dejaba claro cuál era cuál, y era común escribir la
+                // contraseña NUEVA acá arriba por error. Eso hacía fallar la
+                // verificación (porque acá se necesita la actual/temporal),
+                // sin guardar nada, y la cuenta seguía con la vieja. Ahora el
+                // placeholder lo deja explícito en ese caso.
+                input.placeholder = window._seguridadRequiereCambio ? 'Tu contraseña actual (la temporal)' : 'Contraseña de seguridad';
+            }
             const inputNueva = document.getElementById('clave-seguridad-nueva-input');
             if (inputNueva) inputNueva.value = '';
             const errEl = document.getElementById('clave-seguridad-error');
@@ -16423,6 +16434,11 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             <button type="button" class="modal-close" onclick="document.getElementById('comboCatalogoModal').classList.remove('active')" aria-label="Cerrar">×</button>
         </div>
         <div id="comboCatalogoBox" style="background:var(--gray-light);border:1px solid var(--border);border-radius:12px;padding:10px;">
+            <!-- 🆕 NUEVO: pestañas de subcategoría — solo se muestran cuando
+                 el catálogo completo mezcla varias (caso "multishop"); el
+                 resto de las categorías no las necesita y queda igual que
+                 antes. -->
+            <div id="comboCatalogoSubTabs" style="display:none;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px;"></div>
             <div style="position:relative;margin-bottom:10px;">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-light);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" id="comboCatalogoBuscador" placeholder="Buscar producto..." autocomplete="off" oninput="filtrarComboCatalogo(this.value)" style="width:100%;padding:8px 10px 8px 32px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font-body);background:#fff;box-sizing:border-box;">
@@ -16915,14 +16931,64 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         const COMBO_CATALOGO_PASO = 10;
         // Término de búsqueda activo en el catálogo completo (vacío = sin filtro).
         window._comboCatalogoBusqueda = '';
+        // 🆕 NUEVO: subcategoría elegida en las pestañas de "Ver todo el
+        // catálogo" (null = "Todas"). Solo aplica cuando el catálogo
+        // mezcla varias subcategorías (caso "multishop"). Reutiliza la
+        // misma etiqueta "_multiSub" que ya trae window.productsMultishop
+        // (ver catalogoEfectivoMultishop), no se agrega ninguna nueva.
+        window._comboCatalogoSub = null;
+        const COMBO_SUBCATS_MULTISHOP = [
+            { key: 'perfumes', label: '🌹 Perfumería' },
+            { key: 'belleza', label: '💄 Maquillaje' },
+            { key: 'bazar', label: '🏠 Bazar' },
+            { key: 'jugueteria', label: '🧸 Juguetería' },
+            { key: 'libreria', label: '📚 Librería' },
+            { key: 'electronicos', label: '🔌 Electrónicos' }
+        ];
+        function _comboSubsDisponibles(cat) {
+            return cat === 'multishop' ? COMBO_SUBCATS_MULTISHOP : [];
+        }
 
         window.abrirCatalogoCompletoCombo = function() {
             window._comboCatalogoMostrados = COMBO_CATALOGO_PASO;
             window._comboCatalogoBusqueda = '';
+            window._comboCatalogoSub = null;
             const buscador = document.getElementById('comboCatalogoBuscador');
             if (buscador) buscador.value = '';
+            renderComboCatalogoSubTabs();
             renderComboCatalogoGrid();
             document.getElementById('comboCatalogoModal').classList.add('active');
+        };
+
+        // 🆕 NUEVO: pestañas "Todas" + una por subcategoría, solo visibles
+        // cuando el catálogo actual las tiene (multishop). Tocar una
+        // pestaña filtra la grilla a esa subcategoría sin perder el
+        // buscador, que sigue funcionando sobre lo que esté filtrado.
+        function renderComboCatalogoSubTabs() {
+            const cont = document.getElementById('comboCatalogoSubTabs');
+            if (!cont) return;
+            const subs = _comboSubsDisponibles(window._comboCat);
+            if (!subs.length) {
+                cont.style.display = 'none';
+                cont.innerHTML = '';
+                return;
+            }
+            cont.style.display = 'flex';
+            const todas = [{ key: null, label: 'Todas' }, ...subs];
+            cont.innerHTML = todas.map(s => {
+                const activa = window._comboCatalogoSub === s.key;
+                return `<button type="button" onclick="window._comboCatalogoSeleccionarSub(${s.key ? `'${s.key}'` : 'null'})" style="flex:0 0 auto;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;border:1px solid ${activa ? 'var(--primary)' : 'var(--border)'};background:${activa ? 'var(--primary)' : '#fff'};color:${activa ? '#fff' : 'var(--text)'};">${s.label}</button>`;
+            }).join('');
+        }
+
+        window._comboCatalogoSeleccionarSub = function(key) {
+            window._comboCatalogoSub = key;
+            window._comboCatalogoMostrados = COMBO_CATALOGO_PASO;
+            window._comboCatalogoBusqueda = '';
+            const buscador = document.getElementById('comboCatalogoBuscador');
+            if (buscador) buscador.value = '';
+            renderComboCatalogoSubTabs();
+            renderComboCatalogoGrid();
         };
 
         // Quita acentos para que la búsqueda no distinga "café" de "cafe".
@@ -16937,7 +17003,10 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
 
         function renderComboCatalogoGrid() {
             const cat = window._comboCat;
-            const productos = getProductosPorCatalogo(cat);
+            let productos = getProductosPorCatalogo(cat);
+            if (window._comboCatalogoSub) {
+                productos = productos.filter(p => p._multiSub === window._comboCatalogoSub);
+            }
             const grid = document.getElementById('comboCatalogoGrid');
             const busqueda = _comboNormalizarTexto(window._comboCatalogoBusqueda);
 
