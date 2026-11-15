@@ -6964,7 +6964,11 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
 
         // 🔧 Catálogo central (Worker de precios, KV): lo que se elimina definitivamente
         // desde pedidos.html desaparece también de acá. Solo actúa sobre las categorías ya cargadas en el Worker.
-        fetch('https://preciosmayoristasrevendedores.tuweb.workers.dev/api/catalogo?categoria=todas')
+        // 🔧 NUEVO: se manda el código del revendedor para que el worker filtre del
+        // lado del servidor los "agregados" que YA le mostró a este código (ver
+        // run() más abajo) — antes esto dependía 100% del localStorage del
+        // navegador, que iOS/Safari puede borrar solo y hacía reaparecer avisos viejos.
+        fetch('https://preciosmayoristasrevendedores.tuweb.workers.dev/api/catalogo?categoria=todas&codigo=' + encodeURIComponent(localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado') || ''))
             .then(r => r.json())
             .then(data => {
                 if (!data || !data.ok || !data.catalogos) return;
@@ -7057,6 +7061,20 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 if (!nuevos.length) return;
                 nuevos.forEach(p => mem.push(p.id));
                 try { localStorage.setItem('nuevosAgregadosVistos', JSON.stringify(vistos.concat(nuevos.map(p => p.id)))); } catch (e) {}
+                // 🔧 NUEVO: además de guardarlo en este navegador, se le avisa al
+                // servidor que a ESTE código ya se le mostró — así, aunque le
+                // borren el localStorage o entre desde otro dispositivo, no vuelve
+                // a aparecer (antes dependía 100% de este localStorage).
+                try {
+                    const _codigoNA = localStorage.getItem('codigoVendedorLocal') || localStorage.getItem('codigoRevendedorValidado') || '';
+                    if (_codigoNA) {
+                        fetch('https://preciosmayoristasrevendedores.tuweb.workers.dev/api/catalogo/agregados-vistos', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ codigo: _codigoNA, ids: nuevos.map(p => p.id) })
+                        }).catch(() => {});
+                    }
+                } catch (e) {}
                 const abierto = document.getElementById('naModal') && document.getElementById('naModal').classList.contains('active');
                 // Si ya hay un aviso abierto, los productos se suman al mismo (nunca un segundo modal).
                 mostrar(abierto ? (window.__naActual || []).concat(nuevos) : nuevos);
