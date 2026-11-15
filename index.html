@@ -10421,12 +10421,12 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
             // Actualizar interfaz
             updateUIForAuthentication(true);
             
-            // Mostrar guía rápida en los primeros 3 inicios de sesión/recargas —
+            // Mostrar guía rápida en los primeros 2 inicios de sesión/recargas —
             // 20s después de que se cierre el último modal, y solo una vez que
             // el usuario esté en Inicio (no en medio de un catálogo).
             (function programarGuiaRapida() {
                 const vecesVista = parseInt(localStorage.getItem('guiaRapidaVeces') || '0');
-                if (vecesVista >= 3) return;
+                if (vecesVista >= 2) return;
 
                 // Observador global: cada vez que CUALQUIER modal pierde la
                 // clase "active" (se cierra), reiniciamos el contador de 20s.
@@ -15604,10 +15604,10 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
             // "colgado" hasta recargar la página. Ahora queda expuesta en
             // window para que sea visible desde cualquier lado.
             window._continuarFlujoPostSesion = function _continuarFlujoPostSesion() {
-                // Mostrar guía rápida en los primeros 3 inicios/recargas
+                // Mostrar guía rápida en los primeros 2 inicios/recargas
                 setTimeout(function() {
                     var vecesVista = parseInt(localStorage.getItem('guiaRapidaVeces') || '0');
-                    if (vecesVista < 3) {
+                    if (vecesVista < 2) {
                         var guideModal = document.getElementById('emailConfirmationModal');
                         if (guideModal && !guideModal.classList.contains('active')) {
                             guideModal.classList.add('active');
