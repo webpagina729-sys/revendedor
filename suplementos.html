@@ -4583,19 +4583,22 @@
                     <svg class="eye-hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                 </button>
             </div>
-            <!-- 🆕 NUEVO: cambio de contraseña, opcional — se manda vacío si
-                 no se toca, y ahí no cambia nada (mismo comportamiento que
-                 siempre). Siempre enmascarada (type="password"), con el
-                 mismo botón de "mostrar" que el resto de los campos de clave
-                 del sitio — nunca se ve en texto plano salvo que el propio
-                 usuario toque el ojito. -->
-            <label for="clave-seguridad-nueva-input" style="display:block;font-size:12px;color:var(--text-light);margin:14px 0 4px;text-align:left;">Nueva contraseña de seguridad (opcional — dejala vacía si no querés cambiarla)</label>
-            <div class="password-input-wrapper">
-                <input type="password" id="clave-seguridad-nueva-input" placeholder="Mínimo 6 caracteres" minlength="6" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
-                <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('clave-seguridad-nueva-input', this)" tabindex="-1" aria-label="Mostrar contraseña">
-                    <svg class="eye-show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    <svg class="eye-hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                </button>
+            <!-- 🆕 NUEVO: cambio de contraseña — SOLO visible cuando la
+                 cuenta tiene seguridadRequiereCambio=true (viene de un
+                 reseteo masivo). Se oculta por completo para cualquier otra
+                 cuenta (nuevas o ya migradas) — nunca aparece de más. Se
+                 manda vacío si no se toca, y ahí no cambia nada. Siempre
+                 enmascarada (type="password"), con el mismo botón de
+                 "mostrar" que el resto de los campos de clave del sitio. -->
+            <div id="clave-seguridad-nueva-wrapper" style="display:none;">
+                <label for="clave-seguridad-nueva-input" style="display:block;font-size:12px;color:var(--text-light);margin:14px 0 4px;text-align:left;">Nueva contraseña de seguridad (definila para reemplazar la temporal)</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="clave-seguridad-nueva-input" placeholder="Mínimo 6 caracteres" minlength="6" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);outline:none;font-size:14px;font-family:var(--font-body);box-sizing:border-box;">
+                    <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('clave-seguridad-nueva-input', this)" tabindex="-1" aria-label="Mostrar contraseña">
+                        <svg class="eye-show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <svg class="eye-hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    </button>
+                </div>
             </div>
             <div id="clave-seguridad-error" style="display:none;margin-top:10px;padding:10px 14px;background:#fff3f3;border:1px solid #fcc;border-radius:var(--radius);color:#c00;font-size:13px;font-weight:500;"></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
@@ -10210,6 +10213,42 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             abrirClaveSeguridadModal();
         }
 
+        // 🆕 ARREGLO DEFINITIVO: la puerta "Mi Tienda" (solo código, sin
+        // contraseña) deja a la persona con window.currentUser/codigoValidado
+        // en true pero SIN sesión real de Firebase atrás — nunca la tuvo,
+        // ni antes de este cambio. Mientras tanto no tocara datos no
+        // importaba, pero el arreglo de autorización (que exige sesión real
+        // para guardar) la deja varada en "Tu sesión expiró" sin ninguna
+        // salida, porque nunca le pidieron una contraseña para entrar.
+        // En vez de mandarla a buscar un campo de login que no existe en
+        // esa puerta, se usa ACÁ MISMO la contraseña de seguridad que ya
+        // escribió en este modal para loguearla de verdad (mismo endpoint
+        // /api/login-seguridad que ya existe, mismo código de revendedor),
+        // antes de intentar guardar. Si la cuenta entró por el login
+        // completo (código+contraseña o email), esto no hace nada nuevo:
+        // ya hay sesión real y se sigue de largo.
+        async function _iniciarSesionRealConContraseñaSeguridadSiHaceFalta(codigo, pass) {
+            if (typeof firebase === 'undefined' || !firebase.auth) return false;
+            if (firebase.auth().currentUser) return true;
+            if (!codigo || !pass) return false;
+            try {
+                const res = await fetch('https://datosderevendedor.tuweb.workers.dev/api/login-seguridad', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo, password: pass })
+                });
+                if (!res.ok) return false;
+                const data = await res.json().catch(() => null);
+                if (!data || !data.success || !data.customToken) return false;
+                await firebase.auth().signInWithCustomToken(data.customToken);
+                localStorage.setItem('codigoVendedorLocal', codigo);
+                window._seguridadRequiereCambio = !!data.requiereCambioPassword;
+                return !!firebase.auth().currentUser;
+            } catch (e) {
+                return false;
+            }
+        }
+
         // Rama de confirmarClaveSeguridad() para el pendiente de "Editar
         // Datos" (varios campos a la vez) — misma validación de contraseña
         // y mismo endpoint que la rama de WhatsApp/CUIT, que queda intacta.
@@ -10246,18 +10285,23 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                 // en esta página, se espera (máx. 4s, igual que al abrir el
                 // panel) antes de resignarse.
                 await _esperarSesionFirebaseSiHaceFalta();
+                const codigoParaLogin = (window.currentUser && window.currentUser.codigoVendedor)
+                    || localStorage.getItem('codigoVendedorLocal')
+                    || localStorage.getItem('codigoRevendedorValidado')
+                    || '';
+                // 🆕 ARREGLO DEFINITIVO: si entró por "Mi Tienda" (solo
+                // código, sin sesión real) usa ACÁ la contraseña que ya
+                // escribió para loguearla de verdad antes de rendirse.
+                await _iniciarSesionRealConContraseñaSeguridadSiHaceFalta(codigoParaLogin, pass);
                 const fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
                 if (!fbUser) {
-                    showErr('Tu sesión expiró. Volvé a iniciar sesión con tu código y contraseña, y probá de nuevo.');
+                    showErr('No pudimos verificar tu código y contraseña de seguridad. Revisalos y probá de nuevo.');
                     btn.disabled = false; btn.textContent = textoOriginal;
                     return;
                 }
 
                 const uid = _getUidParaFirestore();
-                const codigo = (window.currentUser && window.currentUser.codigoVendedor)
-                    || localStorage.getItem('codigoVendedorLocal')
-                    || localStorage.getItem('codigoRevendedorValidado')
-                    || '';
+                const codigo = codigoParaLogin;
 
                 // 🔒 ARREGLO PERMANENTE: se manda el token real de la sesión
                 // de Firebase ya iniciada, para que el servidor verifique que
@@ -10376,6 +10420,12 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             // empuja a usar el campo de "Nueva contraseña de seguridad".
             const avisoCambio = document.getElementById('clave-seguridad-requiere-cambio-aviso');
             if (avisoCambio) avisoCambio.style.display = window._seguridadRequiereCambio ? 'block' : 'none';
+            // 🆕 NUEVO: el campo "Nueva contraseña de seguridad" solo se
+            // muestra a las cuentas con contraseña temporal (reseteo
+            // masivo). Para cualquier otra cuenta (nuevas o ya migradas)
+            // queda oculto por completo.
+            const nuevaWrapper = document.getElementById('clave-seguridad-nueva-wrapper');
+            if (nuevaWrapper) nuevaWrapper.style.display = window._seguridadRequiereCambio ? 'block' : 'none';
             document.getElementById('claveSeguridadModal').classList.add('active');
             setTimeout(() => { if (input) input.focus(); }, 100);
         }
@@ -10427,9 +10477,18 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                 // siquiera intentaba mandar un token, por eso el servidor
                 // rechazaba con "No autorizado".
                 await _esperarSesionFirebaseSiHaceFalta();
+                const codigoParaLogin = (window.currentUser && window.currentUser.codigoVendedor)
+                    || localStorage.getItem('codigoVendedorLocal')
+                    || localStorage.getItem('codigoRevendedorValidado')
+                    || '';
+                // 🆕 ARREGLO DEFINITIVO: mismo caso que en "Editar Datos" —
+                // si entró por "Mi Tienda" (solo código, sin sesión real),
+                // usa la contraseña que ya escribió acá para loguearla de
+                // verdad antes de rendirse.
+                await _iniciarSesionRealConContraseñaSeguridadSiHaceFalta(codigoParaLogin, pass);
                 const fbUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
                 if (!fbUser) {
-                    showErr('Tu sesión expiró. Volvé a iniciar sesión con tu código y contraseña, y probá de nuevo.');
+                    showErr('No pudimos verificar tu código y contraseña de seguridad. Revisalos y probá de nuevo.');
                     btn.disabled = false; btn.textContent = textoOriginal;
                     return;
                 }
@@ -10443,10 +10502,7 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
                 }
 
                 const uid = _getUidParaFirestore();
-                const codigo = (window.currentUser && window.currentUser.codigoVendedor)
-                    || localStorage.getItem('codigoVendedorLocal')
-                    || localStorage.getItem('codigoRevendedorValidado')
-                    || '';
+                const codigo = codigoParaLogin;
 
                 const body = { contraseñaSeguridad: pass };
                 if (uid) body.uid = uid;
