@@ -14610,6 +14610,10 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
             if (window.currentCatalog === 'calzados') return window.shoes || [];
             if (window.currentCatalog === 'perfumes') return window.products || products || [];
             if (window.currentCatalog === 'belleza') return window.productsBelleza || [];
+            if (window.currentCatalog === 'bazar') return window.productsBazar || [];
+            if (window.currentCatalog === 'jugueteria') return window.productsJugueteria || [];
+            if (window.currentCatalog === 'libreria') return window.productsLibreria || [];
+            if (window.currentCatalog === 'electronicos') return window.productsElectronicos || [];
             return [];
         }
 
@@ -14622,6 +14626,14 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
             if (cat === 'belleza') return window.productsBelleza || [];
             if (cat === 'belleza_maquillaje') return (window.productsBelleza || []).filter(p => p._origin === 'maquillaje');
             if (cat === 'belleza_perfume') return (window.productsBelleza || []).filter(p => p._origin !== 'maquillaje');
+            if (cat === 'bazar') return window.productsBazar || [];
+            if (cat === 'bazar_bazar') return (window.productsBazar || []).filter(p => p._bazarSub === 'bazar');
+            if (cat === 'bazar_melamina') return (window.productsBazar || []).filter(p => p._bazarSub === 'melamina');
+            if (cat === 'jugueteria') return window.productsJugueteria || [];
+            if (cat === 'jugueteria_juguetes') return (window.productsJugueteria || []).filter(p => p._jugSub === 'juguetes');
+            if (cat === 'jugueteria_peluches') return (window.productsJugueteria || []).filter(p => p._jugSub === 'peluches');
+            if (cat === 'libreria') return window.productsLibreria || [];
+            if (cat === 'electronicos') return window.productsElectronicos || [];
             // 🆕 NUEVO: "multishop" no es un catálogo propio — es la etiqueta
             // que se le pone a una tienda guardada cuando el pedido que le
             // dio origen mezclaba productos de varias categorías, o no se
