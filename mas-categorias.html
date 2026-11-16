@@ -14156,9 +14156,17 @@ function catalogoEfectivoMultishop(p) {
         function getProductosParaConfigActual() {
             if (window.currentCatalog === 'calzados') return window.shoes || [];
             if (window.currentCatalog === 'perfumes') return window.products || products || [];
+            if (window.currentCatalog === 'belleza') return window.productsBelleza || [];
+            if (window.currentCatalog === 'belleza_maquillaje') return (window.productsBelleza || []).filter(p => p._origin === 'maquillaje');
+            if (window.currentCatalog === 'belleza_perfume') return (window.productsBelleza || []).filter(p => p._origin !== 'maquillaje');
             if (window.currentCatalog === 'bazar') return window.productsBazar || [];
+            if (window.currentCatalog === 'bazar_bazar') return (window.productsBazar || []).filter(p => p._bazarSub === 'bazar');
+            if (window.currentCatalog === 'bazar_melamina') return (window.productsBazar || []).filter(p => p._bazarSub === 'melamina');
             if (window.currentCatalog === 'jugueteria') return window.productsJugueteria || [];
+            if (window.currentCatalog === 'jugueteria_juguetes') return (window.productsJugueteria || []).filter(p => p._jugSub === 'juguetes');
+            if (window.currentCatalog === 'jugueteria_peluches') return (window.productsJugueteria || []).filter(p => p._jugSub === 'peluches');
             if (window.currentCatalog === 'libreria') return window.productsLibreria || [];
+            if (window.currentCatalog === 'electronicos') return window.productsElectronicos || [];
             if (window.currentCatalog === 'multishop') return window.productsMultishop || [];
             return [];
         }
