@@ -648,7 +648,50 @@
         .coverflow-divider {
             border: none; border-top: 1px solid var(--border); margin: 22px 0 18px;
         }
-        .combo-carrusel-block { margin-bottom: 22px; }
+        .combo-carrusel-block, .promo-carrusel-block {
+            margin-bottom: 22px; position: relative;
+            border: 1px solid var(--color-contorno, var(--border));
+            background: var(--surface); border-radius: 12px;
+            padding: 16px 14px 16px;
+        }
+        .combo-cant-badge {
+            position: absolute; top: -9px; right: 12px;
+            background: var(--surface); border: 1px solid var(--color-contorno, var(--border));
+            border-radius: 999px; padding: 2px 10px; font-size: 10px; font-weight: 700;
+            color: var(--text-light);
+        }
+        .combo-names-list { margin: 2px 0 10px; }
+        .combo-name-line {
+            font-size: 11.5px; font-weight: 500; color: var(--text); line-height: 1.5;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .combo-names-vertodos {
+            font-size: 11px; font-weight: 700; color: var(--primary);
+            text-decoration: underline; cursor: pointer; margin-top: 2px; text-align: center;
+        }
+        .combo-precio-label {
+            text-align: center; font-size: 12.5px; color: var(--text); font-weight: 600;
+            margin: 0 auto 8px; max-width: 340px;
+        }
+        .combo-price-before {
+            text-decoration: line-through; color: #dc2626;
+            font-size: .85em; font-weight: 600; margin-right: 6px;
+        }
+        .combo-price-now { color: var(--success); font-weight: 800; font-size: 1.05em; }
+        .combo-btn-enviar {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 10px 26px; border: none; border-radius: 999px;
+            background: #00c2a8; color: #fff; font-size: 13px; font-weight: 700;
+            letter-spacing: .2px; cursor: pointer; font-family: inherit;
+            box-shadow: 0 2px 8px rgba(0,0,0,.14); transition: box-shadow .15s ease, transform .1s ease;
+        }
+        .combo-btn-enviar:hover { box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+        .combo-btn-enviar:active { transform: scale(.97); }
+        .combo-aviso-lista { display: flex; flex-direction: column; gap: 10px; margin: 10px 0 4px; max-height: 50vh; overflow-y: auto; }
+        .combo-aviso-item { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; text-align: left; }
+        .combo-aviso-nombre { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 4px; }
+        .combo-aviso-precio { font-size: 12.5px; margin-bottom: 8px; }
+        .combo-aviso-item .seccion-btn { width: 100%; }
         /* Botón compacto de las secciones de promoción / combo / regalo */
         .seccion-btn {
             display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -2485,7 +2528,7 @@ window._slugFetchOk = true; // se pone en false solo si HUBO slug (?s=) y la res
             // promoción ni el producto de regalo (que viaja adentro de
             // promo.gift) llegaban nunca a mostrarse. Se vuelve a correr
             // acá, ahora que "promo" ya está seteado, para que sí quede
-            // cargada a tiempo para iniciarColaPromosYCombos()/
+            // cargada a tiempo para iniciarSecuenciaAvisos()/
             // mostrarPromoFloat() (que corren después, dentro de
             // cargarVendedor(), en el handler de "load" más abajo).
             if (typeof parsePromoParam === 'function') parsePromoParam();
@@ -3909,30 +3952,6 @@ async function cargarVendedor() {
     iniciarTienda();
     cargarYMostrarCombosPromos();
     reintentarLegalesPendientes();
-
-    // ── Bienvenida a los 5 segundos (saludo, no bloquea la cola) ──────
-    // Excepción: si el cliente llegó por un enlace directo de promoción,
-    // la promo se muestra casi inmediata (sin bienvenida), como ya estaba.
-    //
-    // 🔧 FIX: la cola de promos/combos configurados ahora arranca ACÁ,
-    // apenas carga la tienda (el "inicio de sesión" real), y no cuando el
-    // cliente hace clic en "Aceptar" de la bienvenida. Antes dependía de
-    // ese clic: un cliente que no llegaba a tocar "Aceptar" (se distrae,
-    // ya lo había visto y no le presta atención, cierra la pestaña, etc.)
-    // se quedaba sin ver ningún modal de promo/combo — que es exactamente
-    // el reclamo ("no están apareciendo los modales"). Con este cambio el
-    // primer modal configurado aparece siempre a los 10s del inicio de
-    // sesión, y cada uno siguiente 10s después, sin depender de que el
-    // cliente interactúe con la bienvenida. iniciarColaPromosYCombos()
-    // tiene guard (_colaPromosCombosIniciada) así que si además se llega
-    // a llamar desde cerrarBienvenidaModal() no se duplica la cola.
-    if (window._tipoEnlaceLimpio === 'promocion' && window.promoActiva) {
-        setTimeout(mostrarPromoFloat, 300);
-        iniciarColaPromosYCombos(false);
-    } else {
-        setTimeout(mostrarBienvenidaModal, 5000);
-        iniciarColaPromosYCombos(true);
-    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4363,6 +4382,21 @@ async function iniciarTienda() {
     // Secciones de regalo, promoción y combos: se arman recién con los productos ya cargados.
     cargarSeccionRegalo();
     cargarSeccionDescuentosYCombos();
+
+    // ── Secuencia de avisos (bienvenida → promo → combos) ─────────────
+    // Se dispara ACÁ, al final de iniciarTienda() — recién ahora
+    // catalogoActual ya está resuelto (ver 🔧 FIX en iniciarSecuenciaAvisos),
+    // así la precarga de combos pide la categoría correcta y no "null".
+    // Excepción: si el cliente llegó por un enlace directo de promoción,
+    // la promo se muestra casi inmediata (sin bienvenida); de ahí en más
+    // sigue la misma cadena hacia combos (ver cerrarPromoFloat).
+    iniciarSecuenciaAvisos();
+    if (window._tipoEnlaceLimpio === 'promocion' && window.promoActiva) {
+        window._promoAvisoMostrado = true;
+        setTimeout(mostrarPromoFloat, 300);
+    } else {
+        setTimeout(mostrarBienvenidaModal, 5000);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -5067,6 +5101,7 @@ async function cargarSeccionDescuentosYCombos() {
                 info = 'Hasta <strong>' + maxPct + '% OFF</strong> en productos seleccionados.';
             }
         }
+        html += '<div class="promo-carrusel-block">';
         html += '<div class="coverflow-title">' + ((promo && promo.nombre) ? String(promo.nombre).replace(/</g, '&lt;') : 'Promoción') + '</div>';
         if (info) html += '<div class="seccion-info">' + info + '</div>';
         if (conDescuento.length > 0) {
@@ -5079,6 +5114,7 @@ async function cargarSeccionDescuentosYCombos() {
         html += '<div class="seccion-cta" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;"><button type="button" class="seccion-btn" onclick="abrirPromoDetail()">Ver promoción</button>'
             + (conDescuento.length > 0 ? '<button type="button" class="seccion-btn" onclick="verProductosEnPromo()">Ver productos en Promo</button>' : '')
             + '</div>';
+        html += '</div>';
     }
     if (hayPromo && combos.length > 0) {
         html += '<hr class="coverflow-divider">';
@@ -5086,15 +5122,24 @@ async function cargarSeccionDescuentosYCombos() {
         html += '<hr class="coverflow-divider" style="margin-top:0;">';
     }
     combos.forEach((c, i) => {
+        const nombres = (c.productos || []).map(p => String(p.nombre || '').replace(/</g, '&lt;'));
+        const primeros = nombres.slice(0, 3);
+        const resto = nombres.slice(3);
         html += `<div class="combo-carrusel-block">
-            <div class="combo-carrusel-title">Combo (${(c.productos || []).map(p => p.nombre).join(' + ')})</div>
-            <div class="seccion-info">Precio del combo: <strong>${_precioComboHtml(c)}</strong></div>
+            <div class="combo-cant-badge">Cant. Productos: ${nombres.length}</div>
+            <div class="combo-carrusel-title">Combo</div>
+            <div class="combo-names-list">
+                ${primeros.map(n => `<div class="combo-name-line">${n}</div>`).join('')}
+                ${resto.length ? `<div class="combo-names-extra" id="combo-names-extra-${i}" style="display:none;">${resto.map(n => `<div class="combo-name-line">${n}</div>`).join('')}</div>
+                <div class="combo-names-vertodos" id="combo-names-vertodos-${i}" onclick="toggleComboNombres(${i})">Ver todos (${resto.length} más)</div>` : ''}
+            </div>
+            <div class="combo-precio-label">Precio del combo: <strong>${_precioComboHtml(c)}</strong></div>
             <div class="coverflow-nav">
                 <button type="button" class="coverflow-arrow" aria-label="Anterior" onclick="navegarCoverflow('coverflow-combo-${i}',-1)">‹</button>
                 <div class="coverflow-wrap" id="coverflow-combo-${i}"></div>
                 <button type="button" class="coverflow-arrow" aria-label="Siguiente" onclick="navegarCoverflow('coverflow-combo-${i}',1)">›</button>
             </div>
-            <div class="seccion-cta" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;"><button type="button" class="seccion-btn" onclick="verComboDetalle(${i})">Ver combo</button></div>
+            <div class="seccion-cta" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;"><button type="button" class="seccion-btn" onclick="verComboDetalle(${i});window._comboDetalleDesdeAviso=false;">Ver combo</button></div>
         </div>`;
     });
 
@@ -5108,6 +5153,17 @@ async function cargarSeccionDescuentosYCombos() {
         const el = document.getElementById('coverflow-combo-' + i);
         if (el) crearCoverflow(el, (c.productos || []).map(p => resolveImgUrl(p.imagen)));
     });
+}
+
+// "Ver todos" / "Ver menos" de la lista de nombres de productos del combo
+// (cuadro del catálogo): despliega o repliega los nombres a partir del 4°.
+function toggleComboNombres(i) {
+    const extra = document.getElementById('combo-names-extra-' + i);
+    const link = document.getElementById('combo-names-vertodos-' + i);
+    if (!extra) return;
+    const abierto = extra.style.display !== 'none';
+    extra.style.display = abierto ? 'none' : 'block';
+    if (link) link.textContent = abierto ? 'Ver todos (' + extra.children.length + ' más)' : 'Ver menos';
 }
 
 // Producto de regalo configurado en la promoción: se muestra entre el banner superior y el cuadro
@@ -5779,12 +5835,9 @@ function mostrarBienvenidaModal() {
 function cerrarBienvenidaModal() {
     const modal = document.getElementById('bienvenidaModal');
     if (modal) modal.classList.remove('active');
-    // La cola de promo/combos configurados (ver iniciarColaPromosYCombos)
-    // ya arrancó apenas cargó la tienda (inicio de sesión real), no acá.
-    // Se deja esta llamada solo como respaldo — iniciarColaPromosYCombos
-    // tiene guard (_colaPromosCombosIniciada) y no hace nada si ya está
-    // en marcha, así que no duplica ni reinicia la cola.
-    iniciarColaPromosYCombos(true);
+    // 5s después de cerrar la bienvenida: el primer aviso configurado
+    // (promo si hay, sino combos).
+    setTimeout(() => _dispararAvisoConEspera(avanzarSecuenciaAvisos), 5000);
 }
 
 function mostrarPromoFloat() {
@@ -5822,8 +5875,10 @@ function mostrarPromoFloat() {
 
 function cerrarPromoFloat() {
     document.getElementById('promoFloatModal').classList.remove('active');
-    // El siguiente ítem de la cola (si hay combos configurados) ya está
-    // programado por iniciarColaPromosYCombos — no depende de este cierre.
+    // 5s después de cerrar la promo (o de ir a "Ver promoción"/"Ver
+    // Productos", que también cierran este modal primero): el aviso de
+    // combos, si hay alguno configurado.
+    setTimeout(() => _dispararAvisoConEspera(mostrarAvisoCombos), 5000);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -6012,12 +6067,12 @@ async function abrirCatalogoCombos() {
         }
         window._combosCache = combos;
         cont.innerHTML = combos.map((c, i) => `
-            <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer;" onclick="verComboDetalle(${i})">
+            <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer;" onclick="verComboDetalle(${i});window._comboDetalleDesdeAviso=false;">
                 <div style="display:flex;gap:4px;overflow-x:auto;margin-bottom:8px;">
                     ${(c.productos || []).map(p => `<img src="${resolveImgUrl(p.imagen)}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;flex-shrink:0;">`).join('')}
                 </div>
-                <div style="font-weight:700;font-size:13.5px;margin-bottom:4px;">${(c.productos || []).map(p => p.nombre).join(' + ')}</div>
-                <div style="font-size:13px;color:var(--text-light);">Precio del combo: <strong style="color:var(--primary);font-size:15px;">${_precioComboHtml(c)}</strong></div>
+                <div style="font-size:11.5px;font-weight:600;line-height:1.5;margin-bottom:6px;">${(c.productos || []).map(p => String(p.nombre || '').replace(/</g, '&lt;')).join('<br>')}</div>
+                <div style="font-size:13px;color:var(--text-light);">Precio del combo: <strong style="font-size:15px;">${_precioComboHtml(c)}</strong></div>
                 <button type="button" style="margin-top:8px;width:100%;padding:8px;border:1.5px solid var(--primary);background:#fff;color:var(--primary);border-radius:6px;font-weight:700;font-size:12.5px;cursor:pointer;">Ver más</button>
             </div>`).join('');
     } catch(e) {
@@ -6034,7 +6089,7 @@ function _precioVentaProductoCombo(p) {
 function _precioComboHtml(c) {
     const antes = Number(c.precioVenta) || 0;
     const ahora = Number(c.precioFinal) || 0;
-    return (antes > ahora ? '<span class="price-before">' + formatPrice(antes) + '</span>' : '') + formatPrice(ahora);
+    return (antes > ahora ? '<span class="combo-price-before">' + formatPrice(antes) + '</span>' : '') + '<span class="combo-price-now">' + formatPrice(ahora) + '</span>';
 }
 
 // Catálogo de productos en promoción: reemplaza al general (mismo lugar y
@@ -6070,7 +6125,7 @@ function enviarComboAlCarrito(index) {
     if (carrito.some(x => x.comboId === comboId)) {
         carrito.filter(x => x.comboId === comboId).forEach(x => { x.qty++; });
         actualizarContadorCarrito();
-        document.getElementById('comboDetalleModal').classList.remove('active');
+        cerrarComboDetalle();
         mostrarToast('Combo agregado al carrito ✓');
         return;
     }
@@ -6091,7 +6146,7 @@ function enviarComboAlCarrito(index) {
             comboId, comboNombre: (c.productos || []).map(x => x.nombre).join(' + '), precioAntes: it.antes });
     });
     actualizarContadorCarrito();
-    document.getElementById('comboDetalleModal').classList.remove('active');
+    cerrarComboDetalle();
     mostrarToast('Combo agregado al carrito ✓');
 }
 
@@ -6134,7 +6189,7 @@ function abrirModalCombo(prodId) {
 function verComboDetalle(index) {
     const c = (window._combosCache || [])[index];
     if (!c) return;
-    document.getElementById('comboDetalleTitulo').textContent = (c.productos || []).map(p => p.nombre).join(' + ');
+    document.getElementById('comboDetalleTitulo').textContent = 'Todos los productos';
     document.getElementById('comboDetallePrecio').innerHTML = _precioComboHtml(c);
     const cont = document.getElementById('comboDetalleProductos');
     const ck = _comboKey(c, index);
@@ -6158,104 +6213,101 @@ function verComboDetalle(index) {
     document.getElementById('comboDetalleModal').classList.add('active');
 }
 
+// Abre el detalle de un combo puntual desde el aviso consolidado de
+// combos (mostrarAvisoCombos): al cerrar este detalle, vuelve a ese
+// mismo aviso en vez de cerrarse sin más.
+function verComboDetalleDesdeAviso(index) {
+    verComboDetalle(index);
+    window._comboDetalleDesdeAviso = true;
+}
+
+// Cierre real del detalle de combo (botón "×" y al terminar de agregarlo
+// al carrito). Si se había abierto desde el aviso de combos, vuelve a
+// mostrar ese aviso para que el cliente pueda ver los demás.
+function cerrarComboDetalle() {
+    document.getElementById('comboDetalleModal').classList.remove('active');
+    if (window._comboDetalleDesdeAviso) {
+        window._comboDetalleDesdeAviso = false;
+        const avisoCombos = document.getElementById('comboFloatModal');
+        if (avisoCombos) avisoCombos.classList.add('active');
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════
-// COLA de promo/combos configurados — arranca apenas carga la tienda
-// (inicio de sesión real; o el ingreso directo por enlace de promoción)
-// y muestra cada modal configurado de a uno, cada 10s:
-// ítem 1 a los +10s, ítem 2 a los +20s, ítem 3 a los +30s, etc. Nunca
-// dos modales de la cola superpuestos, y nunca depende de que el
-// cliente cierre el anterior (si sigue abierto cuando toca el
-// siguiente, se cierra solo antes de mostrar el que sigue).
+// SECUENCIA de avisos de promo/combos configurados — encadenada a 5s:
+// bienvenida → (5s) → promo (si hay) → (5s, al cerrarla) → combos (si
+// hay, todos juntos en un mismo aviso). Si el cliente llegó por un
+// enlace directo de promoción, la promo se muestra casi inmediata (sin
+// bienvenida) y de ahí en más sigue la misma cadena hacia combos.
+//
+// 🔧 FIX: la precarga de combos (iniciarSecuenciaAvisos) se dispara
+// recién al final de iniciarTienda(), una vez que catalogoActual ya
+// está resuelto — antes se llamaba ANTES de que esa asignación
+// terminara (iniciarTienda() es async y recién asigna catalogoActual
+// después de su primer await), por lo que categoriaEfectivaParaCombos()
+// devolvía null, la URL salía con "&categoria=null" y el worker nunca
+// encontraba combos con esa categoría — la cola se abortaba sola, para
+// siempre, sin reintento. Por eso el aviso de combo no aparecía nunca,
+// en ninguna categoría (no solo Multishop).
 // ═══════════════════════════════════════════════════════════════
 window._colaPromosCombosIniciada = false;
+window._combosActivosCache = [];
+window._promoAvisoMostrado = false;
+window._comboDetalleDesdeAviso = false;
 
-// Arma la lista de ítems a mostrar, en orden: la promo activa (si
-// corresponde incluirla) y luego cada combo configurado y activo para
-// la categoría actual, tal cual los devuelve COMBO_WORKER.
-async function construirColaPromosYCombos(incluirPromo) {
-    const items = [];
-    if (incluirPromo && window.promoActiva) items.push({ tipo: 'promo' });
-    if (vendedor && codigoParam) {
-        try {
-            const cat = categoriaEfectivaParaCombos();
-            const res = await fetch(COMBO_WORKER + '/combos?codigo=' + encodeURIComponent(codigoParam) + '&categoria=' + encodeURIComponent(cat) + '&soloActivos=1').then(r => r.ok ? r.json() : null);
-            const combos = (res && res.items) || [];
-            window._combosCache = combos;
-            combos.forEach((c, i) => items.push({ tipo: 'combo', index: i }));
-        } catch(e) { /* si falla la carga de combos, se sigue solo con la promo (si había) */ }
-    }
-    return items;
-}
-
-// Renderiza (contenido) + muestra el combo cacheado en la posición "index".
-function mostrarComboFloatDesdeCache(index) {
-    const combos = window._combosCache || [];
-    const c = combos[index];
-    if (!c) return;
-    const tituloEl = document.getElementById('comboFloatTitle');
-    tituloEl.innerHTML = '';
-    (c.productos || []).forEach(p => {
-        const d = document.createElement('span');
-        d.className = 'combo-float-name';
-        d.textContent = p.nombre;
-        d.title = p.nombre;
-        tituloEl.appendChild(d);
-    });
-    document.getElementById('comboFloatSub').innerHTML = 'Precio del combo: <strong>' + _precioComboHtml(c) + '</strong>';
-    const imgs = document.getElementById('comboFloatImgs');
-    imgs.innerHTML = '';
-    (c.productos || []).slice(0, 3).forEach(p => {
-        const img = document.createElement('img');
-        img.src = resolveImgUrl(p.imagen);
-        img.alt = p.nombre;
-        img.onerror = () => { img.style.display = 'none'; };
-        imgs.appendChild(img);
-    });
-    document.getElementById('comboFloatModal').classList.add('active');
-    // Cada nombre se achica solo hasta entrar en el ancho del modal.
-    tituloEl.querySelectorAll('.combo-float-name').forEach(el => {
-        let size = 14;
-        while (el.scrollWidth > el.clientWidth && size > 8) { size -= 0.5; el.style.fontSize = size + 'px'; }
-    });
-}
-
-// Muestra un ítem de la cola, cerrando antes cualquier otro modal de la
-// misma cola para que nunca queden dos superpuestos.
-function mostrarItemColaPromosYCombos(item) {
-    const promoModal = document.getElementById('promoFloatModal');
-    const comboModal = document.getElementById('comboFloatModal');
-    if (promoModal) promoModal.classList.remove('active');
-    if (comboModal) comboModal.classList.remove('active');
-    if (item.tipo === 'promo') {
-        mostrarPromoFloat();
-    } else if (item.tipo === 'combo') {
-        mostrarComboFloatDesdeCache(item.index);
-    }
-}
-
-// Punto de entrada: arma la cola una sola vez por visita y programa cada
-// ítem cada 10s desde el momento en que se llama — que es apenas carga la
-// tienda (inicio de sesión real), o el ingreso por enlace directo de
-// promoción.
-async function iniciarColaPromosYCombos(incluirPromo) {
+// No muestra nada todavía: solo precarga (una sola vez) los combos
+// activos de la categoría actual, para tenerlos listos cuando llegue
+// el momento de mostrarlos en la cadena.
+async function iniciarSecuenciaAvisos() {
     if (window._colaPromosCombosIniciada) return;
     window._colaPromosCombosIniciada = true;
-    const items = await construirColaPromosYCombos(incluirPromo);
-    if (!items.length) return;
-    // Siempre 10 s entre un modal y el siguiente (contados desde que se
-    // mostró el anterior). Si el cliente está en medio de otro modal
-    // (detalle de promo, catálogo, regalos, etc.), el siguiente espera
-    // otros 10 s en vez de aparecer encima.
-    let i = 0;
-    const hayModalAbierto = () => !!document.querySelector(
-        '.promo-detail-overlay.active, .gift-overlay.active');
-    const siguiente = () => {
-        if (i >= items.length) return;
-        if (hayModalAbierto()) { setTimeout(siguiente, 10000); return; }
-        mostrarItemColaPromosYCombos(items[i++]);
-        if (i < items.length) setTimeout(siguiente, 10000);
-    };
-    setTimeout(siguiente, 10000);
+    if (!vendedor || !codigoParam) return;
+    try {
+        const cat = categoriaEfectivaParaCombos();
+        const res = await fetch(COMBO_WORKER + '/combos?codigo=' + encodeURIComponent(codigoParam) + '&categoria=' + encodeURIComponent(cat) + '&soloActivos=1').then(r => r.ok ? r.json() : null);
+        window._combosActivosCache = (res && res.items) || [];
+    } catch(e) { window._combosActivosCache = []; }
+}
+
+// No se muestra un aviso encima de otro modal ya abierto: si el cliente
+// está en medio de algo (detalle de promo, catálogo, regalos, la
+// bienvenida u otro aviso), se reintenta cada 2s hasta que quede libre.
+function _avisoListoParaMostrar() {
+    return !document.querySelector('.promo-detail-overlay.active, .gift-overlay.active, .promo-float-overlay.active');
+}
+function _dispararAvisoConEspera(fn) {
+    if (_avisoListoParaMostrar()) fn();
+    else setTimeout(() => _dispararAvisoConEspera(fn), 2000);
+}
+
+// Al cerrar la bienvenida: 5s después, el primer aviso que corresponda
+// (promo si está configurada, o directo a combos si no hay promo).
+function avanzarSecuenciaAvisos() {
+    if (window.promoActiva && !window._promoAvisoMostrado) {
+        window._promoAvisoMostrado = true;
+        mostrarPromoFloat();
+        return;
+    }
+    mostrarAvisoCombos();
+}
+
+// Aviso consolidado de combos: todos los combos activos de la categoría
+// juntos en el mismo modal, cada uno con su "Ver combo" (abre el detalle
+// de ESE combo) y su precio (tachado rojo / oferta verde). No hace nada
+// si no hay combos configurados.
+function mostrarAvisoCombos() {
+    const combos = window._combosActivosCache || [];
+    if (!combos.length) return;
+    window._combosCache = combos;
+    const cont = document.getElementById('comboFloatLista');
+    if (!cont) return;
+    cont.innerHTML = combos.map((c, i) => `
+        <div class="combo-aviso-item">
+            <div class="combo-aviso-nombre">${(c.productos || []).map(p => String(p.nombre || '').replace(/</g, '&lt;')).join(', ')}</div>
+            <div class="combo-aviso-precio">${_precioComboHtml(c)}</div>
+            <button type="button" class="seccion-btn" onclick="verComboDetalleDesdeAviso(${i})">Ver combo</button>
+        </div>`).join('');
+    document.getElementById('comboFloatModal').classList.add('active');
 }
 
 // Una promoción se configura con rangos de precio ("de"/"hasta") que
@@ -6636,14 +6688,13 @@ enviarPedidoConDatos = async function() {
 
 <div class="promo-float-overlay" id="promoFloatModal">
     <div class="promo-float-box">
-        <button class="promo-float-close" onclick="cerrarPromoFloat()">×</button>
         <span class="promo-float-tag">🎉 Promoción activa</span>
         <div class="promo-float-title" id="promoFloatTitle"></div>
         <div class="promo-float-sub" id="promoFloatSub"></div>
         <div class="promo-float-imgs" id="promoFloatImgs"></div>
         <div class="promo-float-actions">
             <button class="promo-float-btn secondary" onclick="abrirPromoDetail()">Ver promoción</button>
-            <button class="promo-float-btn primary" onclick="cerrarPromoFloat()">Comprar</button>
+            <button class="promo-float-btn primary" onclick="cerrarPromoFloat()">Cerrar</button>
         </div>
     </div>
 </div>
@@ -6734,25 +6785,22 @@ enviarPedidoConDatos = async function() {
 <!-- Modal: detalle de un combo puntual -->
 <div class="promo-detail-overlay" id="comboDetalleModal">
     <div class="promo-detail-box">
-        <button class="promo-float-close" onclick="document.getElementById('comboDetalleModal').classList.remove('active')">×</button>
+        <button class="promo-float-close" onclick="cerrarComboDetalle()">×</button>
         <div class="promo-detail-title" id="comboDetalleTitulo" style="margin-bottom:6px;">Combo</div>
-        <div style="font-size:13px;color:var(--text-light);margin-bottom:14px;">Precio del combo: <strong style="color:var(--primary);font-size:18px;" id="comboDetallePrecio"></strong></div>
-        <div style="font-size:10.5px;font-weight:400;color:var(--text-light);line-height:1.4;margin:0 0 10px;text-wrap:balance;">Antes de enviar combo al carrito elegir variante o talles (Según corresponda)</div>
+        <div style="font-size:13px;color:var(--text-light);margin-bottom:14px;">Precio del combo: <strong style="font-size:18px;" id="comboDetallePrecio"></strong></div>
+        <div style="font-size:10.5px;font-weight:400;color:var(--text-light);line-height:1.4;margin:0 0 10px;text-wrap:balance;">Si los productos contienen variantes o talles (Según corresponda) elegir desde la opción en cada producto antes de enviar al carrito.</div>
         <div id="comboDetalleProductos" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;"></div>
-        <div style="display:flex;justify-content:center;margin-top:16px;"><button type="button" class="seccion-btn" style="padding:10px 26px;font-size:13px;" onclick="enviarComboAlCarrito(window._comboDetalleIdx)">Enviar combo al carrito</button></div>
+        <div style="display:flex;justify-content:center;margin-top:16px;"><button type="button" class="combo-btn-enviar" style="padding:10px 26px;font-size:13px;" onclick="enviarComboAlCarrito(window._comboDetalleIdx)">Enviar combo al carrito</button></div>
     </div>
 </div>
 
-<!-- Combo activo flotante (15s después de cerrar Promoción Activa) -->
+<!-- Aviso consolidado de combos activos (5s después de cerrar el aviso de promo, o directo si no hay promo) -->
 <div class="promo-float-overlay" id="comboFloatModal">
     <div class="promo-float-box">
-        <button class="promo-float-close" onclick="document.getElementById('comboFloatModal').classList.remove('active')">×</button>
-        <span class="promo-float-tag">🎁 Combo disponible</span>
-        <div class="promo-float-title" id="comboFloatTitle"></div>
-        <div class="promo-float-sub" id="comboFloatSub"></div>
-        <div class="promo-float-imgs" id="comboFloatImgs"></div>
+        <span class="promo-float-tag">🎁 Combos disponibles</span>
+        <div id="comboFloatLista" class="combo-aviso-lista"></div>
         <div class="promo-float-actions">
-            <button class="promo-float-btn primary" style="width:100%;" onclick="document.getElementById('comboFloatModal').classList.remove('active');abrirCatalogoCombos();">Ver combo</button>
+            <button class="promo-float-btn primary" style="width:100%;" onclick="document.getElementById('comboFloatModal').classList.remove('active')">Cerrar</button>
         </div>
     </div>
 </div>
