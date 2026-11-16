@@ -607,6 +607,7 @@
         #comboFloatModal .promo-float-sub { margin-bottom: 8px; font-size: 13px; }
         #comboFloatModal .promo-float-imgs { margin-bottom: 10px; }
         #comboFloatModal .promo-float-imgs img { width: 52px; height: 52px; }
+        #comboFloatModal .coverflow-nav { margin-bottom: 8px; }
 
         /* Carrusel "coverflow": 5 imágenes en fila, la central más grande */
         .coverflow-title {
@@ -660,10 +661,10 @@
             border-radius: 999px; padding: 2px 10px; font-size: 10px; font-weight: 700;
             color: var(--text-light);
         }
-        .combo-names-list { margin: 2px 0 10px; }
+        .combo-names-list { margin: 8px auto 10px; max-width: 230px; }
         .combo-name-line {
-            font-size: 11.5px; font-weight: 500; color: var(--text); line-height: 1.5;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            font-size: 10.5px; font-weight: 500; color: var(--text); line-height: 1.45;
+            white-space: normal; overflow-wrap: break-word; text-align: left;
         }
         .combo-names-vertodos {
             font-size: 11px; font-weight: 700; color: var(--primary);
@@ -5128,17 +5129,17 @@ async function cargarSeccionDescuentosYCombos() {
         html += `<div class="combo-carrusel-block">
             <div class="combo-cant-badge">Cant. Productos: ${nombres.length}</div>
             <div class="combo-carrusel-title">Combo</div>
-            <div class="combo-names-list">
-                ${primeros.map(n => `<div class="combo-name-line">${n}</div>`).join('')}
-                ${resto.length ? `<div class="combo-names-extra" id="combo-names-extra-${i}" style="display:none;">${resto.map(n => `<div class="combo-name-line">${n}</div>`).join('')}</div>
-                <div class="combo-names-vertodos" id="combo-names-vertodos-${i}" onclick="toggleComboNombres(${i})">Ver todos (${resto.length} más)</div>` : ''}
-            </div>
-            <div class="combo-precio-label">Precio del combo: <strong>${_precioComboHtml(c)}</strong></div>
             <div class="coverflow-nav">
                 <button type="button" class="coverflow-arrow" aria-label="Anterior" onclick="navegarCoverflow('coverflow-combo-${i}',-1)">‹</button>
                 <div class="coverflow-wrap" id="coverflow-combo-${i}"></div>
                 <button type="button" class="coverflow-arrow" aria-label="Siguiente" onclick="navegarCoverflow('coverflow-combo-${i}',1)">›</button>
             </div>
+            <div class="combo-names-list">
+                ${primeros.map((n, idx) => `<div class="combo-name-line">${idx + 1}. ${n}</div>`).join('')}
+                ${resto.length ? `<div class="combo-names-extra" id="combo-names-extra-${i}" style="display:none;">${resto.map((n, idx) => `<div class="combo-name-line">${idx + 4}. ${n}</div>`).join('')}</div>
+                <div class="combo-names-vertodos" id="combo-names-vertodos-${i}" onclick="toggleComboNombres(${i})">Ver todos (${resto.length} más)</div>` : ''}
+            </div>
+            <div class="combo-precio-label">Precio del combo: <strong>${_precioComboHtml(c)}</strong></div>
             <div class="seccion-cta" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;"><button type="button" class="seccion-btn" onclick="verComboDetalle(${i});window._comboDetalleDesdeAviso=false;">Ver combo</button></div>
         </div>`;
     });
@@ -6303,11 +6304,22 @@ function mostrarAvisoCombos() {
     if (!cont) return;
     cont.innerHTML = combos.map((c, i) => `
         <div class="combo-aviso-item">
+            <div class="coverflow-nav">
+                <button type="button" class="coverflow-arrow" aria-label="Anterior" onclick="navegarCoverflow('coverflow-aviso-${i}',-1)">‹</button>
+                <div class="coverflow-wrap" id="coverflow-aviso-${i}"></div>
+                <button type="button" class="coverflow-arrow" aria-label="Siguiente" onclick="navegarCoverflow('coverflow-aviso-${i}',1)">›</button>
+            </div>
             <div class="combo-aviso-nombre">${(c.productos || []).map(p => String(p.nombre || '').replace(/</g, '&lt;')).join(', ')}</div>
             <div class="combo-aviso-precio">${_precioComboHtml(c)}</div>
             <button type="button" class="seccion-btn" onclick="verComboDetalleDesdeAviso(${i})">Ver combo</button>
         </div>`).join('');
     document.getElementById('comboFloatModal').classList.add('active');
+    // Cada combo tiene su propio carrusel con TODAS las imágenes de sus productos
+    // (no se recorta a 3-4: crearCoverflow ya resuelve la rotación si hay más de 5).
+    combos.forEach((c, i) => {
+        const el = document.getElementById('coverflow-aviso-' + i);
+        if (el) crearCoverflow(el, (c.productos || []).map(p => resolveImgUrl(p.imagen)));
+    });
 }
 
 // Una promoción se configura con rangos de precio ("de"/"hasta") que
