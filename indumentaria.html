@@ -4935,8 +4935,16 @@ fetch('https://preciosmayoristasrevendedores.tuweb.workers.dev/api/catalogo?cate
             if (!arr) return;
             (data.agregados && data.agregados[cat] || []).forEach(a => { if (!arr.some(x => x.id === a.id)) arr.splice(Math.min(9, arr.length), 0, _naRegistrar(_agregadoVivo({ ...nuevo(cat, a), ...extra }, cat, a), cat)); });
         };
-        quitar(INDUMENTARIA_DATA, 'indumentaria');
-        agregar(INDUMENTARIA_DATA, 'indumentaria');
+        // 🔧 FIX: antes esto operaba sobre INDUMENTARIA_DATA, pero
+        // window.productsIndumentaria se reasigna más arriba a un array
+        // NUEVO (resultado de .map(), no la misma referencia) — toda la
+        // página (grilla, buscador, modal de detalle) lee de
+        // window.productsIndumentaria, así que un producto agregado solo a
+        // INDUMENTARIA_DATA quedaba guardado en el Worker pero nunca
+        // aparecía en la categoría. Se opera directamente sobre la lista
+        // que de verdad se renderiza.
+        quitar(window.productsIndumentaria, 'indumentaria');
+        agregar(window.productsIndumentaria, 'indumentaria');
         try { if (typeof renderIndumentariaProducts === 'function') renderIndumentariaProducts(); } catch(_e) {}
     })
     .catch(() => {});
