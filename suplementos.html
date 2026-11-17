@@ -4920,8 +4920,8 @@ fetch('https://preciosmayoristasrevendedores.tuweb.workers.dev/api/catalogo?cate
             if (!arr) return;
             (data.agregados && data.agregados[cat] || []).forEach(a => { if (!arr.some(x => x.id === a.id)) arr.splice(Math.min(9, arr.length), 0, _naRegistrar(_agregadoVivo({ ...nuevo(cat, a), ...extra }, cat, a), cat)); });
         };
-        quitar(SUPLEMENTOS_DATA, 'suplementos');
-        agregar(SUPLEMENTOS_DATA, 'suplementos');
+        quitar(window.productsSuplementos, 'suplementos');
+        agregar(window.productsSuplementos, 'suplementos');
         try { if (typeof renderSuplementosProducts === 'function') renderSuplementosProducts(); } catch(_e) {}
     })
     .catch(() => {});
