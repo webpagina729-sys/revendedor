@@ -12947,20 +12947,16 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
         };
 
                 window.refrescarMisTiendasFab = function() {
+            // 🔧 FIX: este archivo es solo catálogo de una categoría (no
+            // tiene sección de "Inicio" con la grilla de categorías), así
+            // que "Mis tiendas guardadas" nunca debe mostrarse acá — solo
+            // en index.html y mas-categorias.html, dentro de Inicio.
             const fab = document.getElementById('misTiendasFab');
             const badge = document.getElementById('misTiendasBadge');
-            if (!fab) return;
-            const tiendas = getTiendasGuardadas();
-            const cats = Object.keys(tiendas).filter(c => tiendas[c]);
-            if (cats.length > 0) {
-                fab.style.display = 'flex';
-                badge.style.display = 'flex';
-                badge.textContent = cats.length;
-            } else {
-                fab.style.display = 'none';
-                badge.style.display = 'none';
-                document.getElementById('misTiendasBubble').style.display = 'none';
-            }
+            const bubble = document.getElementById('misTiendasBubble');
+            if (fab) fab.style.display = 'none';
+            if (badge) badge.style.display = 'none';
+            if (bubble) bubble.style.display = 'none';
         };
 
         window.mostrarBurbujaTiendas = function() {
@@ -13430,12 +13426,28 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
 </div>
 
 <!-- MODAL: CREAR COMBO -->
+<style>
+/* 🆕 Compacto en pantallas chicas: el modal ya hereda max-height:85vh +
+   overflow-y:auto de .modal-content, esto solo reduce el padding y las
+   fuentes para que no se vea apretado al sumar Nombre del Combo + el
+   carrusel del catálogo. */
+#crearComboModal .modal-content { padding: 22px 18px; }
+@media (max-width: 420px) {
+    #crearComboModal .modal-content { padding: 16px 14px; }
+    #crearComboModal .modal-title { font-size: 15px; }
+}
+</style>
 <div class="modal-overlay" id="crearComboModal">
     <div class="modal-content" style="max-width:460px;">
         <div class="modal-header">
             <h2 class="modal-title" id="crearComboModalTitle">🎁 Crear combo</h2>
         </div>
         <p id="crearComboCatLabel" style="font-size:12.5px;color:var(--text-light);margin:-6px 0 12px;"></p>
+
+        <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Nombre del Combo</label>
+        <input type="text" id="combo-nombre" maxlength="60" placeholder="Ej: Combo Verano" style="width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13.5px;font-family:var(--font-body);margin-bottom:12px;box-sizing:border-box;">
+
+        <div id="crearComboCatalogoPreview" style="display:flex;gap:7px;overflow-x:auto;padding:2px 2px 10px;scroll-behavior:smooth;"></div>
 
         <label style="display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">Elegí los productos del combo</label>
         <div id="crearComboProductos" style="margin-bottom:10px;"></div>
@@ -13939,6 +13951,21 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                 <button type="button" onclick="abrirVerCombo()" style="width:100%;background:none;border:none;color:var(--primary);font-size:12px;font-weight:700;cursor:pointer;padding:4px;text-align:center;">Ver combo (${seleccionados.length})</button>`;
         }
 
+        // 🆕 NUEVO: carrusel chico, decorativo, con los productos del
+        // catálogo de la categoría — solo a modo de vista previa visual
+        // antes de entrar a "Ver todo el catálogo" (no es seleccionable
+        // desde acá, para no duplicar la lógica de selección ya existente).
+        function renderCatalogoPreviewCombo() {
+            const cat = window._comboCat;
+            const productos = getProductosPorCatalogo(cat).slice(0, 20);
+            const cont = document.getElementById('crearComboCatalogoPreview');
+            if (!cont) return;
+            if (!productos.length) { cont.innerHTML = ''; return; }
+            cont.innerHTML = productos.map(p => `
+                <img src="${resolveImgUrl(p.imagen)}" alt="${p.nombre}" title="${p.nombre}" onerror="fallbackProductImage(this, '${(p.imagen||'').replace(/'/g,"\\'")}')" style="width:44px;height:44px;flex:0 0 auto;object-fit:cover;border-radius:8px;border:1px solid var(--border);background:#f5f5f5;">
+            `).join('');
+        }
+
         // Tarjeta estilo catálogo: imagen + nombre + casillero (sin precio,
         // el precio ya se ve en el resumen de totales del combo).
         function comboProductCardHtml(p) {
@@ -14051,6 +14078,8 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             document.getElementById('crearComboCatLabel').textContent = 'Productos de: ' + label;
 
             renderMiniPreviewCombo();
+            document.getElementById('combo-nombre').value = comboExistente ? (comboExistente.nombre || '') : '';
+            renderCatalogoPreviewCombo();
             document.getElementById('combo-descuento').value = comboExistente ? (comboExistente.descuento || '') : '';
             calcularTotalesCombo();
             const tituloEl = document.getElementById('crearComboModalTitle');
@@ -14157,6 +14186,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             const esEdicion = !!window._comboEditId;
             const item = {
                 id: window._comboEditId || undefined,
+                nombre: document.getElementById('combo-nombre').value.trim(),
                 categoria: cat,
                 productos: productos.map(p => ({ id: p.id, nombre: p.nombre, precio: p.precio, imagen: p.imagen })),
                 inversion, precioVenta, descuento, precioFinal,
@@ -14180,7 +14210,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
 
             window._comboEditId = null;
             document.getElementById('crearComboModal').classList.remove('active');
-            mostrarToastOk(esEdicion ? 'Combo actualizado ✓' : 'Combo creado ✓');
+            mostrarToastOk(esEdicion ? 'Combo actualizado' : 'Combo creado');
         };
 
         window.togglePromoLocal = function(cat, activo) {
