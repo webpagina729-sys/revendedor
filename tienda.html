@@ -4906,7 +4906,7 @@ function enviarPorWhatsApp() {
     if (carrito.length === 0) return;
     const wa = vendedor.whatsappRevendedor || '';
     if (!wa) {
-        alert('Este vendedor aún no configuró su número de WhatsApp. Contactalo para confirmar el pedido.');
+        mostrarToast('Este vendedor aún no configuró su número de WhatsApp. Contactalo para confirmar el pedido.');
         return;
     }
 
@@ -5128,7 +5128,7 @@ async function cargarSeccionDescuentosYCombos() {
         const resto = nombres.slice(3);
         html += `<div class="combo-carrusel-block">
             <div class="combo-cant-badge">Cant. Productos: ${nombres.length}</div>
-            <div class="combo-carrusel-title">Combo</div>
+            <div class="combo-carrusel-title">Combo${c.nombre ? ': ' + String(c.nombre).replace(/</g, '&lt;') : ''}</div>
             <div class="coverflow-nav">
                 <button type="button" class="coverflow-arrow" aria-label="Anterior" onclick="navegarCoverflow('coverflow-combo-${i}',-1)">‹</button>
                 <div class="coverflow-wrap" id="coverflow-combo-${i}"></div>
@@ -5238,7 +5238,7 @@ function abrirModalEntrega() {
     if (carrito.length === 0) return;
     const wa = vendedor.whatsappRevendedor || '';
     if (!wa) {
-        alert('Este vendedor aún no configuró su número de WhatsApp. Contactalo para confirmar el pedido.');
+        mostrarToast('Este vendedor aún no configuró su número de WhatsApp. Contactalo para confirmar el pedido.');
         return;
     }
     document.getElementById('modal-entrega').classList.add('active');
@@ -6047,7 +6047,7 @@ function abrirInfoTiendaModal() {
 function contactarRevendedorDesdeInfo() {
     const wa = vendedor && vendedor.whatsappRevendedor;
     if (!wa) {
-        alert('Este vendedor aún no configuró su número de WhatsApp.');
+        mostrarToast('Este vendedor aún no configuró su número de WhatsApp.');
         return;
     }
     const msg = '¡Hola! Tengo una consulta sobre tu tienda.';
@@ -6633,7 +6633,7 @@ const _origEnviarWA = enviarPorWhatsApp;
 enviarPorWhatsApp = function() {
     if (carrito.length === 0) return;
     const wa = vendedor.whatsappRevendedor || '';
-    if (!wa) { alert('Este vendedor aún no configuró su WhatsApp.'); return; }
+    if (!wa) { mostrarToast('Este vendedor aún no configuró su WhatsApp.'); return; }
     const lineas = carrito.map(item => {
         if (item.regalo) {
             return `• ${item.producto.nombre}${item.molderia ? ' (' + (item.molderia === 'hombre' ? 'Hombre' : 'Mujer') + ')' : ''}${item.talle ? ' (T. ' + item.talle + ')' : ''}${item.color ? ' (Color: ' + item.color + ')' : ''} x${item.qty} — 🎁 REGALO`;
