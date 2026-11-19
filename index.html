@@ -3384,6 +3384,41 @@
 
     </style>
     <script>
+// Reemplazo compacto y prolijo del alert() nativo del navegador — usa el
+// mismo #wa-toast que ya existia suelto en varios lugares del archivo.
+function toastWa(msg) {
+    const toast = document.getElementById('wa-toast');
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    clearTimeout(window._waToastTimer);
+    window._waToastTimer = setTimeout(() => { toast.style.display = 'none'; }, 3500);
+}
+
+// Reemplazo compacto y prolijo del alert() nativo para avisos largos con
+// instrucciones (el toast de arriba es para mensajes cortos). Reutiliza
+// el mismo CSS .modal-overlay/.modal-content/.confirmation-button que ya
+// usa el resto de los modales de este archivo.
+function avisoModal(mensaje, titulo) {
+    let overlay = document.getElementById('avisoModalGlobal');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'avisoModalGlobal';
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+            <div class="modal-content" style="max-width:360px;text-align:center;">
+                <h2 class="modal-title" id="avisoModalTitulo" style="text-align:center;font-size:15.5px;margin-bottom:10px;"></h2>
+                <p id="avisoModalMensaje" style="font-size:12.5px;color:var(--text-light,#666);line-height:1.5;margin:0 0 18px;white-space:pre-line;text-align:left"></p>
+                <button type="button" class="confirmation-button confirmation-button-primary" style="width:100%;" onclick="document.getElementById('avisoModalGlobal').classList.remove('active')">Entendido</button>
+            </div>`;
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('active'); });
+    }
+    overlay.querySelector('#avisoModalTitulo').textContent = titulo || 'Aviso';
+    overlay.querySelector('#avisoModalMensaje').textContent = mensaje;
+    overlay.classList.add('active');
+}
+
         // Silenciar errores de extensiones del navegador
         console.error = function() {};
     </script>
@@ -3794,10 +3829,10 @@
                 ✓ más de 2.000 productos | 📦 envíos a todo el país
             </div>
             <div class="final-footer-links">
-                <a href="javascript:void(0)" class="final-footer-link" onclick="alert('Sección de compra - próximamente')">Comprar</a>
+                <a href="javascript:void(0)" class="final-footer-link" onclick="toastWa('Sección de compra - próximamente')">Comprar</a>
                 <a href="javascript:void(0)" class="final-footer-link" onclick="openWhatsApp()">Contacto</a>
                 <a href="javascript:void(0)" class="final-footer-link" onclick="abrirModalDevoluciones()">Devoluciones</a>
-                <a href="javascript:void(0)" class="final-footer-link" onclick="alert('Más opciones de reventa - próximamente')">Más opciones de reventa</a>
+                <a href="javascript:void(0)" class="final-footer-link" onclick="toastWa('Más opciones de reventa - próximamente')">Más opciones de reventa</a>
             </div>
         </div>
     </footer>
@@ -4897,7 +4932,7 @@
     </div>
 
     <!-- TOAST CONFIRMACIÓN WHATSAPP -->
-    <div id="wa-toast" style="display:none;position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--text);color:#fff;padding:14px 24px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.18);text-align:center;max-width:90vw;"></div>
+    <div id="wa-toast" style="display:none;position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--text);color:#fff;padding:14px 24px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.18);text-align:center;max-width:90vw;white-space:pre-line;"></div>
 
     <!-- MODAL CONFIGURAR MI TIENDA (dentro de catálogo) -->
     <div class="modal-overlay" id="configTiendaModal" onclick="closeConfigTiendaModal(event)">
@@ -8028,9 +8063,9 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                     try { await navigator.share({ title: 'Mi tienda', url }); return; } catch(_) {}
                 }
                 await navigator.clipboard.writeText(url);
-                alert('Enlace de ' + (sub === 'maquillaje' ? 'Maquillaje' : 'Perfumes') + ' copiado ✓');
+                toastWa('Enlace de ' + (sub === 'maquillaje' ? 'Maquillaje' : 'Perfumes') + ' copiado ✓');
             } catch(e) {
-                alert('No se pudo generar el enlace. Intentá de nuevo.');
+                toastWa('No se pudo generar el enlace. Intentá de nuevo.');
             } finally {
                 if (btn) { btn.disabled = false; btn.style.opacity = '1'; if (original) btn.innerHTML = original; }
             }
@@ -9198,7 +9233,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 // ── Obtener WhatsApp del revendedor y armar mensaje ──────────
                 const waNum = _lsGet('whatsappRevendedor') || '';
                 if (!waNum) {
-                    alert('⚠️ No tenés un número de WhatsApp configurado.\nAndá a "Configurar mi tienda" para agregarlo.');
+                    toastWa('⚠️ No tenés un número de WhatsApp configurado.\nAndá a "Configurar mi tienda" para agregarlo.');
                     closeCheckout();
                     return;
                 }
@@ -9231,7 +9266,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
 
             } catch (error) {
                 console.error('❌ [CHECKOUT] ERROR FINAL:', error.message, error);
-                alert('❌ Error: ' + error.message);
+                toastWa('❌ Error: ' + error.message);
             } finally {
                 if (payButton) {
                     payButton.disabled = false;
@@ -9269,7 +9304,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 clearCartFromFirebase();
                 
                 // Mostrar confirmación
-                alert('¡Gracias por tu pedido! Nos pondremos en contacto pronto.');
+                toastWa('¡Gracias por tu pedido! Nos pondremos en contacto pronto.');
                 
                 // Limpiar URL
                 window.history.replaceState({}, document.title, window.location.pathname);
@@ -9364,7 +9399,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
 
         async function loginWithGoogle() {
             if (esNavegadorInApp()) {
-                alert('Para iniciar sesión con Google necesitás abrir esta página en tu navegador (Chrome, Safari, etc.), no dentro de esta app.\n\nTocá los ⋮ o ••• (los 3 puntitos) arriba a la derecha y elegí "Abrir en el navegador".');
+                avisoModal('Tocá los ⋮ o ••• (los 3 puntitos) arriba a la derecha y elegí "Abrir en el navegador".', 'Abrí esta página en tu navegador');
                 return;
             }
             try {
@@ -9392,7 +9427,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 closeAuthModal();
             } catch (error) {
                 if (error.code !== 'auth/popup-closed-by-user') {
-                    alert('No se pudo iniciar sesión con Google. Intentá de nuevo.');
+                    toastWa('No se pudo iniciar sesión con Google. Intentá de nuevo.');
                 }
             }
         }
@@ -9404,7 +9439,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
             // Verificación de seguridad (Cloudflare Turnstile) del registro
             const turnstileRegistro = (typeof turnstile !== 'undefined') ? turnstile.getResponse('#turnstile-register') : '';
             if (!turnstileRegistro) {
-                alert('❌ Por favor, completa la verificación de seguridad');
+                toastWa('❌ Por favor, completa la verificación de seguridad');
                 return;
             }
             
@@ -9739,7 +9774,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
             
             // No copiar si está vacío
             if (!codigo || codigo.trim() === '') {
-                alert('Tu código de revendedor aún no está disponible. Por favor intenta más tarde.');
+                toastWa('Tu código de revendedor aún no está disponible. Por favor intenta más tarde.');
                 return;
             }
             
@@ -9759,7 +9794,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                     }, 2000);
                 }
             }).catch(err => {
-                alert('No se pudo copiar el código. Intenta de nuevo.');
+                toastWa('No se pudo copiar el código. Intenta de nuevo.');
             });
         }
 
@@ -9769,7 +9804,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 codigo = window.currentUser?.codigoVendedor || localStorage.getItem('codigoVendedorLocal') || '';
             }
             if (!codigo || codigo.trim() === '' || codigo === '—') {
-                alert('Tu código de revendedor aún no está disponible.');
+                toastWa('Tu código de revendedor aún no está disponible.');
                 return;
             }
             const btn = document.getElementById('profileCopyBtn');
@@ -10776,7 +10811,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
             const user = await esperarUsuarioFirebaseActual();
             const codigo = await getCodigoVendedorActual();
             if (!user && !codigo) {
-                alert('No se pudo encontrar tu sesión de revendedor. Cerrá sesión e iniciá nuevamente.');
+                toastWa('No se pudo encontrar tu sesión de revendedor. Cerrá sesión e iniciá nuevamente.');
                 return;
             }
             closeProfileModal();
@@ -11469,7 +11504,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                             // Sin código de revendedor, el Worker rechaza el
                             // registro (lo exige como obligatorio) — avisar en
                             // vez de fallar en silencio.
-                            alert('⚠️ No se pudo registrar en el panel de gestión: falta el código de revendedor');
+                            toastWa('⚠️ No se pudo registrar en el panel de gestión: falta el código de revendedor');
                         } else {
                             // 🔧 FIX: workerpagos.js exige sesión verificada (Authorization:
                             // Bearer <token>) para aceptar este registro — _sesionEsDuenoDeCodigo
@@ -11486,14 +11521,14 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                                 body:    JSON.stringify(panelPayload)
                             });
                             if (!respPanel.ok) {
-                                alert('⚠️ El pedido se aprobó pero no llegó al panel de gestión. Probá de nuevo o avisame si se repite.');
+                                toastWa('⚠️ El pedido se aprobó pero no llegó al panel de gestión. Probá de nuevo o avisame si se repite.');
                             }
                         }
                     } catch (_) {
                         // No bloquear el flujo principal, pero SÍ avisar — antes
                         // esto fallaba 100% en silencio y no había forma de saber
                         // que un pedido no había llegado al panel de gestión.
-                        alert('⚠️ El pedido se aprobó pero no llegó al panel de gestión (error de conexión). Probá de nuevo.');
+                        toastWa('⚠️ El pedido se aprobó pero no llegó al panel de gestión (error de conexión). Probá de nuevo.');
                     }
                 }
                 // ── Persistir estado en workerwebcliente (pedidos de tienda.html) ──
@@ -11562,14 +11597,14 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 // real, y ese mismo detalle se muestra en el aviso para poder
                 // diagnosticarlo sin tener que reproducirlo a ciegas.
                 console.error('Error actualizando pedido:', { pedidoId, nuevoEstado, nicho: pedido && pedido.nicho, items: pedido && (pedido.items || []).map(i => i.catalogo) }, err);
-                alert('No se pudo actualizar el pedido' + (err && err.message ? ' (' + err.message + ')' : ''));
+                toastWa('No se pudo actualizar el pedido' + (err && err.message ? ' (' + err.message + ')' : ''));
             }
         }
 
         async function aprobarTodosPedidos() {
             const pendientes = (window.pedidosRecibidosCache || []).filter(p => (p.estadoAprobacion || 'pendiente') === 'pendiente');
-            if (pendientes.length === 0) { alert('No hay pedidos pendientes'); return; }
-            if (!confirm(`¿Aprobar ${pendientes.length} pedido(s) pendiente(s)?`)) return;
+            if (pendientes.length === 0) { toastWa('No hay pedidos pendientes'); return; }
+            if (!(await window.pedirConfirmacionEliminarTienda(`Se van a aprobar ${pendientes.length} pedido(s) pendiente(s).`, '¿Aprobar pedidos pendientes?'))) return;
             const btn = document.getElementById('pr-aprobar-todos');
             if (btn) { btn.disabled = true; btn.textContent = 'Aprobando…'; }
             // 🔧 NUEVO: se muestra el overlay UNA sola vez para todo el lote
@@ -12222,7 +12257,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 sesionActiva = await esperarUsuarioFirebaseActual();
             }
             if (!sesionActiva) {
-                alert('Debes iniciar sesión primero para acceder al catálogo de revendedor.');
+                toastWa('Debes iniciar sesión primero para acceder al catálogo de revendedor.');
                 abrirLogin();
                 return;
             }
@@ -12754,7 +12789,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 window.open('https://8cc1455f.sibforms.com/serve/MUIFAOe2caIUk_JszJEAGAXuWMAooq9jBLGOvdN8R2ecTP9XnIzhvmcJIr6sHXcB-ap4DPs38CfVHsbJyu1Nc6djziTbM7FfS-bGHzYXXhYj1V_wcohxKLoFy4sbfPH_xNmDgwVR4xVaaf4dyK_QlVjLzdj4E012J39XFQGdXYOvmNEzae4U9jt0_pRuCZHcElDfRt6XW7T4QwrXbA==', '_blank');
             } else {
                 // Usuario no logueado: ir a registro
-                alert('Redirigiendo a formulario de registro... próximamente');
+                toastWa('Redirigiendo a formulario de registro... próximamente');
             }
         }
 
@@ -13477,11 +13512,11 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 if (local.length >= 4 && local.charAt(2) === '1' && local.charAt(3) === '5') {
                     local = local.slice(0, 2) + local.slice(4);
                 }
-                if (!local || local.length < 8) { alert('Ingresá un número de WhatsApp válido (mínimo 8 dígitos, sin el 0 ni el 15).'); return; }
+                if (!local || local.length < 8) { toastWa('Ingresá un número de WhatsApp válido (mínimo 8 dígitos, sin el 0 ni el 15).'); return; }
                 nuevoValor = '549' + local;
             } else if (campo === 'cuit') {
                 const digits = nuevoValor.replace(/\D/g, '');
-                if (digits.length !== 11) { alert('Ingresá un CUIT válido (11 dígitos, ej: 20123456789).'); return; }
+                if (digits.length !== 11) { toastWa('Ingresá un CUIT válido (11 dígitos, ej: 20123456789).'); return; }
                 nuevoValor = digits.slice(0, 2) + '-' + digits.slice(2, 10) + '-' + digits.slice(10);
             }
 
@@ -14752,7 +14787,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
             const input = document.getElementById('editar-precio-manual-input');
             const precio = Number(input.value);
             if (!precio || precio <= 0) {
-                alert('Ingresá un precio válido.');
+                toastWa('Ingresá un precio válido.');
                 return;
             }
             // 🔧 NUEVO: antes esto guardaba directo en el catálogo general.
@@ -14848,7 +14883,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                     const url = await generarEnlaceProducto(catalogoRutaCompleta(catalogo), productId);
                     _abrirModalCompartirEnlace(url);
                 } catch(e) {
-                    alert('El precio se guardó, pero no se pudo generar el enlace. Probá con "Compartir producto" desde el mismo producto.');
+                    toastWa('El precio se guardó, pero no se pudo generar el enlace. Probá con "Compartir producto" desde el mismo producto.');
                 }
             })();
         }
@@ -14897,12 +14932,23 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                         enlace: enlace
                     })
                 }).catch(() => {});
+                // La tienda queda inhabilitada: los enlaces compartidos a los
+                // clientes dejan de mostrarla (la consulta tienda.html).
+                fetch('https://datosderevendedor.tuweb.workers.dev/api/inhabilitar-tienda', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        uid: fbUser.uid,
+                        codigoVendedor: codigo,
+                        categoria: cat
+                    })
+                }).catch(() => {});
             }
             document.getElementById('configTiendaModal').classList.remove('active');
             renderProducts();
             if (typeof window.refrescarMisTiendasFab === 'function') window.refrescarMisTiendasFab();
 
-            // Toast de confirmación con estética de la web, en vez de alert() nativo
+            // Toast de confirmación con estética de la web, en vez de toastWa() nativo
             const toast = document.getElementById('wa-toast');
             if (toast) {
                 toast.textContent = `♻️ Configuración de "${label}" reiniciada correctamente.`;
@@ -16519,7 +16565,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 const url = await generarEnlaceProducto(catalogoRutaCompleta(catalogo), productId);
                 window.open(url, '_blank');
             } catch(e) {
-                alert('No se pudo generar la vista previa. Intentá de nuevo.');
+                toastWa('No se pudo generar la vista previa. Intentá de nuevo.');
             } finally {
                 if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
             }
@@ -16533,7 +16579,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 const url = await generarEnlaceProducto(catalogoRutaCompleta(catalogo), productId);
                 _abrirModalCompartirEnlace(url);
             } catch(e) {
-                alert('No se pudo generar el enlace. Intentá de nuevo.');
+                toastWa('No se pudo generar el enlace. Intentá de nuevo.');
             } finally {
                 if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
             }
@@ -16579,10 +16625,10 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                     toast.style.display = 'block';
                     setTimeout(() => { toast.style.display = 'none'; }, 3000);
                 } else {
-                    alert('Enlace copiado ✓');
+                    toastWa('Enlace copiado ✓');
                 }
             } catch(e) {
-                alert('No se pudo copiar el enlace.');
+                toastWa('No se pudo copiar el enlace.');
             }
         }
         window._copiarEnlaceCompartir = _copiarEnlaceCompartir;
@@ -17289,7 +17335,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         });
 
         // Modal de confirmación profesional para "Reiniciar configuración"
-        // (reemplaza el confirm()/alert() nativo del navegador).
+        // (reemplaza el confirm()/toastWa() nativo del navegador).
         let _resolverRC = null;
         window.pedirConfirmacionReiniciar = function(texto) {
             return new Promise((resolve) => {
@@ -17454,7 +17500,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
                 condicionHasta: Number(document.getElementById('pgCondHasta').value) || 0
             };
             if (g.regaloHasta <= 0 || g.condicionDe <= 0) {
-                alert('Completá al menos "Hasta" del regalo y "De" de la condición.');
+                toastWa('Completá al menos "Hasta" del regalo y "De" de la condición.');
                 return;
             }
             _promoGiftDraft = g;
@@ -17744,7 +17790,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             if (!comboExistente) {
                 const existentes = await comboFetch('/combos?codigo=' + encodeURIComponent(codigoVendedor));
                 if (existentes && existentes.items && existentes.items.length >= 5) {
-                    alert('Ya tenés el máximo de 5 combos creados. Eliminá uno para crear otro nuevo.');
+                    toastWa('Ya tenés el máximo de 5 combos creados. Eliminá uno para crear otro nuevo.');
                     return;
                 }
             }
@@ -17776,7 +17822,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
         // "Editar" de un combo no tiene que volver a pedirlo al Worker.
         window.editarComboExistente = function(id, cat) {
             const c = window._combosCacheActual && window._combosCacheActual[id];
-            if (!c) { alert('No se pudo cargar el combo. Volvé a abrir la lista e intentá de nuevo.'); return; }
+            if (!c) { toastWa('No se pudo cargar el combo. Volvé a abrir la lista e intentá de nuevo.'); return; }
             abrirCrearCombo(cat, c);
         };
 
@@ -17849,12 +17895,12 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             const cat = window._comboCat;
             const idsSeleccionados = Object.keys(window._comboSeleccion).map(Number);
             if (idsSeleccionados.length < 2) {
-                alert('Elegí al menos 2 productos para armar un combo.');
+                toastWa('Elegí al menos 2 productos para armar un combo.');
                 return;
             }
             const codigoVendedor = window.getCodigoVendedor();
             if (!codigoVendedor) {
-                alert('No se pudo identificar tu código de revendedor. Volvé a iniciar sesión e intentá de nuevo.');
+                toastWa('No se pudo identificar tu código de revendedor. Volvé a iniciar sesión e intentá de nuevo.');
                 return;
             }
             const productos = getProductosPorCatalogo(cat).filter(p => window._comboSeleccion[p.id]);
@@ -17884,7 +17930,7 @@ window.copiarEnlaceTiendaGuardada = function(cat, btn) {
             if (btn) { btn.disabled = false; btn.textContent = textoOriginalBtn; }
 
             if (!resultado || !resultado.ok) {
-                alert((resultado && resultado.error) || 'No se pudo guardar el combo. Intentá de nuevo.');
+                toastWa((resultado && resultado.error) || 'No se pudo guardar el combo. Intentá de nuevo.');
                 return;
             }
 
@@ -17920,7 +17966,7 @@ async function _copiarEnlaceItem(url) {
                     document.body.removeChild(ta);
                 } catch(_) {}
             }
-            if (ok) alert('Enlace copiado ✓');
+            if (ok) toastWa('Enlace copiado ✓');
             else window.prompt('Copiá el enlace:', url);
         }
 
@@ -17939,7 +17985,7 @@ async function _copiarEnlaceItem(url) {
                 }
                 await _copiarEnlaceItem(url);
             } catch(e) {
-                alert('No se pudo generar el enlace. Intentá de nuevo.');
+                toastWa('No se pudo generar el enlace. Intentá de nuevo.');
             } finally {
                 if (btn) { btn.disabled = false; btn.innerHTML = original; }
             }
@@ -18031,7 +18077,7 @@ async function _copiarEnlaceItem(url) {
                 body: JSON.stringify({ codigoVendedor, id, activo })
             });
             if (!resultado || !resultado.ok) {
-                alert('No se pudo actualizar. Intentá de nuevo.');
+                toastWa('No se pudo actualizar. Intentá de nuevo.');
                 return;
             }
             abrirCombosPromosLista(cat);
@@ -18074,7 +18120,7 @@ async function _copiarEnlaceItem(url) {
                     body: JSON.stringify({ codigoVendedor, id })
                 });
                 if (!resultado || !resultado.ok) {
-                    alert((resultado && resultado.error) || 'No se pudo eliminar. Intentá de nuevo.');
+                    toastWa((resultado && resultado.error) || 'No se pudo eliminar. Intentá de nuevo.');
                     return;
                 }
             }
@@ -18111,7 +18157,7 @@ async function _copiarEnlaceItem(url) {
                 }
                 await _copiarEnlaceItem(url);
             } catch(e) {
-                alert('No se pudo generar el enlace. Intentá de nuevo.');
+                toastWa('No se pudo generar el enlace. Intentá de nuevo.');
             } finally {
                 if (btn) { btn.disabled = false; btn.innerHTML = original; }
             }
@@ -18135,7 +18181,7 @@ async function _copiarEnlaceItem(url) {
             });
             rangos.sort((a, b) => a.hasta - b.hasta);
             if (rangos.length === 0 && !_promoGiftDraft) {
-                alert('Agregá al menos un rango de descuento o configurá un producto de regalo.');
+                toastWa('Agregá al menos un rango de descuento o configurá un producto de regalo.');
                 return;
             }
             const promoId = 'promo_' + _promoCat + '_' + Date.now();
