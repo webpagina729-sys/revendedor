@@ -9999,8 +9999,27 @@ function catalogoEfectivoMultishop(p) {
             ].forEach(k => localStorage.removeItem(k));
         }
 
+        // 🆕 Avisa a datosderevendedor.tuweb.workers.dev que esta sesión se
+        // cerró, para que tutiendapropia.revendeways.shop (stock.html —
+        // otro dominio, con su propia sesión aislada) también se cierre la
+        // próxima vez que cargue. Se pide el token ANTES de signOut() (una
+        // vez cerrada la sesión local ya no hay token para pedir). Si esto
+        // falla por lo que sea, no afecta el cierre de sesión local de acá.
+        async function _avisarCierreSesionCompartido() {
+            try {
+                const u = firebase.auth().currentUser;
+                if (!u) return;
+                const idToken = await u.getIdToken();
+                await fetch('https://datosderevendedor.tuweb.workers.dev/api/cerrar-sesion', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + idToken },
+                });
+            } catch (e) { console.warn('No se pudo avisar el cierre de sesión compartido:', e); }
+        }
+
         async function logoutUser() {
             try {
+                await _avisarCierreSesionCompartido();
                 await firebase.auth().signOut();
                 _limpiarSesionLocal();
                 // Cerrar cinta superior y recargar página
@@ -10107,6 +10126,23 @@ function catalogoEfectivoMultishop(p) {
             fetch(`https://datosderevendedor.tuweb.workers.dev/api/perfil?uid=${encodeURIComponent(authUser.uid)}`).then(res => res.ok ? res.json() : null).then(respData => {
                 const fd = (respData && respData.ok) ? respData.perfil : null;
                 if (!fd) return;
+                // 🆕 Cierre de sesión cruzado entre dominios: si la sesión se
+                // cerró (desde esta misma página o desde stock.html, en
+                // tutiendapropia.revendeways.shop) DESPUÉS de que este
+                // navegador inició esta sesión, se cierra acá también en vez
+                // de reconstruirla como si siguiera activa.
+                try {
+                    if (fd.sesionCerradaEn && authUser.metadata && authUser.metadata.lastSignInTime) {
+                        const inicioSesion = new Date(authUser.metadata.lastSignInTime).getTime();
+                        if (fd.sesionCerradaEn > inicioSesion) {
+                            firebase.auth().signOut().catch(() => {}).then(() => {
+                                _limpiarSesionLocal();
+                                window.location.reload();
+                            });
+                            return;
+                        }
+                    }
+                } catch (e) { console.warn('Chequeo de cierre de sesión cruzado falló:', e); }
                 try {
                     if (fd.configTiendaAll && typeof fd.configTiendaAll === 'object') {
                         const localAll = JSON.parse(localStorage.getItem('configTiendaAll') || '{}');
