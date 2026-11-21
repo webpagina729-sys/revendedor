@@ -7170,15 +7170,34 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
             })
             .catch(() => {});
 
+        // 🔧 Migración de una sola vez: antes "avisosVistos" era una lista
+        // de ids ya vistos (se mostraba 1 sola vez por aviso, para
+        // siempre). Ahora se cuenta cuántas veces se vio cada uno (tope 2).
+        // A los avisos que ya estaban marcados como vistos bajo el sistema
+        // viejo se les da 1 vista ya consumida (no 0 ni 2), para no
+        // mostrarles de más ni de menos a quien ya lo había visto una vez.
+        (function _migrarAvisosVistosAConteo() {
+            try {
+                if (localStorage.getItem('avisosVistosConteo')) return;
+                const viejos = JSON.parse(localStorage.getItem('avisosVistos') || '[]');
+                if (Array.isArray(viejos) && viejos.length) {
+                    const conteo = {};
+                    viejos.forEach(id => { conteo[id] = 1; });
+                    localStorage.setItem('avisosVistosConteo', JSON.stringify(conteo));
+                }
+            } catch (e) {}
+        })();
+
         // 🔧 NUEVO: aviso publicado desde pedidos.html → 📢 Avisos. Se
-        // muestra una única vez por aviso (guardado por id en
-        // localStorage, no un booleano único) — así, aunque el revendedor
-        // ya haya cerrado un aviso anterior, uno NUEVO sí se le muestra.
+        // muestra como máximo 2 veces por aviso (contadas por id en
+        // localStorage) — así, aunque el revendedor ya haya cerrado un
+        // aviso anterior, uno NUEVO sí se le muestra, y uno ya visto 2
+        // veces deja de aparecer.
         function mostrarAvisoModalSi(aviso) {
             if (!aviso || !aviso.publicado || !aviso.id) return;
-            let vistos = [];
-            try { vistos = JSON.parse(localStorage.getItem('avisosVistos') || '[]'); } catch(e) {}
-            if (vistos.includes(aviso.id)) return;
+            let vistos = {};
+            try { vistos = JSON.parse(localStorage.getItem('avisosVistosConteo') || '{}'); } catch(e) {}
+            if (Number(vistos[aviso.id] || 0) >= 2) return;
 
             // 🔧 NUEVO: los avisos son para revendedores ya activos al
             // momento de publicarse, no para los que se van registrando
@@ -7227,10 +7246,16 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
             if (typeof preventBodyScroll === 'function') preventBodyScroll(false);
             if (window._avisoActualId) {
                 try {
-                    let vistos = [];
-                    try { vistos = JSON.parse(localStorage.getItem('avisosVistos') || '[]'); } catch(e) {}
-                    if (!vistos.includes(window._avisoActualId)) vistos.push(window._avisoActualId);
-                    localStorage.setItem('avisosVistos', JSON.stringify(vistos.slice(-50)));
+                    let vistos = {};
+                    try { vistos = JSON.parse(localStorage.getItem('avisosVistosConteo') || '{}'); } catch(e) {}
+                    vistos[window._avisoActualId] = Number(vistos[window._avisoActualId] || 0) + 1;
+                    // Mismo criterio que antes (slice(-50)): no dejar crecer
+                    // el objeto para siempre, se quedan los 50 más nuevos.
+                    const ids = Object.keys(vistos);
+                    if (ids.length > 50) {
+                        ids.slice(0, ids.length - 50).forEach(id => { delete vistos[id]; });
+                    }
+                    localStorage.setItem('avisosVistosConteo', JSON.stringify(vistos));
                 } catch(e) {}
             }
         }
@@ -7257,7 +7282,30 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 })
                 .catch(() => {});
         }
-        _cargarAvisoPlataforma();
+        // 🆕 Antes esto se disparaba YA, apenas cargaba el script, sin
+        // fijarse si había otro modal (login / guardar sesión / guía
+        // rápida) abierto — podía quedar un modal atrás de otro. Ahora el
+        // primer chequeo siempre espera 5 segundos, y se dispara desde uno
+        // de estos dos lugares (nunca los dos):
+        //  - closeEmailConfirmationModal(): 5s después de cerrar la guía
+        //    rápida, para un usuario nuevo que la vio recién.
+        //  - acá abajo: si a este usuario NO le toca ver guía rápida más
+        //    (ya la vio 2 veces, o sea que ya está "asentado"), se dispara
+        //    directamente 5s después de entrar.
+        // _avisoYaProgramadoEnEstaCarga evita que se dispare dos veces si,
+        // por lo que sea, ambos caminos se llegaran a cruzar.
+        window._dispararAvisoConDelay = function () {
+            if (window._avisoYaProgramadoEnEstaCarga) return;
+            window._avisoYaProgramadoEnEstaCarga = true;
+            setTimeout(_cargarAvisoPlataforma, 5000);
+        };
+        (function _programarPrimerChequeoAviso() {
+            const vecesVistaGuia = parseInt(localStorage.getItem('guiaRapidaVeces') || '0');
+            if (vecesVistaGuia < 2) return; // a este usuario todavía le puede tocar la guía rápida — el aviso se encadena desde ahí.
+            window._dispararAvisoConDelay();
+        })();
+        // El refresco cada 40 min (mientras el revendedor sigue navegando)
+        // no cambia: solo se tocó el disparo inicial, de arriba.
         setInterval(_cargarAvisoPlataforma, 40 * 60 * 1000);
 
         // 🔧 NUEVO: aviso al entrar a una categoría cuando la plataforma
@@ -9842,6 +9890,10 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 modal.classList.remove('active');
                 preventBodyScroll(false);
             }
+            // 🆕 5 segundos después de cerrar la guía rápida, chequear si hay
+            // un aviso publicado desde pedidos.html para mostrar (máx. 2
+            // veces por aviso — ver mostrarAvisoModalSi).
+            if (typeof window._dispararAvisoConDelay === 'function') window._dispararAvisoConDelay();
         }
 
         function confirmEmailPrompt() {
@@ -10520,6 +10572,11 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
 
                 const _guiaRapidaInicioEspera = Date.now();
                 const intentarMostrarGuiaRapida = () => {
+                    // 🆕 Si el otro camino (responder "Guardar sesión", 5s
+                    // fijos) ya la mostró mientras este sondeo esperaba, no
+                    // mostrarla de nuevo.
+                    if (window._guiaRapidaYaMostrada) return;
+
                     const modal = document.getElementById('emailConfirmationModal');
                     if (!modal || modal.classList.contains('active')) return;
 
@@ -10529,6 +10586,12 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                     // siempre en segundo plano durante toda la sesión.
                     if (Date.now() - _guiaRapidaInicioEspera > 10 * 60 * 1000) return;
 
+                    // 🆕 Releer el contador fresco (no el capturado al
+                    // arrancar programarGuiaRapida) — si el otro camino ya
+                    // la mostró y ya incrementó el contador, esto lo ve acá.
+                    const vecesVistaActual = parseInt(localStorage.getItem('guiaRapidaVeces') || '0');
+                    if (vecesVistaActual >= 2) return;
+
                     const pasaron20sDesdeUltimoModal = (Date.now() - (window._ultimoCierreModal || 0)) >= 20000;
                     const estaEnInicio = !window.currentCatalog;
                     const hayOtroModalAbierto = !!document.querySelector('.modal-overlay.active, .modal-cart.active, .codigo-modal.active, .proximamente-modal.active, .session-required-modal.active');
@@ -10536,7 +10599,8 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                     if (pasaron20sDesdeUltimoModal && estaEnInicio && !hayOtroModalAbierto) {
                         modal.classList.add('active');
                         preventBodyScroll(true);
-                        localStorage.setItem('guiaRapidaVeces', String(vecesVista + 1));
+                        localStorage.setItem('guiaRapidaVeces', String(vecesVistaActual + 1));
+                        window._guiaRapidaYaMostrada = true; // 🆕
                     } else {
                         setTimeout(intentarMostrarGuiaRapida, 1000);
                     }
@@ -15705,6 +15769,9 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
             window._continuarFlujoPostSesion = function _continuarFlujoPostSesion() {
                 // Mostrar guía rápida en los primeros 2 inicios/recargas
                 setTimeout(function() {
+                    // 🆕 Si el sondeo de programarGuiaRapida() ya la mostró
+                    // mientras esperábamos los 5s, no mostrarla de nuevo.
+                    if (window._guiaRapidaYaMostrada) return;
                     var vecesVista = parseInt(localStorage.getItem('guiaRapidaVeces') || '0');
                     if (vecesVista < 2) {
                         var guideModal = document.getElementById('emailConfirmationModal');
@@ -15712,6 +15779,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                             guideModal.classList.add('active');
                             if (typeof preventBodyScroll === 'function') preventBodyScroll(true);
                             localStorage.setItem('guiaRapidaVeces', String(vecesVista + 1));
+                            window._guiaRapidaYaMostrada = true; // 🆕
                         }
                     }
                 }, 5000);
