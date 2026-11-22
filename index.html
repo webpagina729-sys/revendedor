@@ -4756,7 +4756,7 @@ function avisoModal(mensaje, titulo) {
 
             <p id="avisoModalTexto" style="font-size:14px;color:var(--text);white-space:pre-wrap;margin:0 0 8px;"></p>
 
-            <a id="avisoModalBoton" href="#" target="_blank" rel="noopener" class="confirmation-button confirmation-button-primary" style="display:none;width:100%;text-align:center;text-decoration:none;margin-top:12px;" onclick="cerrarAvisoModal()">Ver más</a>
+            <a id="avisoModalBoton" href="#" target="_blank" rel="noopener" class="confirmation-button confirmation-button-primary" style="display:none;width:100%;text-align:center;text-decoration:none;margin-top:12px;" onclick="cerrarAvisoModal(true)">Ver más</a>
 
             <button type="button" class="confirmation-button" style="width:100%;margin-top:10px;" onclick="cerrarAvisoModal()">Cerrar</button>
         </div>
@@ -7240,7 +7240,10 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
             if (typeof preventBodyScroll === 'function') preventBodyScroll(true);
         }
 
-        function cerrarAvisoModal() {
+        // 🆕 FIX: si tocó el enlace ("Ver más"), el aviso no debe volver a
+        // aparecer nunca más (sin esperar a agotar las 2 vistas). "Cerrar"
+        // sigue sumando +1 exactamente como antes (tope 2 sin cambios).
+        function cerrarAvisoModal(permanente) {
             const modal = document.getElementById('avisoModal');
             if (modal) modal.classList.remove('active');
             if (typeof preventBodyScroll === 'function') preventBodyScroll(false);
@@ -7248,7 +7251,7 @@ window.productsElectronicos = ELECTRONICOS_DATA.map(p => ({ ...p, precioOriginal
                 try {
                     let vistos = {};
                     try { vistos = JSON.parse(localStorage.getItem('avisosVistosConteo') || '{}'); } catch(e) {}
-                    vistos[window._avisoActualId] = Number(vistos[window._avisoActualId] || 0) + 1;
+                    vistos[window._avisoActualId] = permanente ? 999 : (Number(vistos[window._avisoActualId] || 0) + 1);
                     // Mismo criterio que antes (slice(-50)): no dejar crecer
                     // el objeto para siempre, se quedan los 50 más nuevos.
                     const ids = Object.keys(vistos);
