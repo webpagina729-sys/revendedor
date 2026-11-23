@@ -16949,8 +16949,19 @@ window.abrirCompartirTiendaGuardada = function(cat, btn, ev) {
             // lentos esa demora "vence" el gesto del usuario y el share
             // falla en silencio. Si ya está precalentado, se usa al toque,
             // sin ningún await de red en el medio.
-            const link = (window._enlacesCortosCache && window._enlacesCortosCache[cat])
-                || await generarEnlaceCorto(cat);
+            // 🆕 FIX: esta línea no tenía try/catch — si no había enlace
+            // precalentado y generarEnlaceCorto() fallaba (señal floja,
+            // timeout del servidor, típico en celulares más viejos), el
+            // error quedaba sin capturar y cortaba TODO en seco, sin aviso:
+            // ni copiar, ni WhatsApp, ni Instagram/Messenger funcionaban.
+            let link;
+            try {
+                link = (window._enlacesCortosCache && window._enlacesCortosCache[cat])
+                    || await generarEnlaceCorto(cat);
+            } catch (_) {
+                mostrarToastOk('No se pudo generar el enlace — revisá tu conexión e intentá de nuevo');
+                return;
+            }
             if (act === 'copiar') {
                 try {
                     await navigator.clipboard.writeText(link);
