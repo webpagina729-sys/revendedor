@@ -13013,7 +13013,26 @@ window.abrirCompartirTiendaGuardada = function(cat, btn, ev) {
         b.addEventListener('click', async () => {
             const act = b.dataset.act;
             cerrar();
-            const link = await generarEnlaceCorto(cat);
+            // 🆕 FIX: el enlace ya se precalienta en segundo plano al abrir
+            // "Mis tiendas guardadas" (ver abrirMisTiendasModal), pero acá
+            // se lo pedía de nuevo al servidor igual, metiendo una demora
+            // de red justo antes de navigator.share() — en celulares más
+            // lentos esa demora "vence" el gesto del usuario y el share
+            // falla en silencio. Si ya está precalentado, se usa al toque,
+            // sin ningún await de red en el medio.
+            // 🆕 FIX: esta línea no tenía try/catch — si no había enlace
+            // precalentado y generarEnlaceCorto() fallaba (señal floja,
+            // timeout del servidor, típico en celulares más viejos), el
+            // error quedaba sin capturar y cortaba TODO en seco, sin aviso:
+            // ni copiar, ni WhatsApp, ni Instagram/Messenger funcionaban.
+            let link;
+            try {
+                link = (window._enlacesCortosCache && window._enlacesCortosCache[cat])
+                    || await generarEnlaceCorto(cat);
+            } catch (_) {
+                mostrarToastOk('No se pudo generar el enlace — revisá tu conexión e intentá de nuevo');
+                return;
+            }
             if (act === 'copiar') {
                 try {
                     await navigator.clipboard.writeText(link);
@@ -13029,7 +13048,12 @@ window.abrirCompartirTiendaGuardada = function(cat, btn, ev) {
                 window.open(`https://wa.me/?text=${encodeURIComponent(link)}`, '_blank');
             } else if (act === 'mas') {
                 if (navigator.share) {
-                    navigator.share({ url: link, title: 'Mi tienda' }).catch(() => {});
+                    // 🆕 FIX: antes el error quedaba en silencio total — el
+                    // usuario tocaba la opción y no pasaba nada, sin forma
+                    // de saber qué hacer.
+                    navigator.share({ url: link, title: 'Mi tienda' }).catch(() => {
+                        mostrarToastOk("No se pudo abrir el panel de compartir — probá 'Copiar enlace'");
+                    });
                 } else {
                     try { await navigator.clipboard.writeText(link); } catch(_) {}
                     mostrarToastOk('Enlace copiado — pegalo en Instagram o Messenger');
