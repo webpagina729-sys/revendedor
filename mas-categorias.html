@@ -8961,7 +8961,7 @@ function catalogoEfectivoMultishop(p) {
             if (nextBtn) nextBtn.style.display = multi ? 'flex' : 'none';
             const varWrap = document.getElementById('modal-details-variantes-wrap');
             const varCont = document.getElementById('modal-details-variantes');
-            const catEfectiva = catalogoEfectivoBelleza(producto);
+            const catEfectiva = window.currentProductCatalog || window.currentCatalog;
             const variantes = _variantesActivasDe(catEfectiva, producto.id, 'variantes', producto.variantes);
             window.currentModalVarianteSeleccionada = null;
             if (varWrap && varCont) {
@@ -10398,7 +10398,7 @@ function catalogoEfectivoMultishop(p) {
             const _chips = arr => arr.map(v => `<span style="padding:6px 12px;border:1.5px solid var(--border);border-radius:20px;background:var(--surface);font-size:12.5px;color:var(--text);">${v}</span>`).join('');
             const _seccion = (titulo, cuerpo) => `<div class="modal-details-section" style="margin-bottom: 15px; width: 100%; text-align: left;"><div class="modal-details-section-title" style="font-weight: 600; margin-bottom: 10px; color: var(--text);">${titulo}</div>${cuerpo}</div>`;
             let tallesHtml = '';
-            const tallesActivos = (product.talle || []);
+            const tallesActivos = _variantesActivasDe('calzados', product.id, 'talle', product.talle);
             if (tallesActivos.length > 0) tallesHtml = _seccion('Talle', `<div style="display:flex; flex-wrap:wrap; gap:6px;">${_chips(tallesActivos)}</div>`);
             const lineasHtml = (Array.isArray(product.lineasVariantes) ? product.lineasVariantes : []).filter(l => l && l.nombre && Array.isArray(l.opciones) && l.opciones.length)
                 .map(l => _seccion(l.nombre, `<div style="display:flex; flex-wrap:wrap; gap:6px;">${_chips(l.opciones)}</div>`)).join('');
