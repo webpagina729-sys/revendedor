@@ -6723,6 +6723,26 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             return Array.isArray(override) ? override : (listaBase || []);
         }
 
+        // 🔧 FIX: productos cargados vía "Cargar productos" (pegado) guardan
+        // sus opciones de Color/Talle como líneas con nombre en
+        // producto.lineasVariantes (ej. {nombre:'Color', opciones:[...]})
+        // en vez de en producto.colores/producto.talles. Y cuando se agrega
+        // una opción nueva desde pedidos.html → Stock → ⚙️ Variantes, el
+        // override queda guardado bajo el campo genérico 'variantes', con
+        // formato "Color: Rojo" — no bajo 'colores'/'talles'. Esta función
+        // arma la lista combinando la línea base con ese override, separando
+        // por el prefijo "Nombre: " (misma lógica que ya usa pedidos.html
+        // en su propio modal de variantes).
+        function _grupoLineaVariante(catalogo, producto, nombresPosibles) {
+            const lineas = Array.isArray(producto.lineasVariantes) ? producto.lineasVariantes : [];
+            const lineaMatch = lineas.find(l => l && l.nombre && nombresPosibles.includes(l.nombre.trim().toLowerCase()));
+            if (!lineaMatch) return [];
+            const prefijo = lineaMatch.nombre + ': ';
+            const baseCompleta = lineas.flatMap(l => (l && l.nombre && Array.isArray(l.opciones)) ? l.opciones.map(o => l.nombre + ': ' + o) : []);
+            const activos = _variantesActivasDe(catalogo, producto.id, 'variantes', baseCompleta);
+            return activos.filter(v => typeof v === 'string' && v.indexOf(prefijo) === 0).map(v => v.slice(prefijo.length));
+        }
+
         function poblarCarruselYVariantesModal(producto) {
             const imgs = (Array.isArray(producto.imagenes) && producto.imagenes.length > 1) ? producto.imagenes : [producto.imagen];
             window.currentModalImagenes = imgs;
@@ -6745,7 +6765,8 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             const varWrap = document.getElementById('modal-details-variantes-wrap');
             const varCont = document.getElementById('modal-details-variantes');
             const varTitulo = document.getElementById('modal-details-variantes-titulo');
-            const colores = _variantesActivasDe('lenceria', producto.id, 'colores', producto.colores);
+            const coloresLinea = _grupoLineaVariante('lenceria', producto, ['color', 'colores']);
+            const colores = coloresLinea.length > 0 ? coloresLinea : _variantesActivasDe('lenceria', producto.id, 'colores', producto.colores);
             window.currentModalVarianteSeleccionada = null;
             if (varWrap && varCont) {
                 if (varTitulo) varTitulo.textContent = 'Color';
@@ -6763,7 +6784,8 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             // Grupo "Talle" — segundo grupo, independiente del de Color.
             const talleWrap = document.getElementById('modal-details-talles-wrap');
             const talleCont = document.getElementById('modal-details-talles');
-            const talles = _variantesActivasDe('lenceria', producto.id, 'talles', producto.talles);
+            const tallesLinea = _grupoLineaVariante('lenceria', producto, ['talle', 'talles']);
+            const talles = tallesLinea.length > 0 ? tallesLinea : _variantesActivasDe('lenceria', producto.id, 'talles', producto.talles);
             window.currentModalTalleSeleccionado = null;
             if (talleWrap && talleCont) {
                 if (talles.length > 0) {
@@ -12891,8 +12913,18 @@ fetch('https://panelgestionestados.tuweb.workers.dev/api/variantes-global')
             // sin responder, se vuelve a intentar solo en unos minutos (el
             // enlace queda listo en la caché apenas se logra).
             let urlCorta = null, ultimoError = null;
-            for (let intento = 0; intento < 3 && !urlCorta; intento++) {
-                if (intento > 0) await new Promise(r => setTimeout(r, 4000));
+            // 🆕 FIX: 3 → 5 intentos (mismo esquema de espera de 4s entre
+            // cada uno), más chances para una conexión lenta/floja antes de
+            // rendirse. Además, se relee el código fresco en cada reintento
+            // — antes se capturaba una sola vez al principio, así que si no
+            // estaba listo todavía, los reintentos repetían el mismo fallo
+            // ("sin codigo") aunque el código ya hubiera aparecido mientras
+            // tanto.
+            for (let intento = 0; intento < 5 && !urlCorta; intento++) {
+                if (intento > 0) {
+                    await new Promise(r => setTimeout(r, 4000));
+                    codigo = getCodigoVendedor() || codigo;
+                }
                 try { urlCorta = await acortarEnlace(slugId, codigo, cat, cfgFull, promo, null, sub); }
                 catch (e) { ultimoError = e; }
             }
