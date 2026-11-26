@@ -1022,6 +1022,10 @@
                 <span>Subtotal</span>
                 <span id="cart-subtotal">$0</span>
             </div>
+            <div class="summary-row" id="cart-regalo-row" style="display:none;color:var(--primary,#0066ff);font-weight:700;">
+                <span>🎁 Regalo cliente del mes</span>
+                <span id="cart-regalo-monto">-$0</span>
+            </div>
             <div class="summary-row total">
                 <span>Total</span>
                 <span id="cart-total">$0</span>
@@ -4875,6 +4879,7 @@ function renderizarCarrito() {
     }
 
     const total = carrito.reduce((s, x) => s + x.producto.precioFinal * x.qty, 0);
+    const descuentoRegalo = _montoRegaloMesAplicable(total);
 
     container.innerHTML = carrito.map(item => `
         <div class="cart-item">
@@ -4895,7 +4900,14 @@ function renderizarCarrito() {
     `).join('');
 
     document.getElementById('cart-subtotal').textContent = formatPrice(total);
-    document.getElementById('cart-total').textContent = formatPrice(total);
+    const filaRegalo = document.getElementById('cart-regalo-row');
+    if (descuentoRegalo > 0) {
+        document.getElementById('cart-regalo-monto').textContent = '-' + formatPrice(descuentoRegalo);
+        filaRegalo.style.display = 'flex';
+    } else {
+        filaRegalo.style.display = 'none';
+    }
+    document.getElementById('cart-total').textContent = formatPrice(total - descuentoRegalo);
     summary.style.display = 'block';
 }
 
@@ -4914,12 +4926,14 @@ function enviarPorWhatsApp() {
         `• ${item.producto.nombre}${item.molderia ? ' (' + (item.molderia === 'hombre' ? 'Hombre' : 'Mujer') + ')' : ''}${item.talle ? ' (T. ' + item.talle + ')' : ''}${item.color ? ' (Color: ' + item.color + ')' : ''} x${item.qty} — ${formatPrice(item.producto.precioFinal * item.qty)}`
     );
     const total = carrito.reduce((s, x) => s + x.producto.precioFinal * x.qty, 0);
+    const descuentoRegalo = _montoRegaloMesAplicable(total);
     const msg = [
         '¡Hola! Quiero hacer el siguiente pedido:',
         '',
         ...lineas,
         '',
-        `*Total: ${formatPrice(total)}*`
+        ...(descuentoRegalo > 0 ? [`🎁 Regalo cliente del mes: -${formatPrice(descuentoRegalo)}`] : []),
+        `*Total: ${formatPrice(total - descuentoRegalo)}*`
     ].join('\n');
 
     window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(msg), '_blank');
@@ -5459,7 +5473,11 @@ async function enviarPedidoConDatos() {
     const cantidades          = carrito.map(i => i.qty);
     const preciosIndividuales = carrito.map(i => i.producto.precioFinal);
     const subtotal            = carrito.reduce((s, x) => s + x.producto.precioFinal * x.qty, 0);
-    const total               = subtotal + costoEntrega;
+    // 🆕 Descuento "cliente del mes" (ver verificarRegaloPendiente): se
+    // resta del subtotal de productos, nunca del costo de entrega.
+    const regaloMesActivo     = window._regaloMesActivo || null;
+    const descuentoRegaloMes  = _montoRegaloMesAplicable(subtotal);
+    const total               = subtotal - descuentoRegaloMes + costoEntrega;
 
     const datosEnvio = { nombre, apellido, telefono, direccion, direccionAlternativa: dirAlt, provincia, ciudad, cp, tipoEntrega: tipo, costoEntrega };
 
@@ -5483,6 +5501,11 @@ async function enviarPedidoConDatos() {
         subtotal,
         costoEntrega,
         total,
+        // 🆕 Descuento "cliente del mes" aplicado en este pedido (si había
+        // uno activo) — se manda el id del regalo para que index(1).html
+        // descuente la ganancia del revendedor por ESE regalo puntual al
+        // aprobar este pedido (ver descontarRegaloPendienteSiAplica).
+        ...(descuentoRegaloMes > 0 && regaloMesActivo ? { regaloMesId: regaloMesActivo.id, descuentoRegaloMes } : {}),
         tipoEntrega: tipo,
         estado: 'pendiente',
         // 🔧 NUEVO: los Términos y Condiciones / Política de Privacidad ya
@@ -5531,6 +5554,17 @@ async function enviarPedidoConDatos() {
         document.getElementById('co-status').style.display = 'block';
         btn.textContent = '✓ Pedido confirmado';
         registrarAceptacionLegales(_pedidoIdConfirmado || '', nombre, apellido, telefono, payload.codigoVendedor, fecha, hora);
+        // 🆕 Si se usó el descuento "cliente del mes", reservarlo para ESTE
+        // pedido (no bloqueante) — así no se vuelve a ofrecer en otro
+        // carrito mientras este pedido está pendiente de aprobación.
+        if (descuentoRegaloMes > 0 && regaloMesActivo) {
+            fetch('https://datosderevendedor.tuweb.workers.dev/api/regalo-reservar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: vendedor && (vendedor.uid || vendedor.userId || vendedor.id), id: regaloMesActivo.id, tel: telefono, pedidoId: _pedidoIdConfirmado || null }),
+            }).catch(function() {});
+            window._regaloMesActivo = null;
+        }
         _guardarClienteLocalParaLogin(nombre, apellido, telefono, direccion, provincia, ciudad, cp);
         setTimeout(function() {
             cerrarCheckout();
@@ -5757,12 +5791,14 @@ function _enviarWAConTipoEntregaConCosto(tipo, datosEnvio, costoEntrega, totalCo
     });
 
     const esRetiro = tipo === 'retiro';
+    const descuentoRegalo = _montoRegaloMesAplicable(subtotal);
     const partes = [
         '¡Hola! 😊 Quiero hacer el siguiente pedido:',
         '',
         ...lineas,
         '',
         `Subtotal productos: ${formatPrice(subtotal)}`,
+        ...(descuentoRegalo > 0 ? [`🎁 Regalo cliente del mes: -${formatPrice(descuentoRegalo)}`] : []),
         `Costo de entrega: ${formatPrice(costoEntrega)}`,
         `*Total: ${formatPrice(totalConCosto)}*`,
     ];
@@ -6447,6 +6483,18 @@ function _carritoSubtotal() {
         .reduce((s, x) => s + x.producto.precioFinal * x.qty, 0);
 }
 
+// ═══════════════════════════════════════════════════════════
+// DESCUENTO "CLIENTE DEL MES" — se guarda en window._regaloMesActivo
+// cuando verificarRegaloPendiente() encuentra un regalo pendiente para
+// este cliente (ver más abajo). Topeado al subtotal de productos para
+// que nunca deje el total en negativo.
+// ═══════════════════════════════════════════════════════════
+function _montoRegaloMesAplicable(subtotalProductos) {
+    const r = window._regaloMesActivo;
+    if (!r || !(Number(r.monto) > 0)) return 0;
+    return Math.min(Number(r.monto) || 0, Math.max(0, Number(subtotalProductos) || 0));
+}
+
 function _maybeOfferGift() {
     if (!window.promoActiva || !window.promoActiva.gift) return;
     if (carrito.some(x => x.regalo)) return; // ya tiene regalo
@@ -6569,6 +6617,15 @@ async function verificarRegaloPendiente() {
         const regalo = regalosPendientes.find(g => String(g.tel || '').replace(/\D/g, '') === telLimpio);
         if (!regalo) return;
 
+        // 🆕 Se guarda como el regalo ACTIVO de esta visita — es lo que
+        // usan _montoRegaloMesAplicable()/renderizarCarrito()/
+        // enviarPedidoConDatos() para descontarlo del carrito. Se guarda
+        // siempre (incluso si el modal ya se mostró antes en este
+        // navegador), para que el descuento siga aplicándose en visitas
+        // posteriores mientras el regalo siga pendiente.
+        window._regaloMesActivo = regalo;
+        if (typeof renderizarCarrito === 'function' && carrito.length) renderizarCarrito();
+
         // Ya se mostró este regalo en este navegador — no repetir en cada visita.
         const vistos = JSON.parse(localStorage.getItem('rw_regalos_vistos_v1') || '[]');
         if (vistos.includes(regalo.id)) return;
@@ -6579,7 +6636,7 @@ async function verificarRegaloPendiente() {
         const medalla = regalo.puesto === 1 ? '🥇' : regalo.puesto === 2 ? '🥈' : '🥉';
         document.getElementById('regaloMesTag').textContent = `${medalla} Cliente del mes`;
         document.getElementById('regaloMesTexto').textContent =
-            `Ganaste un bono de $${Math.round(regalo.monto).toLocaleString()} por salir en el Puesto ${puestoLabel} de clientes del mes`;
+            `Ganaste un bono de $${Math.round(regalo.monto).toLocaleString()} por salir en el Puesto ${puestoLabel} de clientes del mes. Se descuenta automáticamente en tu próxima compra.`;
         document.getElementById('regaloMesModal').classList.add('active');
         lanzarConfeti();
     } catch(e) { /* silencioso — no debe romper la carga de la tienda */ }
