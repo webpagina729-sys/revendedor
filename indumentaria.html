@@ -15174,13 +15174,24 @@ function mostrarToastOk(msg) {
             if (/openProfileModal/.test(btns[i].getAttribute('onclick') || '')) { botonPerfil = btns[i]; break; }
         }
         if (!botonPerfil) return null;
+        // 🔧 FIX: el punto se posiciona ABSOLUTO respecto del botón, así que
+        // el botón necesita position:relative (la clase .ribbon-option no
+        // lo trae por defecto) — si no, el punto se ubica mal y encima
+        // empuja el texto hacia afuera.
+        if (getComputedStyle(botonPerfil).position === 'static') {
+            botonPerfil.style.position = 'relative';
+        }
         puntito = document.createElement('span');
         puntito.id = 'perfil-pedidos-nuevos';
         // 🆕 NUEVO: punto rojo pequeño y simple (sin número) — avisa que hay
         // algo pendiente en Perfil (pedidos nuevos y/o contraseña de
         // seguridad temporal por cambiar). La cantidad en sí se ve en el
         // badge del botón "Pedidos recibidos" (más abajo), no acá.
-        puntito.style.cssText = 'display:none;margin-left:6px;width:9px;height:9px;border-radius:50%;background:#e53935;vertical-align:middle;';
+        // 🔧 FIX: antes iba INLINE al lado del texto "Perfil" (9x9px,
+        // margin-left) — se veía grande y corría el texto hacia afuera.
+        // Ahora es un puntito de 3x3px, posicionado abajo y centrado
+        // horizontalmente respecto del texto, sin afectar el layout.
+        puntito.style.cssText = 'display:none;position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:#e53935;pointer-events:none;';
         botonPerfil.appendChild(puntito);
         return puntito;
     }
@@ -15190,7 +15201,7 @@ function mostrarToastOk(msg) {
     // pendiente de cambiar.
     function actualizarPuntoPerfil() {
         var p = asegurarPuntito();
-        if (p) p.style.display = (ultimoNPedidos > 0 || window._seguridadRequiereCambio) ? 'inline-block' : 'none';
+        if (p) p.style.display = (ultimoNPedidos > 0 || window._seguridadRequiereCambio) ? 'block' : 'none';
     }
     window._actualizarPuntoPerfilSeguridad = actualizarPuntoPerfil;
     function mostrarCantidad(n) {
